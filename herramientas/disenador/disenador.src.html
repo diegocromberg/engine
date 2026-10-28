@@ -1697,8 +1697,10 @@ function pintarItem(it, ruta) {
     fila.forEach((cel, c) => {
       const loc = { ruta, f, c };
       const span = Math.min(cel.n || 1, n - col);
+      const celEl = pintarCelda(cel, loc, span, f);
+      celEl.dataset.col = col;   // E2: columna donde arranca (para alinear los literales)
       col += cel.n || 1;
-      g.append(pintarCelda(cel, loc, span, f));
+      g.append(celEl);
     });
     // renglón más corto que la tabla: huecos al final (también se puede soltar ahí)
     for (let k = fila.length; col < n; col++, k++) {
@@ -1713,6 +1715,7 @@ function pintarItem(it, ruta) {
       g.append(hueco);
     }
   });
+  alinearLiterales(g, t);
   caja.append(g);
   const zona = h('div', { class: 'zona' }, '+ soltá acá para un renglón nuevo');
   destino(zona, d => d.tipo === 'campo', d => agregarRenglon(ruta, d.nombre));
@@ -1722,6 +1725,20 @@ function pintarItem(it, ruta) {
   return caja;
 }
 
+/** E2: como el motor (V66o): en cada columna de la tabla los literales tienen el ancho del más largo, así los campos de esa
+ *  columna arrancan todos a la misma altura (literal a la izquierda, campo a la derecha, uno debajo del otro). */
+function alinearLiterales(g, t) {
+  if (t.etiquetas === 'arriba') return;
+  // se mide ya dibujado (con la letra, negrita y clase reales de cada literal)
+  requestAnimationFrame(() => {
+    if (!g.isConnected) return;
+    const celdas = [...g.children].filter(c => c.dataset.col != null && !c.classList.contains('vacia'));
+    const ets = celdas.map(c => [c.dataset.col, c.querySelector(':scope > .et')]).filter(x => x[1]);
+    const max = {};
+    for (const [col, et] of ets) { et.style.flex = 'none'; et.style.width = 'auto'; max[col] = Math.max(max[col] || 0, Math.ceil(et.getBoundingClientRect().width)); }
+    for (const [col, et] of ets) et.style.width = (max[col] + 1) + 'px';
+  });
+}
 function pintarCelda(cel, loc, span, fila) {
   const estiloGrid = 'grid-column: span ' + span + ';grid-row:' + (fila + 1);
   if (cel.v) {
@@ -2976,6 +2993,17 @@ function editorCodigo(k) {
   return h('div', { class: 'form' }, h('div', { class: 'coment' }, ayuda), ta);
 }
 
+/** E2: web panel como las TRN (V66o): en cada columna los literales con el ancho del más largo y las celdas del mismo ancho,
+ *  así los campos quedan uno debajo del otro. */
+function alinearPanelP(form) {
+  if (!form.isConnected) return;
+  const celdas = [...form.querySelectorAll('.renglon-w > .celda[data-col]')];
+  const maxEt = {}, maxCel = {};
+  for (const c of celdas) { const et = c.querySelector(':scope > .et'); if (et) { et.style.flex = 'none'; et.style.width = 'auto'; maxEt[c.dataset.col] = Math.max(maxEt[c.dataset.col] || 0, Math.ceil(et.getBoundingClientRect().width)); } }
+  for (const c of celdas) { const et = c.querySelector(':scope > .et'); if (et) et.style.width = (maxEt[c.dataset.col] + 1) + 'px'; }
+  for (const c of celdas) { c.style.flex = 'none'; c.style.width = 'auto'; maxCel[c.dataset.col] = Math.max(maxCel[c.dataset.col] || 0, Math.ceil(c.getBoundingClientRect().width)); }
+  for (const c of celdas) c.style.width = maxCel[c.dataset.col] + 'px';
+}
 function celdaVar(n, fila, col) {
   const v = varP(n);
   const cl = 'celda' + (v && v.soloLectura ? ' lectura' : '') + (v && v.oculto ? ' oculto' : '') + (!v ? ' error' : '')
@@ -3024,12 +3052,13 @@ function pintarFormP() {
     const fila = h('div', { class: 'renglon-d renglon-w' + (esSel({ tipo: 'wfila', idx: i }) ? ' sel' : ''), style: 'gap:8px' },
       h('span', { class: 'etq', title: 'Renglón ' + (i + 1) }, 'Renglón ' + (i + 1)));
     fila.addEventListener('click', () => seleccionar({ tipo: 'wfila', idx: i }));
-    r.forEach((n, k) => fila.append(celdaVar(n, i, k)));
+    r.forEach((n, k) => { const ce = celdaVar(n, i, k); ce.dataset.col = k; fila.append(ce); });
     const fin = h('div', { class: 'zona' }, '+ al final');
     destino(fin, d => d.tipo === 'wvar', d => moverVarP(d.nombre, i, r.length));
     fila.append(fin);
     form.append(fila);
   });
+  requestAnimationFrame(() => alinearPanelP(form));   // E2: literales y campos encolumnados, como en el motor
   const nueva = h('div', { class: 'zona', style: 'margin-top:6px' }, '+ soltá acá una variable para un renglón nuevo');
   destino(nueva, d => d.tipo === 'wvar', d => moverVarP(d.nombre, m.pantalla.length, 0));
   form.append(nueva);

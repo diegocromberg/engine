@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E2a — Designer: formulario encolumnado (28/10/2026)
+
+- En el diseño del formulario de las TRN (también en la vista previa del importador) y de los web panels, los literales y los campos
+  quedan **encolumnados como en el motor** (V66o): en cada columna los literales tienen el ancho del más largo, así todos los campos de
+  esa columna arrancan a la misma altura. Antes cada campo arrancaba donde terminaba su literal. Solo cambia cómo se ve el Designer;
+  no cambia ningún YAML.
+
 ## E2 — Importador de GeneXus en el Designer (28/10/2026)
 
 - **OPTIMIST Designer: botón "⬇ Importar de GeneXus"** (guía, 11.2). Abre el export de una KB (**XML o XPZ**, leído por partes en el
