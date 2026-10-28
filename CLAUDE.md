@@ -30,10 +30,10 @@
 - **Etapa 2 (pendiente)**: motor independiente del ERP. Lo que hoy da por sentado del ERP (multiempresa, empresa/división de stock,
   ParamGlb, tablas del ERP) pasa a ser configuración de cada aplicación, con la del ERP prendida por defecto para no cambiarle nada;
   lo propio del ERP se engancha como extensión. Recién ahí el motor tiene su propio `pom.xml` y se prueba con Factory.
-- **Importador de GeneXus** (pendiente, en el Designer): abrir el XML/XPZ, lista de TRN con tildes y estado (nueva / ya migrada /
-  modificada en GeneXus, por el checksum del objeto), aviso de dependencias, vista previa del formulario y del WW sin grabar,
-  reimportar con confirmación fuerte, un `<Trn>.gx.txt` con eventos y reglas no traducidas para pasarle a la IA de cada desarrollador
-  (el importador no llama a ninguna IA). Versiones de GeneXus: X en adelante (adaptador por versión, incluido WorkWithPlus/K2BTools).
+- **Importador de GeneXus (E2, hecho)**: en el Designer (`herramientas/disenador/importador.js` + pantalla en `disenador.src.html`;
+  guía 11.2). `gx2yaml.py` es la REFERENCIA: todo cambio de criterio va primero ahí, después en `importador.js`, y las salidas se
+  comparan (idénticas). Probado con GeneXus 17 + WWP (Factory). Falta validar con XML reales de GX15 (la KB del ERP), GX16/18 y
+  Evolution, y el adaptador de K2BTools (cuando haya un XPZ que lo use).
 - Versión de prueba (pendiente, con el licenciamiento): 15 días y hasta 10 TRN en el proyecto; lo hecho en prueba corre con cartel.
 - Licencia: clave por PC (huella de la PC → archivo de licencia firmado con clave privada de DATAFIX).
 

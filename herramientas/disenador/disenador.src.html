@@ -269,6 +269,53 @@ textarea.codigo { width: 100%; height: calc(100vh - 230px); min-height: 300px; f
 .q-guia span { position: absolute; bottom: -18px; left: 4px; font-size: 11px; color: var(--peligro); white-space: nowrap; }
 textarea.q-sql { width: 100%; box-sizing: border-box; font: 12px/1.4 Consolas, "Cascadia Mono", monospace; border: 1px solid var(--borde); border-radius: 5px; padding: 5px 7px; resize: vertical; }
 button.peligro { color: var(--peligro); }
+
+/* E2: importador de GeneXus */
+#imp { position: fixed; inset: 0; z-index: 40; background: #0f2a3399; display: none; align-items: center; justify-content: center; }
+#imp.abierto { display: flex; }
+#imp .ven { background: var(--panel); width: min(1100px, 96vw); height: min(760px, 92vh); border-radius: 10px; box-shadow: 0 12px 40px #0005; display: grid; grid-template-rows: auto auto auto 1fr auto; overflow: hidden; }
+#imp .cab { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #0f2a33; color: #fff; }
+#imp .cab b { font-size: 15px; }
+#imp .cab .x { margin-left: auto; background: transparent; color: #fff; border: 0; font-size: 18px; line-height: 1; padding: 2px 8px; }
+#imp .cab .x:hover { background: var(--peligro); }
+#imp .orig { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--borde); }
+#imp .orig .dato { color: var(--suave); }
+#imp .orig .dato b { color: var(--texto); }
+#imp .herr { display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--borde); flex-wrap: wrap; }
+#imp .herr input[type=text] { width: 260px; }
+#imp .herr label { display: flex; gap: 5px; align-items: center; color: var(--suave); }
+#imp .barraAvance { height: 6px; background: var(--acento-2); border-radius: 3px; overflow: hidden; width: 260px; }
+#imp .barraAvance div { height: 100%; background: var(--acento); width: 0; transition: width .2s; }
+#imp .tabla { overflow: auto; }
+#imp table { border-collapse: collapse; width: 100%; }
+#imp th { position: sticky; top: 0; background: #eef2f5; text-align: left; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--borde); z-index: 1; }
+#imp td { padding: 5px 8px; border-bottom: 1px solid #edf0f3; vertical-align: middle; }
+#imp tr.fila { cursor: pointer; }
+#imp tr.fila:hover td { background: var(--acento-2); }
+#imp tr.fila.marcada td { background: #fffbe6; }
+#imp tr.fila.no td { color: var(--oculto); cursor: default; }
+#imp .num { text-align: right; }
+#imp .vacio { padding: 40px; text-align: center; color: var(--suave); }
+#imp .pie { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--borde); background: var(--fondo); }
+#imp .pie .cuenta { margin-right: auto; color: var(--suave); }
+.est { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.est.nueva { background: #e3f4ea; color: #1f7a3b; }
+.est.migrada { background: #eceff2; color: #5d6875; }
+.est.modificada { background: #fff0d9; color: #a35a00; }
+.est.error { background: #fdecea; color: var(--peligro); }
+.est.wwp { background: #e8eefc; color: #2c4fa0; }
+#dlg { position: fixed; inset: 0; z-index: 70; background: #0f2a3388; display: flex; align-items: center; justify-content: center; }
+#dlg .ven { background: #fff; width: min(560px, 94vw); max-height: 86vh; overflow: auto; border-radius: 10px; box-shadow: 0 12px 40px #0006; }
+#dlg .cab { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #0f2a33; color: #fff; border-radius: 10px 10px 0 0; font-weight: 700; }
+#dlg.peligro .cab { background: var(--peligro); }
+#dlg .cab .x { margin-left: auto; background: transparent; color: #fff; border: 0; font-size: 17px; padding: 0 6px; }
+#dlg .cuerpo { padding: 14px; }
+#dlg .cuerpo ul { margin: 6px 0; padding-left: 20px; max-height: 220px; overflow: auto; }
+#dlg .botones { display: flex; gap: 8px; justify-content: flex-start; padding: 0 14px 14px; flex-wrap: wrap; }
+button.rojo { background: var(--peligro); color: #fff; border-color: var(--peligro); }
+button.rojo:disabled { opacity: .4; }
+#bandaPrevia { background: #a35a00; color: #fff; padding: 4px 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
+#bandaPrevia button { background: #fff; color: #a35a00; border-color: #fff; }
 </style>
 </head>
 <body>
@@ -276,6 +323,7 @@ button.peligro { color: var(--peligro); }
   <span class="marca">OPTIMIST Designer</span>
   <button id="bAbrir" title="Elegir la carpeta del proyecto o src/main/resources/trn">📂 Abrir carpeta</button>
   <button id="bArchivo" title="Abrir un solo YAML (TRN, web panel, impresión o consulta); se graba en el mismo lugar">📄 Abrir archivo</button>
+  <button id="bImportar" title="Importar transacciones desde el export XML o XPZ de una KB de GeneXus">⬇ Importar de GeneXus</button>
   <select id="lista" disabled><option>— sin carpeta —</option></select>
   <button id="bDeshacer" disabled title="Ctrl+Z">↶ Deshacer</button>
   <button id="bRehacer" disabled title="Ctrl+Y">↷ Rehacer</button>
@@ -292,8 +340,11 @@ button.peligro { color: var(--peligro); }
 <div id="pie"><span id="pieInfo">Arrastrá campos para moverlos · Botón derecho para sus propiedades rápidas</span><span id="pieErr" class="err"></span></div>
 <div id="menu"></div>
 <input type="file" id="inArchivo" accept=".yaml,.yml" hidden>
+<input type="file" id="inGx" accept=".xml,.xpz" hidden>
+<div id="imp"></div>
 
 <script>/*YAML_LIB*/</script>
+<script>/*IMPORTADOR*/</script>
 <script>
 "use strict";
 /* ============================================================================================
@@ -1458,7 +1509,8 @@ function pintarBarra() {
   $('#bRehacer').disabled = !X || !X.fut.length;
   $('#bGuardar').disabled = !X || !sucio();
   $('#estado').innerHTML = '';
-  if (X) $('#estado').append((Q ? 'Consulta ' : R ? 'Impresión ' : P ? 'Panel ' : '') + X.nombre + (X.handle ? '' : ' (se descarga al guardar)'), sucio() ? h('span', { class: 'sucio' }, ' · cambios sin guardar') : ' · guardado');
+  if (X) $('#estado').append((Q ? 'Consulta ' : R ? 'Impresión ' : P ? 'Panel ' : '') + X.nombre + (X.vistaPrevia && X === A ? ' (vista previa, no se graba)' : X.handle ? '' : ' (se descarga al guardar)'), sucio() ? h('span', { class: 'sucio' }, ' · cambios sin guardar') : ' · guardado');
+  if (typeof bandaPreviaImp === 'function') bandaPreviaImp();   // E2
 }
 
 // ---------- árbol
@@ -2507,6 +2559,7 @@ function cargar(nombre, texto, handle) {
   pintar();
 }
 async function guardar() {
+  if (A && A.vistaPrevia && !P && !R && !Q) { aviso('Es una vista previa de GeneXus: no se graba. Para tenerla, importala (botón de arriba).', true); return; }   // E2
   if (Q) return guardarCns();     // V66k4
   if (R) return guardarImp();     // V64
   if (P) return guardarPanel();   // V49h
@@ -4574,11 +4627,310 @@ document.addEventListener('keydown', e => {
 });
 window.addEventListener('beforeunload', e => { if (sucio()) { e.preventDefault(); e.returnValue = ''; } });
 
+// ------------------------------------------------------------------ E2: importar de GeneXus (OPTIMIST Engine)
+// El XML / XPZ de la KB se lee en el navegador (GXI, importador.js). Cada TRN se convierte en memoria; se puede ver
+// (vista previa en el diseñador, sin grabar) e importar a la carpeta trn de la aplicación. En trn/_importacion.json queda
+// el checksum de cada TRN importada, para saber después si cambió en GeneXus. En trn/_gx/<Trn>.gx.txt, lo que no se
+// tradujo (reglas y eventos) listo para pasarle a la IA de cada desarrollador.
+const IMP = { kb: null, archivo: '', lista: [], destino: null, control: { trns: {} }, existentes: new Map(),
+              marcadas: new Set(), filtro: '', verWwp: false, avance: null, previa: null, error: '' };
+const CONTROL_IMP = '_importacion.json';
+
+function abrirImportador() {
+  if (!IMP.destino && dir && /^trn$/i.test(dir.name)) { IMP.destino = dir; leerDestinoImp().then(pintarImp); }
+  $('#imp').classList.add('abierto');
+  pintarImp();
+}
+function cerrarImportador() { $('#imp').classList.remove('abierto'); }
+
+async function elegirArchivoGx() {
+  let f = null;
+  if (window.showOpenFilePicker) {
+    try {
+      const [fh] = await showOpenFilePicker({ id: 'optimist-gx', types: [{ description: 'Export de GeneXus (XML o XPZ)', accept: { 'application/octet-stream': ['.xml', '.xpz'] } }] });
+      f = await fh.getFile();
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  if (!f) { $('#inGx').click(); return; }
+  await leerArchivoGx(f);
+}
+async function leerArchivoGx(f) {
+  IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImp();
+  try {
+    let ult = 0;
+    const kb = await GXI.leerArchivo(f, x => { const ahora = Date.now(); if (ahora - ult > 150) { ult = ahora; IMP.avance = x; pintarAvanceImp(); } });
+    IMP.kb = kb;
+    IMP.lista = GXI.listarTrns(kb);
+    if (!IMP.lista.length) IMP.error = 'En ese archivo no hay transacciones. Exportá la KB (o las TRN que quieras) con sus atributos, dominios y la instancia de WorkWithPlus.';
+  } catch (e) { IMP.error = 'No se pudo leer ' + f.name + ': ' + e.message; }
+  IMP.avance = null;
+  pintarImp();
+}
+$('#inGx').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await leerArchivoGx(f); });
+
+/** La carpeta trn de la aplicación: la del proyecto (src/main/resources/trn), una carpeta trn adentro, o la misma si se llama trn. */
+async function elegirDestinoImp() {
+  if (!window.showDirectoryPicker) { aviso('Este navegador no permite elegir carpetas: usá Chrome o Edge.', true); return; }
+  let d;
+  try { d = await showDirectoryPicker({ id: 'optimist-imp', mode: 'readwrite' }); } catch { return; }
+  let trn = null;
+  if (/^trn$/i.test(d.name)) trn = d;
+  if (!trn) {
+    try { let x = d; for (const p of ['src', 'main', 'resources', 'trn']) x = await x.getDirectoryHandle(p); trn = x; } catch {}
+  }
+  if (!trn) { try { trn = await d.getDirectoryHandle('trn'); } catch {} }
+  if (!trn) {
+    const ok = await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'En "', h('b', null, d.name), '" no hay una carpeta ', h('code', null, 'trn'), '. ¿La creo ahí para las transacciones importadas?')],
+                                  botones: [{ texto: 'Crear la carpeta trn', clase: 'primario', valor: true }, { texto: 'Cancelar', valor: false }] });
+    if (!ok) return;
+    try { trn = await d.getDirectoryHandle('trn', { create: true }); } catch (e) { aviso('No se pudo crear la carpeta trn: ' + e.message, true); return; }
+  }
+  IMP.destino = trn;
+  IMP.destinoPadre = d.name;
+  await leerDestinoImp();
+  pintarImp();
+}
+async function leerDestinoImp() {
+  IMP.existentes = new Map(); IMP.control = { trns: {} };
+  if (!IMP.destino) return;
+  try {
+    for await (const [nombre, handle] of IMP.destino.entries())
+      if (handle.kind === 'file' && /\.ya?ml$/i.test(nombre)) IMP.existentes.set(nombre.replace(/\.ya?ml$/i, '').toLowerCase(), nombre);
+  } catch {}
+  try {
+    const c = JSON.parse(await (await (await IMP.destino.getFileHandle(CONTROL_IMP)).getFile()).text());
+    if (c && typeof c === 'object') IMP.control = Object.assign({ trns: {} }, c);
+  } catch {}
+}
+/** nueva | migrada | modificada | error */
+function estadoImp(t) {
+  if (t.problema) return 'error';
+  if (!IMP.existentes.has(t.nombre.toLowerCase())) return 'nueva';
+  const c = IMP.control.trns[t.nombre];
+  return c && c.checksum && t.checksum && c.checksum !== t.checksum ? 'modificada' : 'migrada';
+}
+const TEXTO_EST = { nueva: 'nueva', migrada: 'ya migrada', modificada: 'cambió en GeneXus', error: 'no se puede' };
+function visiblesImp() {
+  const f = IMP.filtro.trim().toLowerCase();
+  return IMP.lista.filter(t => (IMP.verWwp || !t.base) && (!f || t.nombre.toLowerCase().includes(f) || (t.desc || '').toLowerCase().includes(f)));
+}
+function pintarAvanceImp() { const b = $('#imp .barraAvance div'); if (b) b.style.width = Math.round((IMP.avance || 0) * 100) + '%'; }
+
+function pintarImp() {
+  const raiz = $('#imp'); raiz.innerHTML = '';
+  const kb = IMP.kb;
+  const propias = IMP.lista.filter(t => !t.base).length, wwp = IMP.lista.length - propias;
+  const ven = h('div', { class: 'ven' });
+  ven.append(h('div', { class: 'cab' }, h('b', null, '⬇ Importar de GeneXus'), h('span', { style: 'opacity:.7' }, 'OPTIMIST Engine'),
+    h('button', { class: 'x', title: 'Cerrar', onclick: cerrarImportador }, '✕')));
+  ven.append(h('div', { class: 'orig' },
+    h('button', { onclick: elegirArchivoGx, disabled: IMP.avance != null }, '📄 Archivo de GeneXus…'),
+    h('span', { class: 'dato' }, IMP.archivo ? [h('b', null, IMP.archivo), kb ? ' · KB ' + (kb.nombre || '?') + ' · export ' + (kb.version || '?') + ' · ' + propias + ' TRN' + (wwp ? ' (y ' + wwp + ' del patrón WorkWithPlus)' : '') : ''] : 'El export de la KB (XML o XPZ): en GeneXus, Knowledge Manager → Export, con las transacciones y sus instancias de WorkWithPlus.'),
+    h('button', { onclick: elegirDestinoImp }, '📂 Carpeta de la aplicación…'),
+    h('span', { class: 'dato' }, IMP.destino ? [h('b', null, (IMP.destinoPadre && IMP.destino.name !== IMP.destinoPadre ? IMP.destinoPadre + ' / ' : '') + IMP.destino.name), ' · ' + IMP.existentes.size + ' TRN ya hay'] : 'Dónde van las TRN (la carpeta del proyecto, o su carpeta trn).')));
+  const herr = h('div', { class: 'herr' });
+  if (IMP.avance != null) herr.append('Leyendo la KB… ', h('div', { class: 'barraAvance' }, h('div')));
+  else if (kb) {
+    const vis = visiblesImp().filter(t => !t.problema);
+    const todas = vis.length && vis.every(t => IMP.marcadas.has(t.nombre));
+    herr.append(
+      h('input', { type: 'text', placeholder: 'Buscar TRN…', value: IMP.filtro, oninput: e => { IMP.filtro = e.target.value; pintarTablaImp(); } }),
+      h('label', null, h('input', { type: 'checkbox', checked: IMP.verWwp, onchange: e => { IMP.verWwp = e.target.checked; pintarImp(); } }), 'Ver también las del patrón WorkWithPlus (seguridad, menú)'),
+      h('button', { class: 'chico', onclick: () => { vis.forEach(t => todas ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre)); pintarImp(); } }, todas ? 'Destildar todas' : 'Tildar todas'),
+      h('button', { class: 'chico', onclick: () => { IMP.marcadas.clear(); vis.filter(t => estadoImp(t) === 'nueva').forEach(t => IMP.marcadas.add(t.nombre)); pintarImp(); } }, 'Tildar las nuevas'));
+  }
+  ven.append(herr);
+  ven.append(h('div', { class: 'tabla', id: 'impTabla' }));
+  const n = IMP.marcadas.size;
+  const pisa = [...IMP.marcadas].filter(x => { const t = IMP.lista.find(y => y.nombre === x); return t && estadoImp(t) !== 'nueva'; }).length;
+  ven.append(h('div', { class: 'pie' },
+    h('span', { class: 'cuenta' }, n ? n + ' tildada' + (n > 1 ? 's' : '') + (pisa ? ' · ' + pisa + ' ya migrada' + (pisa > 1 ? 's' : '') + ' (se pisa' + (pisa > 1 ? 'n' : '') + ')' : '') : IMP.destino ? 'Tildá las TRN que querés migrar. Clic en 👁 para verla antes de importar.' : 'Elegí la carpeta de la aplicación para importar.'),
+    h('button', { onclick: cerrarImportador }, 'Cerrar'),
+    h('button', { class: 'primario', disabled: !n || !IMP.destino, onclick: () => importarImp([...IMP.marcadas]) }, '⬇ Importar ' + (n ? n : '') + ' TRN')));
+  raiz.append(ven);
+  pintarTablaImp();
+  pintarAvanceImp();
+}
+function pintarTablaImp() {
+  const caja = $('#impTabla'); if (!caja) return;
+  caja.innerHTML = '';
+  if (IMP.error) { caja.append(h('div', { class: 'vacio', style: 'color:var(--peligro)' }, IMP.error)); return; }
+  if (!IMP.kb) { if (IMP.avance == null) caja.append(h('div', { class: 'vacio' }, 'Elegí el archivo de GeneXus (XML o XPZ) para ver sus transacciones.')); return; }
+  const vis = visiblesImp();
+  if (!vis.length) { caja.append(h('div', { class: 'vacio' }, 'Ninguna TRN coincide.')); return; }
+  const tb = h('tbody');
+  for (const t of vis) {
+    const est = estadoImp(t), marcada = IMP.marcadas.has(t.nombre);
+    const alternar = () => { if (t.problema) return; marcada ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre); pintarImp(); };
+    tb.append(h('tr', { class: 'fila' + (marcada ? ' marcada' : '') + (t.problema ? ' no' : ''), onclick: alternar, title: t.problema || '' },
+      h('td', null, h('input', { type: 'checkbox', checked: marcada, disabled: !!t.problema, onclick: e => e.stopPropagation(), onchange: alternar })),
+      h('td', null, h('b', null, t.nombre), t.base ? ' ' : '', t.base ? h('span', { class: 'est wwp' }, 'WorkWithPlus') : ''),
+      h('td', null, t.desc),
+      h('td', null, t.tabla),
+      h('td', { class: 'num' }, t.niveles),
+      h('td', null, h('span', { class: 'est ' + est, title: est === 'modificada' ? 'Se importó y después cambió en GeneXus: reimportala para traer los cambios (pisa lo que se haya tocado a mano).' : est === 'error' ? t.problema : '' }, TEXTO_EST[est])),
+      h('td', null, t.problema ? '' : h('button', { class: 'chico', title: 'Ver el formulario y el WorkWith sin grabar nada', onclick: e => { e.stopPropagation(); vistaPreviaImp(t.nombre); } }, '👁 Ver'))));
+  }
+  caja.append(h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'TRN'), h('th', null, 'Descripción'), h('th', null, 'Tabla'), h('th', { class: 'num' }, 'Niveles'), h('th', null, 'Estado'), h('th', null, ''))), tb));
+}
+
+/** Diálogo propio (no confirm): {titulo, cuerpo: [nodos], botones: [{texto, clase, valor, deshabilitado}], peligro} -> valor */
+function dialogoImp(o) {
+  return new Promise(ok => {
+    const fin = v => { d.remove(); ok(v); };
+    const bots = (o.botones || []).map(b => h('button', { class: b.clase || '', disabled: !!b.deshabilitado, onclick: () => fin(b.valor) }, b.texto));
+    const d = h('div', { id: 'dlg', class: o.peligro ? 'peligro' : '' },
+      h('div', { class: 'ven' }, h('div', { class: 'cab' }, o.titulo, h('button', { class: 'x', title: 'Cerrar', onclick: () => fin(null) }, '✕')),
+        h('div', { class: 'cuerpo' }, ...(o.cuerpo || [])), h('div', { class: 'botones' }, ...bots)));
+    if (o.alArmar) o.alArmar(bots);
+    document.body.append(d);
+  });
+}
+
+/** Vista previa: la TRN convertida se abre en el diseñador SIN grabar; "Volver al importador" deja todo como estaba. */
+function vistaPreviaImp(nombre) {
+  let res;
+  try { res = GXI.generar(IMP.kb, nombre); } catch (e) { aviso('No se pudo convertir ' + nombre + ': ' + e.message, true); return; }
+  if (!IMP.previa) {
+    const guardar = id => { const f = document.createDocumentFragment(); while ($(id).firstChild) f.append($(id).firstChild); return f; };
+    IMP.previa = { A, P, R, Q, sel, vista, solapaAct, nodos: { arbol: guardar('#arbol'), centro: guardar('#centro'), props: guardar('#props') } };
+  }
+  IMP.cargandoPrevia = true;
+  try { cargar(nombre + '.yaml', res.yaml, null); } finally { IMP.cargandoPrevia = false; }
+  if (!A || A.nombre !== nombre + '.yaml') return;   // no se pudo armar
+  A.vistaPrevia = nombre;
+  cerrarImportador();
+  pintarBarra();
+}
+function volverDePreviaImp() {
+  const pr = IMP.previa; IMP.previa = null;
+  $('#bandaPrevia') && $('#bandaPrevia').remove();
+  if (pr) {
+    A = pr.A; P = pr.P; R = pr.R; Q = pr.Q; sel = pr.sel; vista = pr.vista; solapaAct = pr.solapaAct;
+    if (A || P || R || Q) pintar();
+    else { for (const k of ['arbol', 'centro', 'props']) { $('#' + k).innerHTML = ''; $('#' + k).append(pr.nodos[k]); } pintarBarra(); $('#pieErr').textContent = ''; }
+  }
+  abrirImportador();
+}
+function bandaPreviaImp() {
+  const enPrevia = A && A.vistaPrevia && !P && !R && !Q;
+  const b = $('#bandaPrevia');
+  if (!enPrevia) {
+    if (b) b.remove();
+    // se abrió otra cosa desde la vista previa: lo que había antes ya no se restituye
+    if (IMP.previa && !IMP.cargandoPrevia && !(A && A.vistaPrevia)) IMP.previa = null;
+    return;
+  }
+  if (b && b.dataset.trn === A.vistaPrevia) return;
+  if (b) b.remove();
+  const nombre = A.vistaPrevia;
+  $('#estado').before(h('div', { id: 'bandaPrevia', 'data-trn': nombre },
+    h('span', null, '👁 Vista previa de ', h('b', null, nombre), ' (convertida de GeneXus, sin grabar)'),
+    h('button', { class: 'chico', onclick: volverDePreviaImp }, '← Volver al importador'),
+    h('button', { class: 'chico', onclick: async () => { if (await importarImp([nombre])) volverDePreviaImp(); } }, '⬇ Importar esta')));
+}
+
+async function escribirImp(dirH, nombre, texto) {
+  const fh = await dirH.getFileHandle(nombre, { create: true });
+  const w = await fh.createWritable(); await w.write(texto); await w.close();
+}
+/** Importa las TRN pedidas a la carpeta destino. Devuelve true si importó. */
+async function importarImp(nombres) {
+  if (!IMP.destino) { aviso('Elegí primero la carpeta de la aplicación', true); abrirImportador(); return false; }
+  if (!await permisoEscritura(IMP.destino)) { aviso('El navegador no dio permiso para grabar en ' + IMP.destino.name, true); return false; }
+  await leerDestinoImp();
+  const porNombre = new Map(IMP.lista.map(t => [t.nombre, t]));
+  let pedidas = nombres.filter(n => porNombre.has(n) && !porNombre.get(n).problema);
+  // convertir todo en memoria primero (si alguna falla, no se graba ninguna)
+  const conv = new Map();
+  const convertir = n => { if (!conv.has(n)) conv.set(n, GXI.generar(IMP.kb, n)); return conv.get(n); };
+  try { pedidas.forEach(convertir); } catch (e) { aviso('No se pudo convertir: ' + e.message, true); return false; }
+
+  // 1) dependencias: TRN que estas referencian y que no están migradas ni tildadas
+  const deTabla = GXI.trnDeTabla(IMP.kb);
+  const faltan = new Map();   // trn -> [quién la usa]
+  for (const n of pedidas)
+    for (const tb of convertir(n).tablasRef) {
+      const otra = deTabla[tb];
+      if (!otra || otra === n || pedidas.includes(otra) || !porNombre.has(otra) || porNombre.get(otra).problema) continue;
+      if (estadoImp(porNombre.get(otra)) !== 'nueva') continue;
+      if (!faltan.has(otra)) faltan.set(otra, []);
+      if (!faltan.get(otra).includes(n)) faltan.get(otra).push(n);
+    }
+  if (faltan.size) {
+    const r = await dialogoImp({ titulo: 'Faltan TRN que estas usan', cuerpo: [
+      h('p', null, 'Estas transacciones las usan las que vas a importar (claves foráneas, lupas) y todavía no están migradas:'),
+      h('ul', null, [...faltan].map(([o, usan]) => h('li', null, h('b', null, o), porNombre.get(o).base ? ' (del patrón WorkWithPlus)' : '', ' — la usa' + (usan.length > 1 ? 'n' : '') + ' ', usan.join(', ')))),
+      h('p', { style: 'color:var(--suave)' }, 'Sin ellas, las referencias y las lupas no van a funcionar hasta que las migres.')],
+      botones: [{ texto: 'Agregarlas e importar', clase: 'primario', valor: 'agregar' }, { texto: 'Importar sin ellas', valor: 'seguir' }, { texto: 'Cancelar', valor: null }] });
+    if (!r) return false;
+    if (r === 'agregar') {
+      for (const o of faltan.keys()) { pedidas.push(o); IMP.marcadas.add(o); }
+      try { pedidas.forEach(convertir); } catch (e) { aviso('No se pudo convertir: ' + e.message, true); return false; }
+    }
+  }
+  // 2) las que ya están migradas: se pisan. Confirmación fuerte.
+  const pisa = pedidas.filter(n => estadoImp(porNombre.get(n)) !== 'nueva');
+  if (pisa.length) {
+    const ok = await dialogoImp({ titulo: '⚠ Vas a PISAR transacciones ya migradas', peligro: true, cuerpo: [
+      h('p', null, h('b', null, pisa.length === 1 ? 'Esta TRN ya está migrada.' : 'Estas ' + pisa.length + ' TRN ya están migradas.'),
+        ' Si la' + (pisa.length > 1 ? 's' : '') + ' importás de nuevo, ', h('b', { style: 'color:var(--peligro)' }, 'se pierde todo lo que se haya cambiado a mano'),
+        ' en ' + (pisa.length > 1 ? 'sus YAML' : 'su YAML') + ' (diseño, columnas, reglas, títulos…):'),
+      h('ul', null, pisa.map(n => h('li', null, h('b', null, n), ' — ', h('span', { class: 'est ' + estadoImp(porNombre.get(n)) }, TEXTO_EST[estadoImp(porNombre.get(n))])))),
+      h('p', null, 'De cada una queda una copia del archivo anterior (', h('code', null, '<TRN>.yaml.bak'), ') en la misma carpeta.'),
+      h('label', { style: 'display:flex;gap:6px;align-items:center;margin-top:10px;font-weight:600' },
+        h('input', { type: 'checkbox', id: 'impEntiendo', onchange: e => { $('#impPisar').disabled = !e.target.checked; } }),
+        'Entiendo que se pisan los cambios hechos a mano')],
+      botones: [{ texto: 'Pisar e importar', clase: 'rojo', valor: true, deshabilitado: true }, { texto: 'Cancelar', valor: false }],
+      alArmar: bots => { bots[0].id = 'impPisar'; } });
+    if (!ok) return false;
+  }
+  // 3) grabar: el YAML (con .bak del anterior), lo no traducido para la IA y el control
+  let gx = null;
+  try { gx = await IMP.destino.getDirectoryHandle('_gx', { create: true }); } catch {}
+  const hechas = [], conPendientes = [], errores = [];
+  const ahora = new Date().toISOString().slice(0, 19);
+  for (const n of pedidas) {
+    try {
+      const res = convertir(n);
+      const nombreArch = IMP.existentes.get(n.toLowerCase()) || n + '.yaml';
+      if (IMP.existentes.has(n.toLowerCase())) {
+        const viejo = await (await (await IMP.destino.getFileHandle(nombreArch)).getFile()).text();
+        await escribirImp(IMP.destino, nombreArch + '.bak', viejo);
+      }
+      await escribirImp(IMP.destino, nombreArch, res.yaml);
+      if (gx) await escribirImp(gx, n + '.gx.txt', GXI.textoParaIa(IMP.kb, n, res));
+      const t = porNombre.get(n);
+      IMP.control.trns[n] = { checksum: t.checksum, cambioEnGeneXus: t.fecha, importada: ahora };
+      hechas.push(n);
+      if (res.pendientes.length || res.noSoportados.length || /Event\s/i.test((IMP.kb.objetivos[n] || {}).eventos || '')) conPendientes.push(n);
+    } catch (e) { errores.push(n + ': ' + e.message); }
+  }
+  IMP.control.kb = IMP.kb.nombre; IMP.control.exportVersion = IMP.kb.version; IMP.control.archivo = IMP.archivo; IMP.control.ultimaImportacion = ahora;
+  try { await escribirImp(IMP.destino, CONTROL_IMP, JSON.stringify(IMP.control, null, 2) + '\n'); } catch (e) { errores.push(CONTROL_IMP + ': ' + e.message); }
+  for (const n of hechas) IMP.marcadas.delete(n);
+  await leerDestinoImp();
+  pintarImp();
+  // que aparezcan en la lista del diseñador
+  try {
+    if (!dir || (dir.isSameEntry && await dir.isSameEntry(IMP.destino))) { await usarCarpeta(IMP.destino); guardarCarpeta(IMP.destino); }
+  } catch {}
+  await dialogoImp({ titulo: errores.length ? 'Importación con errores' : 'Importación terminada', peligro: !!errores.length, cuerpo: [
+    h('p', null, h('b', null, hechas.length + ' TRN importada' + (hechas.length !== 1 ? 's' : '')), ' en ', h('code', null, IMP.destino.name), hechas.length ? ': ' + hechas.join(', ') : ''),
+    conPendientes.length ? h('p', null, 'Con reglas o eventos que el importador no tradujo (' + conPendientes.length + '): están en ', h('code', null, IMP.destino.name + '/_gx/<TRN>.gx.txt'),
+      ', listos para pasarle a tu IA junto con la guía de los YAML.') : '',
+    errores.length ? h('ul', { style: 'color:var(--peligro)' }, errores.map(e => h('li', null, e))) : ''],
+    botones: [{ texto: 'Aceptar', clase: 'primario', valor: true }] });
+  return hechas.length > 0;
+}
+$('#bImportar').addEventListener('click', abrirImportador);
+
 $('#centro').append(h('div', { id: 'bienvenida' },
   h('h2', null, 'OPTIMIST Designer'),
   h('ol', null,
     h('li', null, 'Tocá ', h('b', null, 'Abrir carpeta'), ' y elegí la carpeta del proyecto (o directamente ', h('code', null, 'src/main/resources/trn'), ').'),
     h('li', null, 'Elegí una TRN, un web panel, una impresión o una consulta en la lista de arriba.'),
+    h('li', null, h('b', null, 'Importar de GeneXus'), ': abrí el export (XML o XPZ) de tu KB, tildá las transacciones y migralas; con 👁 las ves antes de grabar nada.'),
     h('li', null, 'Arrastrá los campos para acomodarlos; botón derecho sobre un campo para visible, solo lectura, obligatorio, negrita…'),
     h('li', null, 'A la derecha, todas las propiedades del elemento elegido (como el panel de WorkWithPlus).'),
     h('li', null, h('b', null, 'Guardar'), ' (Ctrl+S) reescribe solo lo que cambiaste y deja una copia ', h('code', null, '.bak'), ' la primera vez.')),

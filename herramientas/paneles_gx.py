@@ -232,7 +232,7 @@ def main():
     ap.add_argument('--probar', action='store_true')
     a = ap.parse_args()
     kb = json.load(open(a.cache, encoding='utf-8')) if os.path.exists(a.cache) else None
-    if kb is None or kb.get('_version') != 7:
+    if kb is None or kb.get('_version') != 8:
         kb = g.leer_kb(a.xml, {'*'}); kb['_trn'] = '*'
         json.dump(kb, open(a.cache, 'w', encoding='utf-8'), ensure_ascii=False)
     solo = {x.strip().lower() for x in a.solo.split(',') if x.strip()}

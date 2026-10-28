@@ -8,6 +8,18 @@ aplicación: para OPTIMIST ERP, desde `engine\herramientas`, es `..\..\optimist-
 
 Las pruebas con datos del ERP (`prueba_mariadb`, `prueba_stock`, `prueba_afip`, `barrido`) quedaron en `optimist-erp/herramientas`.
 
+## E2: Importador de GeneXus en el Designer (`disenador/importador.js`)
+
+El mismo convertidor que `gx2yaml.py`, pasado a JavaScript, adentro de OPTIMIST Designer (botón **Importar de GeneXus**; ver la
+guía, sección 11.2). Lee XML o XPZ. **`gx2yaml.py` sigue siendo la referencia**: un cambio de criterio va primero ahí y después en
+`importador.js`, y se comparan las salidas (tienen que ser idénticas):
+
+    node prueba_js.js disenador/importador.js KB.xml salida_js Trn1,Trn2     (prueba_js.js está en esta carpeta)
+    python3 gx2yaml_lote.py KB.xml --trns Trn1,Trn2 --salida salida_py
+    diff -r salida_py salida_js
+
+Después de tocar `disenador.src.html` o `importador.js`: `python3 disenador/armar.py` arma `OPTIMIST-Designer.html`.
+
 # gx2yaml.py — de la KB GeneXus al YAML del motor
 
 Requisito: Python 3.9+ (sin librerías extra).

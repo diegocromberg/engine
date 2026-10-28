@@ -879,6 +879,36 @@ Programa aparte: se abre con doble clic en **Chrome o Edge** (no necesita instal
 
 Después de guardar, refrescá OPTIMIST para verlo y subí el cambio a GitHub como siempre.
 
+### 11.2 Importar de GeneXus (E2, en el Designer)
+
+Botón **⬇ Importar de GeneXus** de la barra del Designer. Hace lo mismo que `gx2yaml.py` (el mismo resultado, línea por línea),
+pero sin instalar Python y eligiendo las TRN con tildes:
+
+1. **Archivo de GeneXus…**: el export de la KB, **XML o XPZ** (Knowledge Manager → Export, con las transacciones, sus atributos,
+   dominios, subtipos y las instancias de WorkWithPlus). Se lee en el navegador, por partes (sirve para KB de cientos de MB).
+   Probado con GeneXus 17 + WorkWithPlus; lee también el formato de GeneXus 15.
+2. **Carpeta de la aplicación…**: la del proyecto (usa `src/main/resources/trn`), una carpeta que tenga `trn` adentro, o la
+   misma `trn`. Si no hay `trn`, ofrece crearla.
+3. La lista muestra cada TRN con su **estado**: *nueva*, *ya migrada*, *cambió en GeneXus* (se importó y después la tocaron en
+   GeneXus: lo sabe por el checksum del objeto) o *no se puede* (sin clave, o clave de un tipo que el motor no maneja).
+   Las TRN del patrón WorkWithPlus (seguridad, menú) se ven tildando "Ver también las del patrón".
+4. **👁 Ver**: la TRN convertida se abre en el diseñador **sin grabar nada** (formulario y WorkWith); "Volver al importador" deja
+   todo como estaba. Ctrl+S no la graba.
+5. **Importar**: si una TRN tildada usa otra que no está migrada (clave foránea, lupa), avisa y ofrece agregarla. Si alguna ya
+   estaba migrada, pide confirmación fuerte (se pierde lo que se haya cambiado a mano) y deja `<TRN>.yaml.bak` del anterior.
+
+Qué deja en la carpeta `trn`:
+
+| Archivo | Qué es |
+|---|---|
+| `<TRN>.yaml` | La transacción para el motor. |
+| `_gx/<TRN>.gx.txt` | Lo que no se tradujo solo: las reglas pendientes y los eventos completos de GeneXus, con instrucciones para pasárselo a la IA que use cada uno junto con esta guía. El importador no llama a ninguna IA. |
+| `_importacion.json` | Control: KB, versión del export y, por TRN, el checksum de GeneXus y cuándo se importó. |
+
+En GeneXus 17 las columnas, títulos y orden del WorkWith y las columnas de la lupa (`workwith.prompt`) salen de la instancia de
+WorkWithPlus; los obligatorios de WorkWithPlus (`Error(Format('WWP_RequiredAttribute', …)) if X.IsEmpty()`) salen como
+`obligatorio: true`, y las reglas con que WorkWithPlus recibe la clave por parámetro no quedan como pendientes.
+
 ---
 
 ## 12. Probar cambios de YAML en desarrollo

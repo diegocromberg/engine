@@ -24,7 +24,7 @@ def cargar_kb(xml):
     cache = os.path.join(os.path.dirname(os.path.abspath(xml)), 'kb_v7.json')
     if os.path.exists(cache):
         kb = json.load(open(cache, encoding='utf-8'))
-        if kb.get('_version') == 7 and kb.get('_trn') == '*':
+        if kb.get('_version') == 8 and kb.get('_trn') == '*':
             return kb
     kb = g.leer_kb(xml, {'*'})
     kb['_trn'] = '*'

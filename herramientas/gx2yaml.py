@@ -23,6 +23,7 @@ T_TAB = '857ca50e-7905-0000-0007-c5d9ff2975ec'
 T_TRN = '1db606f2-af09-4cf9-a3b5-b481519d28f6'
 T_SUB = '87313f43-5eb2-41d7-9b8c-e8d9f5bf9588'
 T_WP = 'c9584656-94b6-4ccd-890f-332d11fc2c25'   # web panel (los WW<trn> del patrón)
+T_INST = '07135890-56fc-489b-b408-063722fa9f7d'   # E2: instancia del patrón WorkWithPlus (WorkWithPlus<Trn>)
 P_STRUCT = '264be5fb-1b28-4b25-a598-6ca900dd059f'
 P_WEBFORM = 'd24a58ad-57ba-41b7-9e6e-eaca3543c778'
 P_RULES = '9b0a32a3-de6d-4be1-a4dd-1b85d3741534'
@@ -59,7 +60,7 @@ def leer_kb(path, trn_objetivo):
     """trn_objetivo: un nombre, un conjunto de nombres, o '*' (todas). V28: guarda web form y reglas de cada objetivo."""
     objetivos = trn_objetivo if isinstance(trn_objetivo, (set, frozenset)) else {trn_objetivo}
     kb = {'attrs': {}, 'doms': {}, 'subs': {}, 'tablas': {}, 'indices': {}, 'trns': {}, 'objetivo': None,
-          'objetivos': {}, 'ww': {}, 'ww_cond': {}, '_version': 7}
+          'objetivos': {}, 'ww': {}, 'ww_cond': {}, 'ww_inst': {}, 'checksums': {}, '_version': 8}
     stack = []
     for ev, el in ET.iterparse(path, events=('start', 'end')):
         if ev == 'start':
@@ -90,6 +91,13 @@ def leer_kb(path, trn_objetivo):
                 cond = next((p for p in el.findall('Part') if p.get('type') == P_CONDITIONS), None)
                 if cond is not None and (cond.findtext('Source') or '').strip():
                     kb['ww_cond'][n[2:].lower()] = cond.findtext('Source')
+            elif t == T_INST:
+                # E2: columnas, títulos, orden y lupa del WorkWith según la instancia del patrón (GeneXus 17: el web panel
+                # del WW se llama <Trn>WW y no WW<Trn>; la instancia está igual en todas las versiones)
+                d = el.find('Part/Data')
+                r_ = ww_de_instancia(d.text if d is not None else '')
+                if r_:
+                    kb['ww_inst'][r_[0].lower()] = r_[1]
             elif t == T_TAB:
                 keys = [i.text.strip() for i in el.iter('Item')] if el.find('Part') is not None else []
                 # solo el Key del part de estructura (el primero); los índices no usan <Item>
@@ -97,6 +105,7 @@ def leer_kb(path, trn_objetivo):
                 # atributos que figuran en algún índice: si una fórmula está acá, es redundante (se guarda)
                 kb['indices'][n] = sorted({(m.text or '').strip() for m in el.iter('Member')})
             elif t == T_TRN:
+                kb['checksums'][n] = el.get('checksum') or ''   # E2: para saber si la TRN cambió en GeneXus después de importarla
                 parts = {p.get('type'): p for p in el.findall('Part')}
                 st = parts.get(P_STRUCT)
                 if st is not None:
@@ -108,6 +117,43 @@ def leer_kb(path, trn_objetivo):
                         kb['objetivo'] = kb['objetivos'][n]
         el.clear()
     return normalizar_kb(kb)
+
+
+def ww_de_instancia(data):
+    """E2: (trn, {'cols': [(att, título)], 'orden': [(att, desc)], 'prompt': [(att, título)]}) de una instancia de
+    WorkWithPlus, o None. El título vacío es el del atributo (=Attribute.ContextualTitle / ColumnTitle)."""
+    data = (data or '').strip()
+    if '<transaction' not in data:
+        return None
+    try:
+        x = ET.fromstring(re.sub(r'^<\?xml[^>]*\?>', '', data))
+    except ET.ParseError:
+        return None
+    tr = x.find('transaction')
+    nombre = (tr.get('transaction') or '')[37:] if tr is not None else ''
+    lv = x.find('level')
+    if not nombre or lv is None:
+        return None
+    def att(e):
+        return (e.get('attribute') or '')[37:]
+    def grilla(nodo):
+        g = nodo.find('.//grid') if nodo is not None else None
+        if g is None:
+            return []
+        r = []
+        for ga in g.findall('gridAttribute'):
+            a = att(ga)
+            if not a or ga.get('visible') == 'False':
+                continue
+            t = (ga.get('description') or '').strip()
+            r.append((a, '' if t.startswith('=') else t))
+        return r
+    sel = lv.find('selection')
+    orden = []
+    o1 = sel.find('.//orders/order') if sel is not None else None
+    if o1 is not None:
+        orden = [(att(a), a.get('ascending') == 'False') for a in o1.findall('attribute') if att(a)]
+    return nombre, {'cols': grilla(sel), 'orden': orden, 'prompt': grilla(lv.find('prompt'))}
 
 
 # ----------------------------------------------------------------------------- modelo
@@ -600,12 +646,17 @@ def analizar_reglas(reglas):
             continue
         m = re.fullmatch(r"(?i)error\(\s*['\"](.+?)['\"]\s*\)\s*if\s+(\w+)\.IsEmpty\(\)", xs)
         if m: r['error_vacio'][m.group(2)] = m.group(1); continue
+        m = re.fullmatch(r"(?i)error\(\s*format\(\s*['\"]WWP_RequiredAttribute['\"]\s*,\s*['\"](.+?)['\"]\s*\)\s*\)\s*if\s+(\w+)\.IsEmpty\(\)", xs)
+        if m: r['error_vacio'][m.group(2)] = 'Ingrese ' + m.group(1); continue   # E2: el obligatorio de WorkWithPlus (GX17)
         m = re.fullmatch(r'(?i)serial\(\s*(\w+)\s*,\s*(\w+)(\s*,\s*\d+)?\s*\)', xs)
         if m: r['serial'][m.group(1)] = m.group(2); continue
         m = re.fullmatch(r'(\w+)\s*=\s*(Now\(\)|&WWPContext\.SecUserName)\s+if\s+&Mode\s*=\s*TrnMode\.(Insert|Update)\s+on\s+AfterValidate', xs)
         if m:
             k = ('alta' if m.group(3) == 'Insert' else 'modificacion') + ('Fecha' if m.group(2).startswith('Now') else 'Usuario')
             r['auditoria'][k] = m.group(1); continue
+        if re.fullmatch(r'(\w+)\s*=\s*&\1\s+if\s+not\s+&\1\.IsEmpty\(\)', xs) \
+                or re.fullmatch(r'(?i)noaccept\((\w+)\)\s+if\s+not\s+&\1\.IsEmpty\(\)', xs):
+            continue  # E2: WorkWithPlus (GX17) recibe la clave por parámetro; el motor lo resuelve al abrir el registro
         if re.match(r'(?i)parm\(', xs) or re.search(r'&Insert_\w+', xs) or re.search(r'_Cell\.Class', xs) or re.search(r'&ArticulosPK\b', xs):
             continue  # reglas del patrón WorkWithPlus que el motor resuelve a su manera
         r['pendientes'].append(xs)
@@ -1026,13 +1077,18 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
     out('campos:')
     orden = [a['n'] for a in cab['atts'] if a['n'] not in numeradores]
     # V30: columnas y orden del WorkWith de GeneXus (WW<trn>), si no vinieron por parámetro
-    ww_gx, orden_gx = ([], [])
+    ww_gx, orden_gx, prompt_gx = ([], [], [])
+    atts_cab = {a['n'] for a in cab['atts']}
+    inst = kb.get('ww_inst', {}).get(trn_nombre.lower())
     if workwith is None and kb.get('ww', {}).get(trn_nombre.lower()):
         ww_gx, orden_gx = leer_ww(kb['ww'][trn_nombre.lower()])
-        atts_cab = {a['n'] for a in cab['atts']}
-        ww_gx = [(c, t) for c, t in ww_gx if c in atts_cab and c not in info['formulas']
-                 and c not in info['descartados'] and c not in numeradores and not no_soportado_tipo(M, c)]
-    ww_inferidos = {c for c, _ in ww_gx if c in info['inferidos']}
+    elif workwith is None and inst:
+        ww_gx, orden_gx, prompt_gx = list(inst['cols']), list(inst['orden']), list(inst['prompt'])   # E2: GeneXus 17
+    ok_ww = lambda c: (c in atts_cab and c not in info['formulas'] and c not in info['descartados'] and c not in numeradores
+                       and not no_soportado_tipo(M, c))
+    ww_gx = [(c, t) for c, t in ww_gx if ok_ww(c)]
+    prompt_gx = [(c, t) for c, t in prompt_gx if ok_ww(c)]
+    ww_inferidos = {c for c, _ in ww_gx + prompt_gx if c in info['inferidos']}
     nec_inf_cab = {c for c in necesarios if c in info['inferidos']}
     mostrar_cab, extra_cab = cerrar_cadenas(info, set(campos_en_solapas) | ww_inferidos | nec_inf_cab)
     extra_cab |= (ww_inferidos | nec_inf_cab) - set(campos_en_solapas)
@@ -1208,6 +1264,10 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
         out('  columnas: [' + ', '.join(partes) + ']')
     else:
         out('  columnas: [' + ', '.join(propios_ww) + ']')
+    prompt_gx = [(c, t) for c, t in prompt_gx if c in emitidos]
+    if prompt_gx:   # E2: la lupa con las columnas de la instancia de WorkWithPlus
+        out('  prompt: [' + ', '.join(q(f'{c}: {t}') if t and t != (etiqueta_form.get(c) or M.etiqueta(c)) and t != c else c
+                                      for c, t in prompt_gx) + ']')
     guardables = {c for c in emitidos if c in claves_cab or c in info['propios']}
     filtro = {c: v for c, v in filtros_contexto(kb.get('ww_cond', {}).get(trn_nombre.lower())).items() if c in guardables}
     if filtro:
@@ -1261,7 +1321,7 @@ def main():
     a = ap.parse_args()
     if a.cache and os.path.exists(a.cache):
         kb = normalizar_kb(json.load(open(a.cache, encoding="utf-8")))   # V82m
-        if kb.get('_trn') != a.trn or kb.get('_version') != 7:
+        if kb.get('_trn') != a.trn or kb.get('_version') != 8:
             kb = None
     else:
         kb = None

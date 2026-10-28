@@ -29,7 +29,7 @@ def main():
     kb = None
     if a.cache and os.path.exists(a.cache):
         kb = json.load(open(a.cache, encoding='utf-8'))
-        if kb.get('_version') != 7 or kb.get('_trn') != '*':
+        if kb.get('_version') != 8 or kb.get('_trn') != '*':
             kb = None
     if kb is None:
         print('Leyendo la KB completa (una sola vez)...', flush=True)
