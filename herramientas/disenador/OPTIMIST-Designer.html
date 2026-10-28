@@ -314,6 +314,12 @@ button.peligro { color: var(--peligro); }
 #dlg .botones { display: flex; gap: 8px; justify-content: flex-start; padding: 0 14px 14px; flex-wrap: wrap; }
 button.rojo { background: var(--peligro); color: #fff; border-color: var(--peligro); }
 button.rojo:disabled { opacity: .4; }
+#procImp { position: fixed; inset: 0; z-index: 80; background: #0f2a3355; display: flex; align-items: center; justify-content: center; }
+#procImp .ven { background: #fff; border-radius: 10px; box-shadow: 0 12px 40px #0005; width: min(440px, 92vw); padding: 16px 18px; }
+#procImp .tit { font-weight: 700; margin-bottom: 8px; }
+#procImp .txt { color: var(--suave); margin: 8px 0 0; min-height: 1.3em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#procImp .barra { height: 8px; background: var(--acento-2); border-radius: 4px; overflow: hidden; }
+#procImp .barra div { height: 100%; background: var(--acento); width: 0; transition: width .15s; }
 #bandaPrevia { background: #a35a00; color: #fff; padding: 4px 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
 #bandaPrevia button { background: #fff; color: #a35a00; border-color: #fff; }
 </style>
@@ -6034,13 +6040,17 @@ async function elegirArchivoGx() {
 }
 async function leerArchivoGx(f) {
   IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImp();
+  await procesandoImp('Leyendo la KB', 'Leyendo ' + f.name + '…', 0);
   try {
     let ult = 0;
-    const kb = await GXI.leerArchivo(f, x => { const ahora = Date.now(); if (ahora - ult > 150) { ult = ahora; IMP.avance = x; pintarAvanceImp(); } });
+    const kb = await GXI.leerArchivo(f, x => { const ahora = Date.now(); if (ahora - ult > 150) { ult = ahora; IMP.avance = x; pintarAvanceImp();
+      procesandoImp('Leyendo la KB', 'Leyendo ' + f.name + ' (' + Math.round(x * f.size / 1048576) + ' de ' + Math.max(1, Math.round(f.size / 1048576)) + ' MB)…', x); } });
+    await procesandoImp('Leyendo la KB', 'Armando la lista de transacciones…', 1);
     IMP.kb = kb;
     IMP.lista = GXI.listarTrns(kb);
     if (!IMP.lista.length) IMP.error = 'En ese archivo no hay transacciones. Exportá la KB (o las TRN que quieras) con sus atributos, dominios y la instancia de WorkWithPlus.';
   } catch (e) { IMP.error = 'No se pudo leer ' + f.name + ': ' + e.message; }
+  procesandoImp(null);
   IMP.avance = null;
   pintarImp();
 }
@@ -6050,7 +6060,8 @@ $('#inGx').addEventListener('change', async e => { const f = e.target.files[0]; 
 async function elegirDestinoImp() {
   if (!window.showDirectoryPicker) { aviso('Este navegador no permite elegir carpetas: usá Chrome o Edge.', true); return; }
   let d;
-  try { d = await showDirectoryPicker({ id: 'optimist-imp', mode: 'readwrite' }); } catch { return; }
+  try { d = await showDirectoryPicker({ id: 'optimist-imp', mode: 'readwrite' }); }
+  catch (e) { if (!e || e.name !== 'AbortError') aviso('No se pudo usar esa carpeta: ' + ((e && e.message) || e) + '. Elegí otra (por ejemplo, la de la aplicación al lado de engine).', true); return; }
   let trn = null;
   if (/^trn$/i.test(d.name)) trn = d;
   if (!trn) {
@@ -6065,7 +6076,8 @@ async function elegirDestinoImp() {
   }
   IMP.destino = trn;
   IMP.destinoPadre = d.name;
-  await leerDestinoImp();
+  await procesandoImp('Carpeta de la aplicación', 'Leyendo las TRN que ya hay en ' + d.name + '…', 0.5);
+  try { await leerDestinoImp(); } finally { procesandoImp(null); }
   pintarImp();
 }
 async function leerDestinoImp() {
@@ -6122,7 +6134,7 @@ function pintarImp() {
   const n = IMP.marcadas.size;
   const pisa = [...IMP.marcadas].filter(x => { const t = IMP.lista.find(y => y.nombre === x); return t && estadoImp(t) !== 'nueva'; }).length;
   ven.append(h('div', { class: 'pie' },
-    h('span', { class: 'cuenta' }, n ? n + ' tildada' + (n > 1 ? 's' : '') + (pisa ? ' · ' + pisa + ' ya migrada' + (pisa > 1 ? 's' : '') + ' (se pisa' + (pisa > 1 ? 'n' : '') + ')' : '') : IMP.destino ? 'Tildá las TRN que querés migrar. Clic en 👁 para verla antes de importar.' : 'Elegí la carpeta de la aplicación para importar.'),
+    h('span', { class: 'cuenta', style: n && !IMP.destino ? 'color:var(--peligro);font-weight:600' : '' }, n && !IMP.destino ? n + ' tildada' + (n > 1 ? 's' : '') + ' · falta elegir arriba la Carpeta de la aplicación' : n ? n + ' tildada' + (n > 1 ? 's' : '') + (pisa ? ' · ' + pisa + ' ya migrada' + (pisa > 1 ? 's' : '') + ' (se pisa' + (pisa > 1 ? 'n' : '') + ')' : '') : IMP.destino ? 'Tildá las TRN que querés migrar. Clic en 👁 para verla antes de importar.' : 'Elegí la carpeta de la aplicación para importar.'),
     h('button', { onclick: cerrarImportador }, 'Cerrar'),
     h('button', { class: 'primario', disabled: !n || !IMP.destino, onclick: () => importarImp([...IMP.marcadas]) }, '⬇ Importar ' + (n ? n : '') + ' TRN')));
   raiz.append(ven);
@@ -6208,6 +6220,17 @@ function bandaPreviaImp() {
     h('button', { class: 'chico', onclick: async () => { if (await importarImp([nombre])) volverDePreviaImp(); } }, '⬇ Importar esta')));
 }
 
+/** E2: la ventanita "Procesando…" del importador (como la del motor: % y el texto de lo que se está haciendo). */
+function procesandoImp(titulo, texto, fraccion) {
+  let d = $('#procImp');
+  if (titulo == null) { if (d) d.remove(); return Promise.resolve(); }
+  if (!d) { d = h('div', { id: 'procImp' }, h('div', { class: 'ven' }, h('div', { class: 'tit' }), h('div', { class: 'barra' }, h('div')), h('div', { class: 'txt' }))); document.body.append(d); }
+  const pct = Math.max(0, Math.min(100, Math.round((fraccion || 0) * 100)));
+  d.querySelector('.tit').textContent = titulo + ' · ' + pct + '%';
+  d.querySelector('.barra div').style.width = pct + '%';
+  d.querySelector('.txt').textContent = texto || '';
+  return new Promise(r => setTimeout(r, 0));   // que se dibuje antes de seguir
+}
 async function escribirImp(dirH, nombre, texto) {
   const fh = await dirH.getFileHandle(nombre, { create: true });
   const w = await fh.createWritable(); await w.write(texto); await w.close();
@@ -6222,7 +6245,17 @@ async function importarImp(nombres) {
   // convertir todo en memoria primero (si alguna falla, no se graba ninguna)
   const conv = new Map();
   const convertir = n => { if (!conv.has(n)) conv.set(n, GXI.generar(IMP.kb, n)); return conv.get(n); };
-  try { pedidas.forEach(convertir); } catch (e) { aviso('No se pudo convertir: ' + e.message, true); return false; }
+  const convertirTodas = async () => {
+    try {
+      for (let i = 0; i < pedidas.length; i++) {
+        if (!conv.has(pedidas[i])) await procesandoImp('Convirtiendo', 'Convirtiendo ' + pedidas[i] + ' (' + (i + 1) + ' de ' + pedidas.length + ')…', i / pedidas.length);
+        convertir(pedidas[i]);
+      }
+      return true;
+    } catch (e) { aviso('No se pudo convertir: ' + e.message, true); return false; }
+    finally { procesandoImp(null); }
+  };
+  if (!await convertirTodas()) return false;
 
   // 1) dependencias: TRN que estas referencian y que no están migradas ni tildadas
   const deTabla = GXI.trnDeTabla(IMP.kb);
@@ -6244,7 +6277,7 @@ async function importarImp(nombres) {
     if (!r) return false;
     if (r === 'agregar') {
       for (const o of faltan.keys()) { pedidas.push(o); IMP.marcadas.add(o); }
-      try { pedidas.forEach(convertir); } catch (e) { aviso('No se pudo convertir: ' + e.message, true); return false; }
+      if (!await convertirTodas()) return false;
     }
   }
   // 2) las que ya están migradas: se pisan. Confirmación fuerte.
@@ -6268,7 +6301,9 @@ async function importarImp(nombres) {
   try { gx = await IMP.destino.getDirectoryHandle('_gx', { create: true }); } catch {}
   const hechas = [], conPendientes = [], errores = [];
   const ahora = new Date().toISOString().slice(0, 19);
-  for (const n of pedidas) {
+  for (let i = 0; i < pedidas.length; i++) {
+    const n = pedidas[i];
+    await procesandoImp('Importando', 'Importando ' + n + ' (' + (i + 1) + ' de ' + pedidas.length + ')…', i / pedidas.length);
     try {
       const res = convertir(n);
       const nombreArch = IMP.existentes.get(n.toLowerCase()) || n + '.yaml';
@@ -6284,10 +6319,12 @@ async function importarImp(nombres) {
       if (res.pendientes.length || res.noSoportados.length || /Event\s/i.test((IMP.kb.objetivos[n] || {}).eventos || '')) conPendientes.push(n);
     } catch (e) { errores.push(n + ': ' + e.message); }
   }
+  await procesandoImp('Importando', 'Grabando el control de la importación…', 1);
   IMP.control.kb = IMP.kb.nombre; IMP.control.exportVersion = IMP.kb.version; IMP.control.archivo = IMP.archivo; IMP.control.ultimaImportacion = ahora;
   try { await escribirImp(IMP.destino, CONTROL_IMP, JSON.stringify(IMP.control, null, 2) + '\n'); } catch (e) { errores.push(CONTROL_IMP + ': ' + e.message); }
   for (const n of hechas) IMP.marcadas.delete(n);
   await leerDestinoImp();
+  procesandoImp(null);
   pintarImp();
   // que aparezcan en la lista del diseñador
   try {

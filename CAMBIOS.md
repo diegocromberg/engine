@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E2b — Importador: ventanita "Procesando…" (28/10/2026)
+
+- Como todo proceso del motor: al leer la KB, convertir e importar se ve el % y lo que está haciendo ("Leyendo Factory.xml
+  (2 de 12 MB)…", "Importando Incidentes (4 de 8)…"). Antes tardaba sin avisar nada.
+- Si hay TRN tildadas y falta la carpeta de la aplicación, el pie lo dice en rojo. Si el navegador no da la carpeta elegida,
+  avisa el motivo (antes no decía nada).
+
 ## E2a — Designer: formulario encolumnado (28/10/2026)
 
 - En el diseño del formulario de las TRN (también en la vista previa del importador) y de los web panels, los literales y los campos
