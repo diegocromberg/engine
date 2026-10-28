@@ -781,7 +781,9 @@ python3 acciones_gx.py D:\ruta\OptimistU12NEW.xml --trn ..\src\main\resources\tr
 ```
 Saca de la grilla del Trabajar con: Update / Display / Delete (si la grilla no los tiene, esa acción no va) y cada userAction con su condición (enumerados por su valor, `in (a, b)` como `or`), ícono, confirmación y parámetros. Quedan comentadas (con `# REVISAR`) las acciones que el motor todavía no puede hacer: impresiones (PDF), las que usan métodos de Business Component que el motor todavía no tiene (`Insert`, `Update`, `InsertOrUpdate`) y las que llaman a un procedimiento o panel que falta (`gx2proc.py`, `gx2wbp.py`).
 
-Hoy: **PRS** (Modificar en En Carga / En Trámite; sin Eliminar; Pasar a En Trámite, Cancelar, Dar por Perdido, Transferir) y **PED** (V50m, ver arriba). En la KB hay 61 TRN con acciones o condiciones propias.
+Hoy: **PRS** (Modificar en En Carga / En Trámite; sin Eliminar; Pasar a En Trámite, Cancelar, Dar por Perdido, Transferir) y **PED** (V50m, ver arriba).
+
+**Comprobantes de gestión (OPTIMIST ERP V85)**: PRS, PED, CPBC, COBR, CMP, CPBP y PAGO no se borran nunca (`borrar: false`): se cancelan con su procedimiento (PRSCancelar, PEDCancelar, CPBCCancelar, COBRCancelar, CMPCancelar, CPBPCancelar, PAGOCancelar), que deshace lo que hizo el alta (cuenta corriente, caja, banco, cheques, stock). La acción va con `icono: CLOSE_BIG` y, como en GeneXus, con su permiso en el `inicio` (`&PuedeCancelar = SecIsAuthByFunctionalityKey.Udp("COBRCancelar")`). Una TRN de comprobantes nueva va igual. En la KB hay 61 TRN con acciones o condiciones propias.
 
 ## 10. Menú (`menu.yaml`)
 
