@@ -18,7 +18,8 @@ Cada aplicación (por ejemplo `optimist-erp`) vive en su propia carpeta **al lad
 `../engine/src/main/java`:
 
 ```
-OPTIMIST ERP\
+OPTIMIST\
   engine\          <- este repositorio
-  optimist-erp\    <- la aplicación
+  optimist-erp\    <- OPTIMIST ERP
+  factory\         <- Factory
 ```

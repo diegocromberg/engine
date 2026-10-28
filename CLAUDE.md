@@ -38,7 +38,8 @@
 - Licencia: clave por PC (huella de la PC → archivo de licencia firmado con clave privada de DATAFIX).
 
 ## Cómo se compila
-- Maven, Java 25. En la PC de Diego: `D:\Mis Documentos\OPTIMIST ERP\engine` al lado de `D:\Mis Documentos\OPTIMIST ERP\optimist-erp`.
+- Maven, Java 25. En la PC de Diego todo va en `D:\Mis Documentos\OPTIMIST` (antes "OPTIMIST ERP", renombrada el 28/10/2026):
+  `engine`, `optimist-erp` y `factory`, una al lado de la otra.
 - En el entorno de Claude no hay acceso a Maven Central: el chequeo es `python3 herramientas/chequear_java.py src/main/java ../optimist-erp/src/main/java`
   (los avisos de Vaadin/Spring son falsos; comparar contra la corrida anterior) y `optimist-erp/herramientas/prueba_mariadb/compilar.sh`.
 - Changelog del motor: `CAMBIOS.md` (uno solo, consolidado). La historia anterior a la separación está en `optimist-erp` (CAMBIOS.md y git).
