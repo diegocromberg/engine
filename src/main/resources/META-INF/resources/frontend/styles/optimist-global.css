@@ -1,0 +1,433 @@
+/* V17 - Variables CSS desde optimist.<usuario>.xml; se aplican a TODO el documento. */
+html, body { background: var(--optimist-fondo, #091e24); color: var(--optimist-texto, #f5f7fb); }
+vaadin-grid { --vaadin-grid-cell-background: var(--optimist-fondo, #091e24);
+  --vaadin-grid-background: var(--optimist-fondo, #091e24);
+  --lumo-base-color: var(--optimist-fondo, #091e24);
+  --lumo-body-text-color: var(--optimist-texto, #f5f7fb);
+  background: var(--optimist-fondo, #091e24); color: var(--optimist-texto, #f5f7fb); }
+vaadin-grid::part(body-cell), vaadin-grid::part(cell), vaadin-grid::part(row) {
+  background-color: var(--optimist-fondo, #091e24);
+  color: var(--optimist-texto, #f5f7fb);
+}
+vaadin-grid::part(header-cell) { color: var(--optimist-texto, #f5f7fb); }
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(overlay),
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(content),
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(header),
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(footer),
+vaadin-confirm-dialog-overlay::part(overlay) {
+  background-color: var(--optimist-fondo, #091e24);
+  color: var(--optimist-texto, #f5f7fb);
+  font-family: var(--optimist-fuente, Arial, sans-serif);
+  font-size: var(--optimist-letra, 15px);
+}
+vaadin-dialog-overlay[theme~="optimist-dialog"], vaadin-confirm-dialog-overlay {
+  --lumo-base-color: var(--optimist-fondo, #091e24);
+  --lumo-body-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-header-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-secondary-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-font-family: var(--optimist-fuente, Arial, sans-serif);
+  --lumo-font-size-m: var(--optimist-letra, 15px);
+}
+vaadin-dialog-overlay[theme~="optimist-dialog"] vaadin-text-field,
+vaadin-dialog-overlay[theme~="optimist-dialog"] vaadin-integer-field,
+vaadin-dialog-overlay[theme~="optimist-dialog"] vaadin-combo-box,
+vaadin-dialog-overlay[theme~="optimist-dialog"] vaadin-checkbox {
+  --lumo-body-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-header-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-secondary-text-color: var(--optimist-texto, #f5f7fb);
+}
+
+/* V18: misma paleta en menú, campos, grillas y overlays. */
+:root { --optimist-fondo: #091e24; --optimist-texto: #f5f7fb; --optimist-acento: #0ea88f; }
+vaadin-text-field, vaadin-password-field, vaadin-integer-field, vaadin-combo-box, vaadin-checkbox,
+vaadin-button, vaadin-details, vaadin-dialog-overlay, vaadin-confirm-dialog-overlay {
+  --lumo-body-text-color: var(--optimist-texto);
+  --lumo-header-text-color: var(--optimist-texto);
+  --lumo-secondary-text-color: var(--optimist-texto);
+  --lumo-base-color: var(--optimist-fondo);
+  --lumo-primary-color: var(--optimist-acento);
+}
+vaadin-grid::part(empty-state), vaadin-grid::part(body-cell) {
+  background: var(--optimist-fondo); color: var(--optimist-texto);
+}
+
+/* V21: autocompletado del navegador.
+   Chrome pinta el input autocompletado de celeste (#e8f0fe) y Lumo le aplica una máscara
+   en degradé al borde derecho del input: juntos dan la "franja" que se veía en el login.
+   Los <input> de Vaadin 24 viven en el light DOM, así que se pueden pisar desde acá. */
+vaadin-text-field > input, vaadin-password-field > input, vaadin-integer-field > input,
+vaadin-combo-box > input {
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+vaadin-text-field > input:-webkit-autofill, vaadin-password-field > input:-webkit-autofill,
+vaadin-text-field > input:-webkit-autofill:hover, vaadin-password-field > input:-webkit-autofill:hover,
+vaadin-text-field > input:-webkit-autofill:focus, vaadin-password-field > input:-webkit-autofill:focus,
+vaadin-text-field > input:autofill, vaadin-password-field > input:autofill {
+  -webkit-text-fill-color: var(--optimist-texto, #f5f7fb) !important;
+  caret-color: var(--optimist-texto, #f5f7fb);
+  background-color: transparent !important;
+  /* El fondo celeste de Chrome no se puede pisar directo: se "congela" con una transición eterna. */
+  transition: background-color 600000s 0s, color 600000s 0s;
+}
+
+/* V21: login */
+/* V36: en el login la letra es siempre blanca, aunque haya quedado la paleta de otro usuario */
+.optimist-login {
+  color: #ffffff;
+  --lumo-body-text-color: #ffffff;
+  --lumo-header-text-color: #ffffff;
+}
+.optimist-login vaadin-text-field, .optimist-login vaadin-password-field {
+  --lumo-body-text-color: #ffffff;
+  --lumo-secondary-text-color: rgba(245, 247, 251, 0.85);
+  --vaadin-input-field-background: rgba(255, 255, 255, 0.07);
+  --vaadin-input-field-hover-highlight: rgba(255, 255, 255, 0.04);
+  --lumo-contrast-10pct: rgba(255, 255, 255, 0.07);
+}
+.optimist-login vaadin-text-field[focused], .optimist-login vaadin-password-field[focused] {
+  --lumo-secondary-text-color: var(--optimist-acento, #0ea88f);
+}
+
+/* V21: formulario en pantalla completa = zona de trabajo, sin tapar el menú lateral.
+   El overlay vive en <body>; se corre su borde izquierdo al ancho del menú (--optimist-menu-ancho). */
+vaadin-dialog-overlay[theme~="optimist-completa"] {
+  top: calc(var(--optimist-menu-alto, 0px) + 12px) !important;   /* V46: con el menú horizontal, debajo de su barra */
+  right: 15px !important;
+  bottom: 12px !important;
+  left: calc(var(--optimist-menu-ancho, 330px) + 12px) !important;
+}
+vaadin-dialog-overlay[theme~="optimist-completa"]::part(overlay) {
+  max-width: none;
+  max-height: none;
+}
+/* Pantallas angostas: el menú no entra al lado, se usa todo el ancho. */
+@media (max-width: 900px) {
+  vaadin-dialog-overlay[theme~="optimist-completa"] { left: 12px !important; }
+}
+
+/* V32: pantallas bajas (notebooks): el formulario nunca pasa el alto de la ventana; su contenido se desplaza
+   y el pie con Confirmar / Cancelar queda siempre a la vista. */
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(overlay) {
+  max-height: calc(100vh - 24px);
+}
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(content) {
+  overflow: auto;
+  min-height: 0;
+}
+
+/* V21: botones del pie (Cancelar / Confirmar / Cerrar...) alineados a la IZQUIERDA en todos los formularios. */
+vaadin-dialog-overlay[theme~="optimist-dialog"]::part(footer),
+vaadin-confirm-dialog-overlay::part(footer) {
+  justify-content: flex-start;
+}
+
+/* V28: CELULAR / pantallas angostas.
+   - Las <tabla> de la pantalla pasan a UNA columna: etiqueta arriba, campo abajo, en el orden de los renglones.
+     (Las posiciones de la grilla vienen en línea desde Java; por eso el !important.)
+   - El WorkWith usa menos margen.
+   - El menú abierto se muestra ENCIMA de la pantalla (no la empuja). */
+@media (max-width: 700px) {
+  .optimist-tabla {
+    grid-template-columns: minmax(0, 1fr) !important;
+    row-gap: 2px !important;
+  }
+  .optimist-tabla > * {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    align-self: stretch !important;
+    padding-top: 0 !important;
+    margin: 0 !important;   /* V44: en la PC el espacio entre renglones va como margen de cada celda */
+  }
+  .optimist-tabla > span { margin-top: 8px !important; white-space: normal !important; }
+  .optimist-ww { padding: 10px !important; }
+  .optimist-ww > * { padding: 10px !important; }
+  .optimist-menu-flotante {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 200;
+    overflow-y: auto !important;   /* el menú en línea tiene overflow hidden: acá tiene que poder bajar */
+  }
+}
+
+/* V32: WorkWith. Renglones pares un poco más oscuros; el renglón tocado (y con el que se trabajó en
+   Modificar/Visualizar, que sigue marcado al volver) más oscuro todavía. Se oscurece sobre el color
+   de fondo que tenga el usuario (Apariencia), en tema claro u oscuro. */
+vaadin-grid::part(optimist-par) {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.06));
+}
+vaadin-grid::part(optimist-elegida) {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18));
+  font-weight: 600;
+}
+
+/* V33: paneles de la pantalla (como los de GeneXus): recuadro con título; se abre y se cierra con su ícono. */
+vaadin-details.optimist-panel {
+  border: 1px solid color-mix(in srgb, var(--optimist-acento, #0e8f7a) 55%, transparent);
+  border-radius: 10px;
+  padding: 2px 12px 8px;
+  margin: 4px 0 10px;
+  box-sizing: border-box;
+}
+vaadin-details.optimist-panel::part(summary) {
+  font-weight: 600;
+  color: var(--optimist-texto);
+}
+vaadin-details.optimist-panel::part(toggle) {
+  color: var(--optimist-acento, #0e8f7a);
+}
+
+/* V34: densidad de los formularios (Apariencia > Densidad de los formularios).
+   Las variables las heredan todos los campos del diálogo.
+   V66p: también los formularios que no son ventana (web panels como página, parámetros y datos de arriba de las consultas):
+   llevan la clase optimist-formulario y la densidad la publica OptimistVisuals en <html data-optimist-form>. */
+vaadin-dialog-overlay[theme~="optimist-form-compacta"],
+html[data-optimist-form="compacta"] .optimist-formulario {
+  --lumo-size-xl: 2.6rem;
+  --lumo-size-l: 2.1rem;
+  --lumo-size-m: 1.85rem;
+  --lumo-size-s: 1.55rem;
+  --lumo-size-xs: 1.35rem;
+  --lumo-space-xl: 1.1rem;
+  --lumo-space-l: 0.75rem;
+  --lumo-space-m: 0.5rem;
+  --lumo-space-s: 0.3rem;
+  --lumo-space-xs: 0.18rem;
+  --lumo-font-size-s: 0.8rem;
+  --lumo-font-size-xs: 0.75rem;
+  --optimist-form-gap: 6px;
+  --optimist-form-col-gap: 8px;
+  --optimist-form-row-gap: 4px;
+}
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-text-field,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-text-field,
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-big-decimal-field,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-big-decimal-field,
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-combo-box,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-combo-box,
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-date-picker,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-date-picker,
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-date-time-picker,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-date-time-picker,
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-text-area,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-text-area {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+/* V36: supercompacta — lo mínimo que se puede leer cómodo: campos bajos, casi sin aire entre renglones */
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"],
+html[data-optimist-form="supercompacta"] .optimist-formulario {
+  --lumo-size-xl: 2.2rem;
+  --lumo-size-l: 1.8rem;
+  --lumo-size-m: 1.55rem;
+  --lumo-size-s: 1.35rem;
+  --lumo-size-xs: 1.2rem;
+  --lumo-space-xl: 0.8rem;
+  --lumo-space-l: 0.5rem;
+  --lumo-space-m: 0.35rem;
+  --lumo-space-s: 0.2rem;
+  --lumo-space-xs: 0.1rem;
+  --lumo-font-size-s: 0.75rem;
+  --lumo-font-size-xs: 0.7rem;
+  --optimist-form-gap: 3px;
+  --optimist-form-col-gap: 6px;
+  --optimist-form-row-gap: 2px;
+}
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-text-field,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-text-field,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-big-decimal-field,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-big-decimal-field,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-combo-box,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-combo-box,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-date-picker,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-date-picker,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-date-time-picker,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-date-time-picker,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-text-area,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-text-area {
+  padding-top: 0.05rem;
+  padding-bottom: 0.05rem;
+}
+/* V50i: los botones DENTRO del formulario (quitar renglón, lupas, Agregar Filas) tienen el alto del campo
+   y casi sin margen. Antes medían 1,8rem + margen: el renglón del detalle y los campos con lupa quedaban
+   más altos que el campo y la Supercompacta casi no se distinguía de la Compacta.
+   Los del pie (Confirmar / Cancelar) quedan como estaban. */
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] vaadin-button,
+html[data-optimist-form="compacta"] .optimist-formulario vaadin-button,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-button,
+html[data-optimist-form="supercompacta"] .optimist-formulario vaadin-button {
+  --lumo-button-size: var(--lumo-size-m);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] [slot="footer"] vaadin-button,
+html[data-optimist-form="supercompacta"] .optimist-formulario .optimist-pie vaadin-button,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] vaadin-button[slot="footer"] {
+  --lumo-button-size: 1.8rem;
+}
+vaadin-dialog-overlay[theme~="optimist-form-compacta"] h3,
+html[data-optimist-form="compacta"] .optimist-formulario h3,
+vaadin-dialog-overlay[theme~="optimist-form-supercompacta"] h3,
+html[data-optimist-form="supercompacta"] .optimist-formulario h3 {
+  margin-top: var(--lumo-space-s);
+  margin-bottom: var(--lumo-space-xs);
+}
+
+/* V36: densidad de la grilla del WorkWith (Apariencia > Densidad de la grilla)
+   V66p: y de TODAS las grillas (consultas, lupas, ventanas con lista): la densidad la publica OptimistVisuals en <html data-optimist-grid> */
+html[data-optimist-grid="supercompacta"] vaadin-grid,
+vaadin-grid[theme~="optimist-grid-supercompacta"] {
+  --lumo-size-m: 1.6rem;
+  --lumo-space-xs: 0;
+  --lumo-space-s: 0.15rem;
+  --lumo-space-m: 0.45rem;
+}
+html[data-optimist-grid="supercompacta"] vaadin-grid vaadin-grid-cell-content,
+vaadin-grid[theme~="optimist-grid-supercompacta"] vaadin-grid-cell-content { line-height: 1.15; }
+html[data-optimist-grid="compacta"] vaadin-grid,
+vaadin-grid[theme~="optimist-grid-compacta"] {
+  --lumo-size-m: 2.1rem;
+  --lumo-space-xs: 0.1rem;
+  --lumo-space-m: 0.65rem;
+}
+html[data-optimist-grid="comoda"] vaadin-grid,
+vaadin-grid[theme~="optimist-grid-comoda"] {
+  --lumo-size-m: 3.5rem;
+  --lumo-space-xs: 0.45rem;
+}
+vaadin-dialog-overlay[theme~="optimist-form-comoda"],
+html[data-optimist-form="comoda"] .optimist-formulario {
+  --lumo-size-m: 2.6rem;
+  --lumo-space-m: 1.1rem;
+  --lumo-space-s: 0.65rem;
+  --optimist-form-gap: 18px;
+  --optimist-form-col-gap: 20px;
+  --optimist-form-row-gap: 16px;
+}
+
+/* ------------------------------------------------------------------
+   V40: insignias (status en una "pastilla" de color). En el YAML: insignia: {Aprobado: verde, ...}
+   --ins es el color; fondo y borde son el mismo color, más suave. Modo oscuro: tonos más claros.
+   ------------------------------------------------------------------ */
+.optimist-insignia {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: nowrap;
+  color: var(--ins, #6b7280);
+  background: color-mix(in srgb, var(--ins, #6b7280) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ins, #6b7280) 45%, transparent);
+}
+/* campo del formulario con insignia: el recuadro del campo se vuelve pastilla */
+[data-insignia] {
+  --vaadin-input-field-value-color: var(--ins);
+  --vaadin-input-field-value-font-weight: 600;
+  --lumo-body-text-color: var(--ins);
+}
+[data-insignia]::part(input-field) {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ins) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ins) 45%, transparent);
+  color: var(--ins);
+  font-weight: 600;
+}
+
+/* paleta (modo claro) */
+[data-color="azul"], [data-insignia="azul"]                 { --ins: #1d5fd1; }
+[data-color="verde"], [data-insignia="verde"]               { --ins: #1f8a3b; }
+[data-color="verde-oscuro"], [data-insignia="verde-oscuro"] { --ins: #0f5f27; }
+[data-color="rojo"], [data-insignia="rojo"]                 { --ins: #c62828; }
+[data-color="marron"], [data-insignia="marron"]             { --ins: #8a5a2b; }
+[data-color="magenta"], [data-insignia="magenta"]           { --ins: #b0268f; }
+[data-color="celeste"], [data-insignia="celeste"]           { --ins: #0a84b8; }
+[data-color="turquesa"], [data-insignia="turquesa"]         { --ins: #0f8f8a; }
+[data-color="violeta"], [data-insignia="violeta"]           { --ins: #6b3fc4; }
+[data-color="naranja"], [data-insignia="naranja"]           { --ins: #d0620a; }
+[data-color="amarillo"], [data-insignia="amarillo"]         { --ins: #a07800; }
+[data-color="gris"], [data-insignia="gris"]                 { --ins: #6b7280; }
+[data-color="gris-oscuro"], [data-insignia="gris-oscuro"]   { --ins: #374151; }
+
+/* paleta (modo oscuro): más claros para que se lean sobre fondo oscuro */
+html[theme~="dark"] [data-color="azul"], html[theme~="dark"] [data-insignia="azul"]                 { --ins: #7fb0ff; }
+html[theme~="dark"] [data-color="verde"], html[theme~="dark"] [data-insignia="verde"]               { --ins: #6fd58c; }
+html[theme~="dark"] [data-color="verde-oscuro"], html[theme~="dark"] [data-insignia="verde-oscuro"] { --ins: #3fae62; }
+html[theme~="dark"] [data-color="rojo"], html[theme~="dark"] [data-insignia="rojo"]                 { --ins: #ff8080; }
+html[theme~="dark"] [data-color="marron"], html[theme~="dark"] [data-insignia="marron"]             { --ins: #d6a36e; }
+html[theme~="dark"] [data-color="magenta"], html[theme~="dark"] [data-insignia="magenta"]           { --ins: #f07ad4; }
+html[theme~="dark"] [data-color="celeste"], html[theme~="dark"] [data-insignia="celeste"]           { --ins: #6fd0f5; }
+html[theme~="dark"] [data-color="turquesa"], html[theme~="dark"] [data-insignia="turquesa"]         { --ins: #4fd6cf; }
+html[theme~="dark"] [data-color="violeta"], html[theme~="dark"] [data-insignia="violeta"]           { --ins: #b89cff; }
+html[theme~="dark"] [data-color="naranja"], html[theme~="dark"] [data-insignia="naranja"]           { --ins: #ffab5c; }
+html[theme~="dark"] [data-color="amarillo"], html[theme~="dark"] [data-insignia="amarillo"]         { --ins: #f5d04a; }
+html[theme~="dark"] [data-color="gris"], html[theme~="dark"] [data-insignia="gris"]                 { --ins: #aab2bf; }
+html[theme~="dark"] [data-color="gris-oscuro"], html[theme~="dark"] [data-insignia="gris-oscuro"]   { --ins: #dde2ea; }
+
+/* V41: menú de acciones del renglón del WorkWith: ícono + texto, como GeneXus */
+vaadin-context-menu-overlay[theme~="optimist-acciones"]::part(overlay) {
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+}
+vaadin-context-menu-overlay[theme~="optimist-acciones"]::part(content) {
+  padding: 6px 0;
+}
+.optimist-accion {
+  gap: 14px;
+  padding: 2px 14px 2px 4px;
+  min-height: 36px;
+  font-size: var(--lumo-font-size-m);
+  color: var(--lumo-body-text-color);
+}
+.optimist-accion-icono {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--lumo-secondary-text-color);
+}
+/* V56: acciones en el renglón (Apariencia). V56d: solo el ícono de color, de 18 px y sin el margen interno de Lumo
+   (lo achicaba a la mitad); al pasar el mouse, un fondo suave */
+.optimist-boton-accion-renglon vaadin-icon.optimist-accion-icono {
+  width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+}
+.optimist-boton-accion-renglon:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent) !important;
+}
+
+/* V46: menú horizontal (barra arriba). Con poco ancho se ocultan usuario y empresa (quedan en el título del logo, al pasar el mouse);
+   las categorías que no entran las agrupa la propia barra en su botón "···". */
+@media (max-width: 1150px) {
+  .optimist-barra-quien { display: none !important; }
+}
+
+/* V48e: la opción del menú que está bajo el mouse se pone verde (color de acento), en la barra, en sus
+   desplegables y en el menú lateral. !important: el ítem de la pantalla actual tiene el color en el style. */
+vaadin-menu-bar.optimist-menu-barra vaadin-menu-bar-button:hover,
+vaadin-menu-bar-button:hover,
+vaadin-menu-bar-item:hover,
+vaadin-menu-bar-item:hover::part(content),
+.optimist-menu-lateral vaadin-button.optimist-menu-opcion:hover,
+.optimist-menu-lateral vaadin-details-summary:hover {
+  color: var(--optimist-acento) !important;
+}
+
+/* V50j: pie del WorkWith (Registros por página / Anterior - Siguiente) fijo abajo de la pantalla, como el pie de las TRN.
+   margin-top:auto lo manda al fondo de la tarjeta (que ocupa al menos todo el alto visible); sticky lo deja pegado
+   al borde de abajo cuando la lista es más alta que la pantalla. */
+.optimist-ww-pie {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto !important;
+  z-index: 3;
+  background: var(--optimist-fondo, #091e24);
+  padding: 8px 0 4px 0;
+  box-shadow: 0 -6px 10px -8px rgba(0, 0, 0, 0.45);
+  padding-bottom: 12px;
+}
+@media (max-width: 700px) {
+  .optimist-ww { padding-bottom: 0 !important; }
+  .optimist-ww > * { padding-bottom: 0 !important; }
+}

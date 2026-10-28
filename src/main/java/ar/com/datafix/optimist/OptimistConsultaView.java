@@ -27,7 +27,7 @@ import java.util.*;
 
 /**
  * V52 - Consultas (resources/consultas/<Nombre>.yaml): un WorkWith de solo lectura sobre la tabla de una TRN, con
- * parámetros arriba de la grilla y columnas que calcula el motor (calculo: stock -> OptimistStock). La grilla se pagina en
+ * parámetros arriba de la grilla y columnas que calcula la aplicación (calculo: stock -> en OPTIMIST ERP, OptimistConsultaStock). La grilla se pagina en
  * la base: con la condición en "Todo" y sin filtrar ni ordenar por una columna calculada, se calcula solo la página que se
  * ve; si no, la condición, el filtro y el orden van al SQL (una consulta, no una por renglón como en GeneXus).
  *
@@ -41,8 +41,8 @@ import java.util.*;
 @com.vaadin.flow.spring.annotation.UIScope
 public class OptimistConsultaView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final OptimistDatabase db;
-    private final OptimistTrnDatos datos;
+    final OptimistDatabase db;
+    final OptimistTrnDatos datos;
 
     public OptimistConsultaView(@Autowired OptimistDatabase db, @Autowired OptimistTrnDatos datos) {
         this.db = db;
@@ -283,22 +283,45 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
 
     // ------------------------------------------------------------------ la pantalla
 
-    private record Opcion(Object valor, String texto) {
+    /**
+     * E3: una consulta con 'calculo: nombre' (OPTIMIST ERP: 'stock'): la arma la aplicación (OptimistExtension.calculosConsulta).
+     * Trabaja sobre esta vista: def, trn, pantalla, combos, procesos, recibidos... (son del paquete) y puede guardar lo suyo en
+     * estadoCalculo.
+     */
+    public interface Calculo {
+        /** Las columnas que calcula (no son de la tabla de la TRN). */
+        Set<String> columnas();
+        /** Arma la pantalla de la consulta. */
+        void construir(OptimistConsultaView vista) throws SQLException;
+    }
+
+    /** El cálculo de ese nombre que trae la aplicación, o null. */
+    static Calculo calculo(String nombre) {
+        String n = nombre == null ? "" : nombre.trim().toLowerCase(Locale.ROOT);
+        for (OptimistExtension e : OptimistExtension.todas()) {
+            for (Map.Entry<String, Calculo> x : e.calculosConsulta().entrySet())
+                if (x.getKey().equalsIgnoreCase(n)) return x.getValue();
+        }
+        return null;
+    }
+
+    record Opcion(Object valor, String texto) {
         @Override public String toString() { return texto; }
     }
 
-    private Consulta def;
-    private Trn trn;
-    private OptimistWorkWith.Pantalla<Map<String, Object>> pantalla;
-    private final Map<String, ComboBox<Opcion>> combos = new LinkedHashMap<>();
-    private final Set<String> calculadas = new LinkedHashSet<>();
-    private String instalacion = "";
-    private final Map<Integer, Boolean> procesos = new HashMap<>();
+    // E3: lo que sigue es del paquete (no private): lo usan las consultas con 'calculo:' de la aplicación (ej. el stock del ERP)
+    Consulta def;
+    Trn trn;
+    OptimistWorkWith.Pantalla<Map<String, Object>> pantalla;
+    final Map<String, ComboBox<Opcion>> combos = new LinkedHashMap<>();
+    final Set<String> calculadas = new LinkedHashSet<>();
+    final Map<Integer, Boolean> procesos = new HashMap<>();
+    /** E3: lo propio del 'calculo:' de la consulta (lo arma y lo usa la aplicación); se guarda con la consulta para volver a ella. */
+    Object estadoCalculo;
     private final OptimistUserConfig preferencias = new OptimistUserConfig();
     private String usuario;
     /** V54: usuario, cliente y consulta con que se armó: si se vuelve con los mismos, la consulta queda como estaba. */
     private String firma;
-    private OptimistTrnDefinicion.Nivel almacenesDef;
 
     @Override
     public void beforeEnter(BeforeEnterEvent e) {
@@ -350,10 +373,12 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                 for (Map.Entry<String, List<String>> q : qp.entrySet())
                     if (q.getKey().equalsIgnoreCase(r.nombre()) && !q.getValue().isEmpty() && !q.getValue().get(0).isBlank())
                         recibidos.put(r.nombre(), q.getValue().get(0).trim());
-            if (def.calculo().isBlank()) construirGeneral();   // V66k: sin cálculo de stock
-            else if (!"stock".equalsIgnoreCase(def.calculo()))
-                throw new IllegalArgumentException("cálculo desconocido: " + def.calculo() + " ('stock' o nada)");
-            else construir();
+            if (def.calculo().isBlank()) construirGeneral();   // V66k: sin cálculo
+            else {   // E3: 'calculo: X' lo arma la aplicación (OPTIMIST ERP: stock)
+                Calculo k = calculo(def.calculo());
+                if (k == null) throw new IllegalArgumentException("cálculo desconocido: " + def.calculo() + " (la aplicación no tiene ese cálculo)");
+                k.construir(this);
+            }
             firma = f;
         } catch (RuntimeException | SQLException ex) {
             Span aviso = new Span("No se pudo abrir la consulta " + nombre + ": " + ex.getMessage());
@@ -363,16 +388,17 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
     }
 
     /**
-     * Los procesos que deciden las columnas: 156 / 157 bultos y cantidad, 107 el pendiente de entrega, 78 los movimientos
-     * solo de la empresa (V54) y los de procesos: del YAML. Sin el 156 ni el 157, la cantidad (si no, quedaría sin números).
+     * Los procesos (GetUsrProc) que deciden las columnas: los de 'procesos:' del YAML y los que la aplicación lee en todas sus
+     * consultas, con sus reglas (E3; OPTIMIST ERP: 156 / 157 bultos y cantidad, 107 pendiente de entrega, 78 movimientos de
+     * la empresa; sin el 156 ni el 157, la cantidad).
      */
-    private Map<Integer, Boolean> leerProcesos(Connection c) {
+    Map<Integer, Boolean> leerProcesos(Connection c) {
         Map<Integer, Boolean> r = new HashMap<>();
-        Set<Integer> pedir = new TreeSet<>(List.of(OptimistStock.PROC_BULTOS, OptimistStock.PROC_CANTIDAD, 107, 78));
+        Set<Integer> pedir = new TreeSet<>();
+        for (OptimistExtension e : OptimistExtension.todas()) pedir.addAll(e.procesosConsulta());
         def.procesos().values().forEach(pedir::addAll);
         for (int p : pedir) r.put(p, OptimistProcedimientos.procesoHabilitado(c, p));
-        if (!Boolean.TRUE.equals(r.get(OptimistStock.PROC_BULTOS)) && !Boolean.TRUE.equals(r.get(OptimistStock.PROC_CANTIDAD)))
-            r.put(OptimistStock.PROC_CANTIDAD, true);
+        for (OptimistExtension e : OptimistExtension.todas()) e.ajustarProcesosConsulta(r);
         return r;
     }
 
@@ -385,126 +411,20 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         }
     }
 
-    private void construir() throws SQLException {
-        removeAll();
-        pantalla = null;   // al volver a entrar: los combos no refrescan la lista anterior
-        calculadas.clear();
-        procesos.clear();
-        botonesArriba.clear();   // V66l: lo de una consulta general anterior (la vista es la misma en toda la sesión)
-        cajaCabecera = null;
-        varsFijas.clear();
-        referenciadas = Set.of();
-        cabeceraFila = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        for (Recibe r : def.recibe())   // V73: una consulta de stock también puede recibir (Stock por Almacén: el almacén)
-            if (r.obligatorio() && !recibidos.containsKey(r.nombre()))
-                throw new IllegalArgumentException("esta consulta se abre desde otra pantalla (falta " + r.nombre() + ")");
-        OptimistContexto ctx = OptimistContexto.actual();
-        Object modeloUsuario = null;
-        boolean vendedor = false;
-        try (Connection c = db.openConnection()) {
-            Object inst = OptimistProcedimientos.udp("GetParamGlbValorAlfa", List.of(BigDecimal.ONE), c);
-            instalacion = inst == null ? "" : String.valueOf(inst).trim();
-            // V55: 156 (ConsultaStockPorBultos) y 157 (ConsultaStockPorCantidad) deciden bultos y/o cantidad; 107 el pendiente
-            // de entrega; 78 los movimientos solo de la empresa (V54)
-            procesos.putAll(leerProcesos(c));
-            // el modelo de almacenes por defecto del usuario (SecUser) y si es vendedor
-            Object uid = ctx == null ? null : ctx.valor("SecUserId");
-            if (uid != null) {
-                try (PreparedStatement ps = c.prepareStatement("SELECT ModeloAlmacenesId, SecUserVendedoresId FROM SecUser WHERE SecUserId=?")) {
-                    ps.setObject(1, uid);
-                    try (ResultSet r = ps.executeQuery()) {
-                        if (r.next()) {
-                            modeloUsuario = r.getObject(1);
-                            Object v = r.getObject(2);
-                            vendedor = v != null && !(v instanceof Number n && n.longValue() == 0) && !String.valueOf(v).isBlank();
-                        }
-                    }
-                }
-            }
-            armarCombos(c, modeloUsuario);
-        }
-        // STONCOR: un vendedor no elige el modelo de almacenes (usa el suyo), como en GeneXus
-        ComboBox<Opcion> cbModelo = combos.get("ModeloAlmacenesId");
-        if (cbModelo != null && vendedor && "STONCOR".equalsIgnoreCase(instalacion)) cbModelo.setVisible(false);
-
-        pantalla = new OptimistWorkWith.Pantalla<>(this, new Grid<>(), def.plural(), "+ Nuevo", () -> { }, f -> "artículo",
-                f -> { }, f -> { }, f -> { }, new H1(def.titulo()), new Span(OptimistDatabase.nombreSistema()));
-        pantalla.nuevo.setVisible(false);
-        if (def.acciones().isEmpty()) pantalla.sinAcciones();
-        else pantalla.acciones(this::accionesDe);   // V82g: también las consultas de stock (ej. Consultar Partidas)
-        HorizontalLayout barra = new HorizontalLayout();
-        barra.setAlignItems(FlexComponent.Alignment.END);
-        barra.getStyle().set("flex-wrap", "wrap").set("gap", "var(--lumo-space-m)");
-        barra.addClassName("optimist-formulario");   // V66p
-        if (!recibidos.isEmpty()) {   // V73: como en las consultas generales: Volver y el subtítulo (ej. el almacén)
-            com.vaadin.flow.component.button.Button volver = new com.vaadin.flow.component.button.Button("Volver",
-                    com.vaadin.flow.component.icon.VaadinIcon.ARROW_LEFT.create(),
-                    ev -> com.vaadin.flow.component.UI.getCurrent().getPage().getHistory().back());
-            barra.add(volver);
-            String sub = subtitulo();
-            if (sub != null && !sub.isBlank()) {
-                Span st = new Span(sub);
-                st.getStyle().set("font-weight", "600").set("color", "var(--optimist-texto)").set("align-self", "center");
-                barra.add(st);
-                pantalla.subtituloPdf(sub);
-            }
-        }
-        combos.values().forEach(barra::add);
-        pantalla.tarjeta.addComponentAtIndex(1, barra);
-
-        Trn base = trnConColumnas();
-        Nivel cab = base.cabecera();
-        Nivel almacenes = trn.detalle("Almacenes");
-        almacenesDef = almacenes;
-        for (String col : def.columnas()) {
-            List<Integer> req = def.procesos().getOrDefault(col, List.of());
-            if (!req.stream().allMatch(p -> Boolean.TRUE.equals(procesos.get(p)))) continue;   // sin el proceso, la columna no está
-            if (OptimistStock.COLUMNAS.contains(col)) columnaStock(col, almacenes);
-            else columnaTrn(cab.campo(col), base);
-        }
-        pantalla.archivoExcel(def.nombre());
-        String monedaTot = OptimistTrnDefinicion.monedaTotales(def.totalesMoneda(), def.columnas(), trn.cabecera());   // V77
-        if (monedaTot != null) pantalla.totalesMoneda(monedaTot, f -> f.get(monedaTot));
-        pantalla.identificador(f -> OptimistStock.clave(f.get("ArticulosPK")));
-        pantalla.fuente(new OptimistWorkWith.Pantalla.Fuente<>() {
-            @Override public int contar(Map<String, String> filtros) throws Exception {
-                if (!necesitaJoin(filtros, null)) return datos.contar(base, filtros);
-                return datos.contar(base, filtros, extra());
-            }
-            @Override public OptimistTrnDatos.Conteo contarYSumar(Map<String, String> filtros, java.util.Set<String> sumar, String moneda) throws Exception {
-                return datos.contarYSumar(base, filtros, necesitaJoin(filtros, null) ? extra() : null, sumar, moneda);   // V75 / V77
-            }
-            @Override public List<Map<String, Object>> pagina(Map<String, String> filtros, String orden, boolean desc, int desde, int cantidad)
-                    throws Exception {
-                if (cantidad < 0 || necesitaJoin(filtros, orden))
-                    return datos.listarPagina(base, filtros, orden, desc, desde, cantidad, extra());
-                // lo común (condición "Todo", orden por artículo): los artículos de la página y el stock solo de esos
-                List<Map<String, Object>> filas = datos.listarPagina(base, filtros, orden, desc, desde, cantidad);
-                List<Object> pks = new ArrayList<>();
-                for (Map<String, Object> f : filas) if (f.get("ArticulosPK") != null) pks.add(f.get("ArticulosPK"));
-                Map<Object, Map<String, Object>> stock;
-                try (Connection c = db.openConnection()) { stock = OptimistStock.calcular(c, opciones(), pks); }
-                for (Map<String, Object> f : filas) {
-                    Map<String, Object> s = stock.get(OptimistStock.clave(f.get("ArticulosPK")));
-                    for (String k : OptimistStock.COLUMNAS) f.put(k, s == null ? BigDecimal.ZERO : s.get(k));
-                }
-                return filas;
-            }
-        });
-        pantalla.cargar(List.of());
-        OptimistShell.montar(this, pantalla.contenido, def.titulo());
-    }
-
     /** La TRN base con las columnas de artículos que pide la consulta (las calculadas no son de la tabla). */
-    private Trn trnConColumnas() {
+    Trn trnConColumnas() {
         OptimistTrnDefinicion.WorkWith w = trn.workwith();
         List<String> propias = new ArrayList<>();
-        for (String c : def.columnas()) if (!OptimistStock.COLUMNAS.contains(c) && trn.cabecera().campo(c) != null) propias.add(c);
+        Calculo k = def.calculo().isBlank() ? null : calculo(def.calculo());   // E3: las columnas que calcula no son de la tabla
+        Set<String> calculables = k == null ? Set.of() : k.columnas();
+        for (String c : def.columnas()) if (!calculables.contains(c) && trn.cabecera().campo(c) != null) propias.add(c);
         Map<String, String> titulos = new LinkedHashMap<>(w.titulos());
         titulos.putAll(def.titulos());
-        // V54: el código y la descripción se traen siempre (el título de las ventanas de las lupas), aunque no sean columnas
+        // V54: lo que se trae siempre aunque no sea columna (E3: lo dice la aplicación; OPTIMIST ERP: el código y la descripción
+        // del artículo, para el título de las ventanas de las lupas del stock)
         List<String> ocultas = new ArrayList<>();
-        for (String c : List.of("ArticulosId", "ArticulosDescrip")) if (!propias.contains(c) && trn.cabecera().campo(c) != null) ocultas.add(c);
+        for (OptimistExtension e : OptimistExtension.todas())
+            for (String c : e.consultaOcultasSiempre()) if (!propias.contains(c) && !ocultas.contains(c) && trn.cabecera().campo(c) != null) ocultas.add(c);
         // V66k: la clave de cada vínculo y las 'ocultas:' de la consulta también se traen
         List<String> mas = new ArrayList<>(def.ocultas());
         def.enlaces().values().forEach(en -> mas.add(en.clave()));
@@ -522,7 +442,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                 trn.inicio(), trn.reglas(), trn.calculo(), trn.archivos());
     }
 
-    private void columnaTrn(Campo c, Trn base) {
+    void columnaTrn(Campo c, Trn base) {
         if (c == null) return;
         EnlaceCns en = def.enlaces().get(c.nombre());   // V66k: el vínculo va antes de armar la columna
         if (en != null) pantalla.enlaceColumna(c.nombre(), f -> hrefEnlace(en, f));
@@ -547,78 +467,10 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         if (def.totaliza(c.nombre(), c)) pantalla.totalizar(c.nombre(), formato);   // V75: total al pie
     }
 
-    /** Una columna de stock: con el formato del dominio de ArticulosAlmacenes, verde si es positiva y roja si es negativa. */
-    private void columnaStock(String col, Nivel almacenes) {
-        calculadas.add(col);
-        boolean bultos = col.contains("Bult");
-        Campo dom = almacenes == null ? null : almacenes.campo(bultos ? "ArticulosAlmacenesBultStk" : "ArticulosAlmacenesCantStk");
-        int dec = dom == null ? (bultos ? 0 : 3) : dom.dominio().decimales();
-        String formato = dec > 0 ? "#,##0." + "0".repeat(dec) : "#,##0";
-        pantalla.tipoFiltro(col, "numero");
-        boolean pend = col.equals(OptimistStock.CANT_PEND) || col.equals(OptimistStock.BULT_PEND);
-        pantalla.estiloPorFila(col, f -> {
-            BigDecimal v = numero(f.get(col));
-            if (pend) return v.signum() > 0 && !bultos ? "font-weight:700;" : null;   // GeneXus: pendiente de entrega en negrita
-            return v.signum() > 0 ? "color:#2e7d32;font-weight:600;" : v.signum() < 0 ? "color:#c62828;font-weight:600;" : null;
-        });
-        lupaStock(col);   // V54
-        Grid.Column<Map<String, Object>> c = pantalla.columna(col, def.titulos().getOrDefault(col, col),
-                f -> OptimistStockDetalle.formato(dom, f.get(col)),
-                f -> numero(f.get(col)), formato, null, null);
-        c.setTextAlign(ColumnTextAlign.END);
-        String ancho = def.anchos().get(col);
-        c.setWidth(ancho == null ? "130px" : ancho).setFlexGrow(OptimistWorkWith.crecimiento(ancho == null ? "130px" : ancho));   // V55 / V66l
-    }
-
-    /**
-     * V54: la lupa al lado de cada número de stock (como en OPTIMIST). Stock: por almacén (y sus movimientos); disponible,
-     * potencial y total: los comprobantes que forman el número; pendiente de entrega: las facturas por pedido. Se ve solo
-     * si hay algo que mostrar.
-     */
-    private void lupaStock(String col) {
-        boolean bul = col.contains("Bult");
-        String stk = bul ? OptimistStock.BULT_STK : OptimistStock.CANT_STK, disp = bul ? OptimistStock.BULT_DISP : OptimistStock.CANT_DISP,
-                pot = bul ? OptimistStock.BULT_POT : OptimistStock.CANT_POT;
-        java.util.function.Function<Map<String, Object>, BigDecimal[]> partes = f -> {
-            BigDecimal s0 = numero(f.get(stk)), d0 = numero(f.get(disp)), p0 = numero(f.get(pot));
-            BigDecimal comprometido = s0.subtract(d0);            // pedidos + materia prima
-            BigDecimal entra = p0.add(comprometido);              // compras + producción
-            return new BigDecimal[]{s0, comprometido, entra};
-        };
-        if (col.equals(OptimistStock.BULT_STK) || col.equals(OptimistStock.CANT_STK))
-            pantalla.lupa(col, f -> true, f -> OptimistStockDetalle.porAlmacen(contexto(f)), "Ver el stock por almacén");
-        else if (col.equals(OptimistStock.BULT_DISP) || col.equals(OptimistStock.CANT_DISP))
-            pantalla.lupa(col, f -> { BigDecimal[] x = partes.apply(f); return x[0].signum() != 0 || x[1].signum() != 0; },
-                    f -> OptimistStockDetalle.comprobantes(contexto(f), OptimistStock.DISPONIBLE), "Ver el stock disponible");
-        else if (col.equals(OptimistStock.BULT_POT) || col.equals(OptimistStock.CANT_POT))
-            pantalla.lupa(col, f -> { BigDecimal[] x = partes.apply(f); return x[1].signum() != 0 || x[2].signum() != 0; },
-                    f -> OptimistStockDetalle.comprobantes(contexto(f), OptimistStock.POTENCIAL), "Ver el stock potencial");
-        else if (col.equals(OptimistStock.BULT_TOT) || col.equals(OptimistStock.CANT_TOT))
-            pantalla.lupa(col, f -> { BigDecimal[] x = partes.apply(f); return x[0].signum() != 0 || x[1].signum() != 0 || x[2].signum() != 0; },
-                    f -> OptimistStockDetalle.comprobantes(contexto(f), OptimistStock.TOTAL), "Ver el stock total");
-        else if (col.equals(OptimistStock.BULT_PEND) || col.equals(OptimistStock.CANT_PEND))
-            pantalla.lupa(col, f -> numero(f.get(OptimistStock.BULT_PEND)).signum() != 0 || numero(f.get(OptimistStock.CANT_PEND)).signum() != 0,
-                    f -> OptimistStockDetalle.pendienteEntrega(contexto(f)), "Ver el pendiente de entrega");
-    }
-
-    /** V54: lo que necesitan las ventanas de las lupas para el artículo de esta fila. */
-    private OptimistStockDetalle.Contexto contexto(Map<String, Object> f) {
-        String art = (f.get("ArticulosId") == null ? "" : String.valueOf(f.get("ArticulosId")).trim())
-                + (f.get("ArticulosDescrip") == null ? "" : " - " + String.valueOf(f.get("ArticulosDescrip")).trim());
-        Object[] origen = null;
-        OptimistContexto ctx = OptimistContexto.actual();
-        // proceso 78 (BloquearVisualizacionStockCuenta2): con empresa < 50, sin los movimientos hechos desde una empresa > 50 (V65p)
-        if (Boolean.TRUE.equals(procesos.get(78)) && ctx != null && numero(ctx.valor("Empresa")).compareTo(BigDecimal.valueOf(50)) < 0)
-            origen = new Object[]{ctx.valor("Empresa"), ctx.valor("Division")};
-        return new OptimistStockDetalle.Contexto(db, opciones(), almacenesDef == null ? null : almacenesDef.campo("ArticulosAlmacenesBultStk"),
-                almacenesDef == null ? null : almacenesDef.campo("ArticulosAlmacenesCantStk"), f.get("ArticulosPK"), art, origen,
-                Boolean.TRUE.equals(procesos.get(OptimistStock.PROC_BULTOS)), Boolean.TRUE.equals(procesos.get(OptimistStock.PROC_CANTIDAD)));
-    }
-
     // ------------------------------------------------------------------ V66k: consultas sin cálculo de stock
 
     /** Lo que recibió de quien la abrió (nombre de 'recibe' -> valor). */
-    private final Map<String, String> recibidos = new LinkedHashMap<>();
+    final Map<String, String> recibidos = new LinkedHashMap<>();
     private final Map<String, OptimistFormula> formulasEnlace = new HashMap<>();
 
     /**
@@ -628,6 +480,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
     private void construirGeneral() throws SQLException {
         removeAll();
         pantalla = null;
+        estadoCalculo = null;
         calculadas.clear();
         procesos.clear();
         combos.clear();
@@ -730,20 +583,20 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
 
     /** V66l: cómo quedó una consulta (para volver a ella como estaba). */
     private record Estado(Consulta def, Trn trn, OptimistWorkWith.Pantalla<Map<String, Object>> pantalla, Map<String, ComboBox<Opcion>> combos,
-                          Set<String> calculadas, String instalacion, Map<Integer, Boolean> procesos, Nivel almacenesDef, Map<String, String> recibidos,
+                          Set<String> calculadas, Object estadoCalculo, Map<Integer, Boolean> procesos, Map<String, String> recibidos,
                           Map<String, com.vaadin.flow.component.datepicker.DatePicker> fechas, Map<String, Object> varsFijas, Set<String> referenciadas,
                           Map<String, Object> cabeceraFila, com.vaadin.flow.component.orderedlayout.FlexLayout cajaCabecera,
                           Map<AccionCns, com.vaadin.flow.component.button.Button> botonesArriba) {}
     private final LinkedHashMap<String, Estado> estados = new LinkedHashMap<>();
 
     private Estado guardarEstado() {
-        return new Estado(def, trn, pantalla, new LinkedHashMap<>(combos), new LinkedHashSet<>(calculadas), instalacion, new HashMap<>(procesos),
-                almacenesDef, new LinkedHashMap<>(recibidos), new LinkedHashMap<>(fechas), new TreeMap<>(varsFijas), referenciadas, cabeceraFila,
+        return new Estado(def, trn, pantalla, new LinkedHashMap<>(combos), new LinkedHashSet<>(calculadas), estadoCalculo, new HashMap<>(procesos),
+                new LinkedHashMap<>(recibidos), new LinkedHashMap<>(fechas), new TreeMap<>(varsFijas), referenciadas, cabeceraFila,
                 cajaCabecera, new LinkedHashMap<>(botonesArriba));
     }
 
     private void restaurar(Estado s) {
-        def = s.def(); trn = s.trn(); pantalla = s.pantalla(); instalacion = s.instalacion(); almacenesDef = s.almacenesDef();
+        def = s.def(); trn = s.trn(); pantalla = s.pantalla(); estadoCalculo = s.estadoCalculo();
         combos.clear(); combos.putAll(s.combos());
         calculadas.clear(); calculadas.addAll(s.calculadas());
         procesos.clear(); procesos.putAll(s.procesos());
@@ -756,31 +609,31 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
 
     private final Map<String, com.vaadin.flow.component.datepicker.DatePicker> fechas = new LinkedHashMap<>();
     /** Las variables de ParamGlb y fijas del YAML (se leen al armar la pantalla). */
-    private final Map<String, Object> varsFijas = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    final Map<String, Object> varsFijas = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     /** Las &Variables que usa el SQL de la consulta (van como @cns_Nombre a la sesión de MySQL antes de cada consulta). */
-    private Set<String> referenciadas = Set.of();
-    private Map<String, Object> cabeceraFila = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-    private com.vaadin.flow.component.orderedlayout.FlexLayout cajaCabecera;
-    private final Map<AccionCns, com.vaadin.flow.component.button.Button> botonesArriba = new LinkedHashMap<>();
+    Set<String> referenciadas = Set.of();
+    Map<String, Object> cabeceraFila = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    com.vaadin.flow.component.orderedlayout.FlexLayout cajaCabecera;
+    final Map<AccionCns, com.vaadin.flow.component.button.Button> botonesArriba = new LinkedHashMap<>();
     private final Map<String, OptimistFormula> formulas = new HashMap<>();
     private static final java.util.regex.Pattern VAR = java.util.regex.Pattern.compile("&([A-Za-z_][A-Za-z0-9_]*)");
     private static final java.util.regex.Pattern COL = java.util.regex.Pattern.compile("\\$([A-Za-z_][A-Za-z0-9_]*)");
-    private static final List<String> CONTEXTO = List.of("Empresa", "Division", "EmpStk", "DivStk", "EmpLst", "DivLst", "EmpCst", "DivCst",
-            "SecUserId", "SecUserName");
 
     private ColSql colSql(String nombre) {
         return def.columnasSql().stream().filter(x -> x.nombre().equalsIgnoreCase(nombre)).findFirst().orElse(null);
     }
 
-    /** Las variables del YAML: ParamGlb (alfa, numero o boolean, con GetParamGlbValor...) o un valor fijo. */
+    /** Las variables del YAML: un parámetro global de la aplicación (alfa, numero o boolean), un proceso o un valor fijo. */
     private void leerVariablesFijas(Connection c) {
         varsFijas.clear();
         for (Variable v : def.variables()) {
             Object x = v.valor();
             if (v.proceso() != null) x = OptimistProcedimientos.procesoHabilitado(c, v.proceso());   // V82g
-            else if (v.paramGlb() != null) {
-                String proc = switch (v.tipo()) { case "numero" -> "GetParamGlbValorNumerico"; case "boolean" -> "GetParamGlbValorBoolean"; default -> "GetParamGlbValorAlfa"; };
-                try { x = OptimistProcedimientos.udp(proc, List.of(BigDecimal.valueOf(v.paramGlb())), c); }
+            else if (v.paramGlb() != null) {   // E3: el parámetro global lo resuelve la aplicación (OPTIMIST ERP: GetParamGlbValor...)
+                x = null;
+                try {
+                    for (OptimistExtension e : OptimistExtension.todas()) { x = e.parametroGlobal(c, v.paramGlb(), v.tipo()); if (x != null) break; }
+                }
                 catch (SQLException | RuntimeException ex) { System.out.println("[" + def.nombre() + "] variable " + v.nombre() + ": " + ex.getMessage()); x = null; }
                 if (x instanceof String s) x = s.strip();
             }
@@ -792,7 +645,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
     private Map<String, Object> variables() {
         Map<String, Object> v = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         OptimistContexto ctx = OptimistContexto.actual();
-        if (ctx != null) for (String k : CONTEXTO) v.put(k, ctx.valor(k));
+        if (ctx != null) for (String k : OptimistTrnDefinicion.variablesContexto()) v.put(k, ctx.valor(k));   // E3: las del motor y las de la aplicación
         v.put("Today", java.time.LocalDate.now());
         v.putAll(varsFijas);
         recibidos.forEach((k, x) -> v.put(k, valorRecibido(x)));
@@ -917,7 +770,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
      * Las acciones de un renglón. Como en GeneXus, la que no corresponde va en gris; las que tienen el mismo título e ícono
      * son UNA con variantes (ej. "Ingresar Cobranza o Pago": cobranza para un cliente, pago para un proveedor).
      */
-    private List<OptimistWorkWith.Accion> accionesDe(Map<String, Object> f) {
+    List<OptimistWorkWith.Accion> accionesDe(Map<String, Object> f) {
         List<OptimistWorkWith.Accion> r = new ArrayList<>();
         Map<String, Integer> lugar = new HashMap<>();
         for (AccionCns a : def.acciones()) {
@@ -1151,7 +1004,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
     }
 
     /** El subtítulo (ej. "Asiento 25 del 30/09/2026 - Asiento de Ventas"), o null si falta algo de lo que usa. */
-    private String subtitulo() {
+    String subtitulo() {
         Subtitulo st = def.subtitulo();
         if (st == null) return null;
         List<Object> ps = new ArrayList<>();
@@ -1232,7 +1085,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         com.vaadin.flow.component.UI.getCurrent().navigate("cns/" + d.nombre().toLowerCase(Locale.ROOT), com.vaadin.flow.router.QueryParameters.simple(q));
     }
 
-    private static BigDecimal numero(Object v) {
+    static BigDecimal numero(Object v) {
         if (v instanceof BigDecimal b) return b;
         if (v instanceof Number n) return new BigDecimal(n.toString());
         try { return v == null ? BigDecimal.ZERO : new BigDecimal(String.valueOf(v).trim()); } catch (NumberFormatException e) { return BigDecimal.ZERO; }
@@ -1243,7 +1096,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
      * (default "hoy", o lo recibido con el mismo nombre) y los combos de una tabla con "donde" (se vuelven a llenar cuando
      * cambia el parámetro del que dependen, ej. el modelo de comprobantes según el CPI).
      */
-    private void armarCombos(Connection c, Object modeloUsuario) throws SQLException {
+    void armarCombos(Connection c, Object modeloUsuario) throws SQLException {
         combos.clear();
         fechas.clear();
         for (Parametro p : def.parametros()) {
@@ -1347,35 +1200,18 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
 
     private static boolean mismo(Object a, Object b) {
         if (a == null || b == null) return false;
-        return OptimistStock.clave(a).equals(OptimistStock.clave(b instanceof String s && s.trim().matches("-?\\d+(\\.\\d+)?") ? new BigDecimal(s.trim()) : b));
+        return clave(a).equals(clave(b instanceof String s && s.trim().matches("-?\\d+(\\.\\d+)?") ? new BigDecimal(s.trim()) : b));
     }
 
-    private int entero(String parametro, int defecto) {
+    /** Un valor para comparar: los números sin ceros de más (1 = 1.00), los textos sin espacios. */
+    private static Object clave(Object v) {
+        if (v instanceof Number n) return new BigDecimal(n.toString()).stripTrailingZeros().toPlainString();
+        return v == null ? null : String.valueOf(v).trim();
+    }
+
+    int entero(String parametro, int defecto) {
         ComboBox<Opcion> cb = combos.get(parametro);
         Object v = cb == null || cb.getValue() == null ? null : cb.getValue().valor();
         try { return v == null ? defecto : Integer.parseInt(String.valueOf(v).trim()); } catch (NumberFormatException e) { return defecto; }
-    }
-
-    private OptimistStock.Opciones opciones() {
-        OptimistContexto ctx = OptimistContexto.actual();
-        ComboBox<Opcion> cb = combos.get("ModeloAlmacenesId");
-        Object modelo = cb == null || cb.getValue() == null ? null : cb.getValue().valor();
-        Object almacen = null;   // V73: Stock por Almacén: la consulta recibe AlmacenesId
-        for (Map.Entry<String, String> e : recibidos.entrySet()) if (e.getKey().equalsIgnoreCase("AlmacenesId")) almacen = e.getValue();
-        return new OptimistStock.Opciones(ctx == null ? null : ctx.valor("EmpStk"), ctx == null ? null : ctx.valor("DivStk"),
-                instalacion, modelo, Boolean.TRUE.equals(procesos.get(OptimistStock.PROC_BULTOS)), Boolean.TRUE.equals(procesos.get(107)),
-                almacen);
-    }
-
-    private OptimistTrnDatos.Extra extra() {
-        return OptimistStock.extra(opciones(), entero("ConsultaStock", OptimistStock.ACTUAL), entero("CondicionStock", OptimistStock.TODO));
-    }
-
-    /** Hace falta sumar el stock de todos los artículos: hay condición, o se filtra u ordena por una columna de stock. */
-    private boolean necesitaJoin(Map<String, String> filtros, String orden) {
-        if (entero("CondicionStock", OptimistStock.TODO) != OptimistStock.TODO) return true;
-        if (orden != null && calculadas.contains(orden)) return true;
-        if (filtros != null) for (String k : filtros.keySet()) if (calculadas.contains(k)) return true;
-        return false;
     }
 }

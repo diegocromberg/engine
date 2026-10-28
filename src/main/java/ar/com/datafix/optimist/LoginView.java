@@ -55,7 +55,7 @@ public class LoginView extends VerticalLayout implements com.vaadin.flow.router.
                 VaadinSession.getCurrent().setAttribute(OptimistDatabase.ATRIBUTO_CLIENTE,cliente[0]);
             }
             if(db.validarUsuario(u,clave.getValue())){
-                // V30: contexto de la sesión (WWPContext): empresa/división del usuario, como SecLogIn -> SetDefaultUsuario
+                // V30: contexto de la sesión (WWPContext), como SecLogIn -> SetDefaultUsuario (lo propio lo agrega la aplicación, E3)
                 OptimistContexto ctx;
                 try(java.sql.Connection cn=db.openConnection()){ ctx=OptimistContexto.cargar(cn,u); }
                 catch(java.sql.SQLException ex){
@@ -63,9 +63,10 @@ public class LoginView extends VerticalLayout implements com.vaadin.flow.router.
                     throw ex;
                 }
                 if(ctx==null){Notification.show("Usuario inexistente",4000,Notification.Position.MIDDLE);return;}
-                if(OptimistDatabase.conEmpresas()&&!ctx.tieneEmpresa()&&!OptimistContexto.esAdministrador(u)){
-                    Notification.show("Este usuario no tiene asignada ninguna empresa/división y no puede loguearse al sistema. Contáctese con el administrador",8000,Notification.Position.MIDDLE);
-                    return;
+                // E3: lo que controla la aplicación (ej. OPTIMIST ERP: usuario sin empresa/división asignada)
+                for(OptimistExtension ext:OptimistExtension.todas()){
+                    String no=ext.validarIngreso(ctx,u);
+                    if(no!=null){Notification.show(no,8000,Notification.Position.MIDDLE);return;}
                 }
                 ctx.guardarEnSesion();
                 VaadinSession.getCurrent().setAttribute("optimist.usuario",u);

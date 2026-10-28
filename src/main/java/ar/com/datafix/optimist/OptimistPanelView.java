@@ -1092,7 +1092,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         /** V74: abre la consulta del vínculo con lo que recibe: una columna del renglón, una &Variable del panel o una constante. */
         private void abrirEnlace(OptimistPanel.Enlace en, Map<String, Object> fila) {
             if (en.trn() != null) {   // V84: el registro de la TRN en modo ver (como las lupas de stock)
-                OptimistStockDetalle.abrirComprobante(en.trn(), valorDe(fila, en.clave()));
+                OptimistVentanas.abrirRegistro(en.trn(), valorDe(fila, en.clave()));
                 return;
             }
             Map<String, String> qp = new LinkedHashMap<>();

@@ -4674,7 +4674,7 @@ const CONTROL_IMP = '_importacion.json';
 function abrirImportador() {
   if (!IMP.destino && dir && /^trn$/i.test(dir.name)) { IMP.destino = dir; leerDestinoImp().then(pintarImp); }
   $('#imp').classList.add('abierto');
-  pintarImp();
+  pintarImportador();
 }
 function cerrarImportador() { $('#imp').classList.remove('abierto'); }
 
@@ -4690,7 +4690,7 @@ async function elegirArchivoGx() {
   await leerArchivoGx(f);
 }
 async function leerArchivoGx(f) {
-  IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImp();
+  IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImportador();
   await procesandoImp('Leyendo la KB', 'Leyendo ' + f.name + '…', 0);
   try {
     let ult = 0;
@@ -4703,7 +4703,7 @@ async function leerArchivoGx(f) {
   } catch (e) { IMP.error = 'No se pudo leer ' + f.name + ': ' + e.message; }
   procesandoImp(null);
   IMP.avance = null;
-  pintarImp();
+  pintarImportador();
 }
 $('#inGx').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await leerArchivoGx(f); });
 
@@ -4720,16 +4720,19 @@ async function elegirDestinoImp() {
   }
   if (!trn) { try { trn = await d.getDirectoryHandle('trn'); } catch {} }
   if (!trn) {
-    const ok = await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'En "', h('b', null, d.name), '" no hay una carpeta ', h('code', null, 'trn'), '. ¿La creo ahí para las transacciones importadas?')],
+    // un proyecto con src/main/resources: la carpeta trn va ahí (donde la lee el motor)
+    let dr = d;
+    try { let x = d; for (const p of ['src', 'main', 'resources']) x = await x.getDirectoryHandle(p); dr = x; } catch {}
+    const ok = await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'En "', h('b', null, d.name + (dr !== d ? '/src/main/resources' : '')), '" no hay una carpeta ', h('code', null, 'trn'), '. ¿La creo ahí para las transacciones importadas?')],
                                   botones: [{ texto: 'Crear la carpeta trn', clase: 'primario', valor: true }, { texto: 'Cancelar', valor: false }] });
     if (!ok) return;
-    try { trn = await d.getDirectoryHandle('trn', { create: true }); } catch (e) { aviso('No se pudo crear la carpeta trn: ' + e.message, true); return; }
+    try { trn = await dr.getDirectoryHandle('trn', { create: true }); } catch (e) { aviso('No se pudo crear la carpeta trn: ' + e.message, true); return; }
   }
   IMP.destino = trn;
   IMP.destinoPadre = d.name;
   await procesandoImp('Carpeta de la aplicación', 'Leyendo las TRN que ya hay en ' + d.name + '…', 0.5);
   try { await leerDestinoImp(); } finally { procesandoImp(null); }
-  pintarImp();
+  pintarImportador();
 }
 async function leerDestinoImp() {
   IMP.existentes = new Map(); IMP.control = { trns: {} };
@@ -4757,7 +4760,7 @@ function visiblesImp() {
 }
 function pintarAvanceImp() { const b = $('#imp .barraAvance div'); if (b) b.style.width = Math.round((IMP.avance || 0) * 100) + '%'; }
 
-function pintarImp() {
+function pintarImportador() {
   const raiz = $('#imp'); raiz.innerHTML = '';
   const kb = IMP.kb;
   const propias = IMP.lista.filter(t => !t.base).length, wwp = IMP.lista.length - propias;
@@ -4776,9 +4779,9 @@ function pintarImp() {
     const todas = vis.length && vis.every(t => IMP.marcadas.has(t.nombre));
     herr.append(
       h('input', { type: 'text', placeholder: 'Buscar TRN…', value: IMP.filtro, oninput: e => { IMP.filtro = e.target.value; pintarTablaImp(); } }),
-      h('label', null, h('input', { type: 'checkbox', checked: IMP.verWwp, onchange: e => { IMP.verWwp = e.target.checked; pintarImp(); } }), 'Ver también las del patrón WorkWithPlus (seguridad, menú)'),
-      h('button', { class: 'chico', onclick: () => { vis.forEach(t => todas ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre)); pintarImp(); } }, todas ? 'Destildar todas' : 'Tildar todas'),
-      h('button', { class: 'chico', onclick: () => { IMP.marcadas.clear(); vis.filter(t => estadoImp(t) === 'nueva').forEach(t => IMP.marcadas.add(t.nombre)); pintarImp(); } }, 'Tildar las nuevas'));
+      h('label', null, h('input', { type: 'checkbox', checked: IMP.verWwp, onchange: e => { IMP.verWwp = e.target.checked; pintarImportador(); } }), 'Ver también las del patrón WorkWithPlus (seguridad, menú)'),
+      h('button', { class: 'chico', onclick: () => { vis.forEach(t => todas ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre)); pintarImportador(); } }, todas ? 'Destildar todas' : 'Tildar todas'),
+      h('button', { class: 'chico', onclick: () => { IMP.marcadas.clear(); vis.filter(t => estadoImp(t) === 'nueva').forEach(t => IMP.marcadas.add(t.nombre)); pintarImportador(); } }, 'Tildar las nuevas'));
   }
   ven.append(herr);
   ven.append(h('div', { class: 'tabla', id: 'impTabla' }));
@@ -4802,7 +4805,7 @@ function pintarTablaImp() {
   const tb = h('tbody');
   for (const t of vis) {
     const est = estadoImp(t), marcada = IMP.marcadas.has(t.nombre);
-    const alternar = () => { if (t.problema) return; marcada ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre); pintarImp(); };
+    const alternar = () => { if (t.problema) return; marcada ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre); pintarImportador(); };
     tb.append(h('tr', { class: 'fila' + (marcada ? ' marcada' : '') + (t.problema ? ' no' : ''), onclick: alternar, title: t.problema || '' },
       h('td', null, h('input', { type: 'checkbox', checked: marcada, disabled: !!t.problema, onclick: e => e.stopPropagation(), onchange: alternar })),
       h('td', null, h('b', null, t.nombre), t.base ? ' ' : '', t.base ? h('span', { class: 'est wwp' }, 'WorkWithPlus') : ''),
@@ -4976,7 +4979,7 @@ async function importarImp(nombres) {
   for (const n of hechas) IMP.marcadas.delete(n);
   await leerDestinoImp();
   procesandoImp(null);
-  pintarImp();
+  pintarImportador();
   // que aparezcan en la lista del diseñador
   try {
     if (!dir || (dir.isSameEntry && await dir.isSameEntry(IMP.destino))) { await usarCarpeta(IMP.destino); guardarCarpeta(IMP.destino); }

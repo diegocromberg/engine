@@ -62,7 +62,7 @@ public class OptimistUserConfig {
         Path destino = archivo(usuario);
         Path tmp = destino.resolveSibling(destino.getFileName() + ".tmp");
         try (OutputStream out = Files.newOutputStream(tmp)) {
-            p.storeToXML(out, "OPTIMIST ERP - Configuración de " + usuario, "UTF-8");
+            p.storeToXML(out, OptimistDatabase.nombreSistema() + " - Configuración de " + usuario, "UTF-8");
         }
         try { Files.move(tmp, destino, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE); }
         catch (AtomicMoveNotSupportedException e) { Files.move(tmp, destino, StandardCopyOption.REPLACE_EXISTING); }

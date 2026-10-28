@@ -699,7 +699,9 @@ Todas las listas (los WorkWith de las TRN y las consultas) llevan una **fila de 
 
 ### 9.1 Contexto del usuario: empresa y división (el WWPContext de GeneXus)
 
-Al iniciar sesión el motor arma el contexto del usuario igual que `SecLogIn` → `SetDefaultUsuario`: empresa y división de `PerfilUsuario`, las de stock, costos, listas de precios y cta2 de `EmpDivStkCst` (stock y costos vacías = la del usuario) y `SecUserEntidadesPK`. La empresa/división se ve en el menú, debajo del usuario. Un usuario sin empresa asignada no puede entrar (salvo `Administrator`).
+> **E3**: el motor solo pone `&SecUserId` y `&SecUserName` (de `SecUser`). Lo demás de esta sección es de **OPTIMIST ERP**: lo agrega su extensión (`OptimistExtensionErp`, sección 23). Una aplicación sin extensión (ej. Factory) tiene solo esas dos variables.
+
+En OPTIMIST ERP, al iniciar sesión se arma el contexto del usuario igual que `SecLogIn` → `SetDefaultUsuario`: empresa y división de `PerfilUsuario`, las de stock, costos, listas de precios y cta2 de `EmpDivStkCst` (stock y costos vacías = la del usuario) y `SecUserEntidadesPK`. La empresa/división se ve en el menú, debajo del usuario. Un usuario sin empresa asignada no puede entrar (salvo `Administrator`).
 
 En el YAML se usan con `&`, **siempre entre comillas**:
 ```yaml
@@ -712,7 +714,7 @@ workwith:
 ```
 - `default: "&Empresa"`: el alta se graba en la empresa del usuario (como `Default(PRSEmpresa, &WWPContext.Empresa)`).
 - `workwith.filtro`: el WorkWith (y su Excel) muestra solo esas filas (como las Conditions `PRSEmpresa=&WWPContext.Empresa` del WW). También acepta valores fijos: `{ArticulosEstado: 1}`. Si el contexto no tiene valor (Administrator sin empresa), ese filtro no se aplica.
-- Variables: `&SecUserId`, `&SecUserName`, `&Empresa`, `&Division`, `&EmpStk`, `&DivStk`, `&EmpCst`, `&DivCst`, `&EmpLst`, `&DivLst`, `&EmpCta2`, `&DivCta2`, `&PerfilUsuarioColorLogo`, `&EmpresaCaption`, `&SecUserEntidadesPK`. Otra variable da error al validar.
+- Variables (OPTIMIST ERP): `&SecUserId`, `&SecUserName`, `&Empresa`, `&Division`, `&EmpStk`, `&DivStk`, `&EmpCst`, `&DivCst`, `&EmpLst`, `&DivLst`, `&EmpCta2`, `&DivCta2`, `&PerfilUsuarioColorLogo`, `&EmpresaCaption`, `&SecUserEntidadesPK`. Otra variable da error al validar.
 - Qué empresa / división usar (V65j, para todo el sistema): stock y almacenes `&EmpStk` / `&DivStk`; listas de precios `&EmpLst` / `&DivLst`; costos `&EmpCst` / `&DivCst`; comprobantes `&Empresa` / `&Division`. Ej.: `{nombre: AlmacenesEmp, ..., default: "&EmpStk"}` hace que la lupa de almacenes traiga los de la empresa de stock.
 
 ---
@@ -1582,7 +1584,47 @@ workwith:                         # cada clave reemplaza a la de workwith: de la
     - {titulo: Autorizar seleccionados, icono: CHECK, porRenglon: true, si: "CPBCStatus = 'N'", proc: CPBCAutorizar, parametros: [CPBCId], confirmar: "¿Autoriza los comprobantes tildados?"}
 ```
 
+## 23. Extensiones de la aplicación (`OptimistExtension`, E3)
+
+El motor no conoce ninguna aplicación: no nombra tablas, procedimientos, clientes ni comprobantes de nadie. Lo que una aplicación
+necesita en Java (su contexto de usuario, sus procedimientos nativos, un cálculo propio de una consulta) lo engancha con una
+**extensión**: una clase que implementa `ar.com.datafix.optimist.OptimistExtension` y se anota en
+
+```
+src/main/resources/META-INF/services/ar.com.datafix.optimist.OptimistExtension
+```
+
+(un renglón por clase, con el nombre completo; es el `ServiceLoader` estándar de Java). El motor las carga al arrancar y lo anota en
+el log: `[OPTIMIST] Extensiones de la aplicación: [...]`. Todo tiene valor por defecto, así que se implementa solo lo que hace falta.
+
+| Método | Para qué | OPTIMIST ERP |
+|---|---|---|
+| `nombreSistema()` | nombre si el optimist.cfg no dice `sistema.nombre` | "OPTIMIST ERP" |
+| `registrarProcedimientos()` | procedimientos en Java (`OptimistProcedimiento.registrarNativo`) | Logueo, AFIP, precios, stock, OPTIMIST SQL, QR |
+| `alIniciarSesion(cn, usuario, ctx)` | agregar variables al contexto (el WWPContext); un `SQLException` corta el ingreso con su mensaje | empresa, división, EmpStk…, menú por permisos |
+| `validarIngreso(ctx, usuario)` | mensaje si el usuario no puede entrar, o null | sin empresa asignada (salvo Administrator) |
+| `variablesContexto()` | las `&Variables` de contexto que valen en los YAML | `&Empresa`, `&Division`, `&EmpStk`… (9.1) |
+| `claveUsuario()` | variables que, con el usuario, forman la clave de lo que se recuerda por usuario | Empresa, Division, EmpLst, DivLst |
+| `calculosConsulta()` | consultas con `calculo: nombre` (sección 21) | `stock` |
+| `consultaOcultasSiempre()` | columnas que toda consulta trae aunque no se vean | ArticulosId, ArticulosDescrip |
+| `procesosConsulta()` / `ajustarProcesosConsulta()` | procesos (GetUsrProc) de todas las consultas | 156, 157, 107, 78 |
+| `parametroGlobal(cn, n, tipo)` | variables `paramGlb: N` de las consultas | GetParamGlbValor… |
+| `decimalesPrecios()` | de dónde salen los decimales de `calculo:` si el YAML no dice `decimales` | ParamGlb 30 |
+| `monedas(cn)` | monedas del filtro de los totales (V77) | tabla Monedas |
+| `textoSegun(col, valor)` | texto de la columna `segun` de un código repetido | Cliente / Proveedor |
+| `variablesInstalacion()` / `patronesInstalacion()` | &variables "de instalación" de las acciones (V65o) | `&instalacion` |
+| `objetosMensajes()` | objetos de los mensajes que no se llaman como su TRN | MSTK → MovStock |
+| `precalentarTrn()` | TRN que se precalientan si el cfg no dice `application.precalentarTrn` | PRS, PED, CPBC… |
+
+### 23.1 Una aplicación sin Java propio (ej. Factory)
+
+Solo YAML: `trn/`, `menu.yaml`, `dominios.yaml` (y si hace falta `wbp/`, `proc/`, `consultas/`, `impresiones/`), un `pom.xml`
+igual al del ERP (compila `../engine/src/main/java` y sus recursos) y su `optimist.cfg` (`sistema.nombre`, y `sistema.postits=false`
+si la base no tiene la tabla PostIts). El login usa `SecUser` (SecUserName / SecUserPassword) y el menú sale completo del `menu.yaml`.
+Las tablas de mensajes y PostIts son opcionales: sin ellas, la campanita queda sin número y no hay PostIts.
+
 ### Historial
+- **E3**: extensiones de la aplicación (`OptimistExtension`, 23); el contexto de empresa y división pasa a ser de OPTIMIST ERP (9.1). No cambia ningún YAML.
 - **V82i**: PostIts de la pantalla (botón PostIt a la derecha de los botones de cada pantalla: WorkWith, consultas, web panels; en las TRN, el del registro también va a la derecha de los botones; la principal no lleva); cada usuario ve solo los suyos. Tamaño inicial de todos los PostIts: 380 x 320. No cambia ningún YAML.
 - **V69**: PostIts en el formulario de todas las TRN y su marca en el WorkWith (tabla PostIts). No cambia ningún YAML.
 - **V68**: todas las lupas por páginas (como el WorkWith), orden con clic en el título y manejo con teclado. No cambia ningún YAML.

@@ -21,7 +21,8 @@ public final class OptimistMenu {
     public record Item(String titulo, String ruta) {
         public boolean pendiente() { return ruta == null; }
     }
-    public static final String AVISO_PENDIENTE = "todavía no está en OPTIMIST ERP";
+    /** V49n: el aviso de una opción del menú que todavía no existe en el motor (con el nombre del sistema). */
+    public static String avisoPendiente() { return "todavía no está en " + OptimistDatabase.nombreSistema(); }
     /** Carpeta del menú. hijos: Item o Carpeta, en el mismo orden que en el YAML. */
     public record Carpeta(String nombre, List<Object> hijos) {}
 

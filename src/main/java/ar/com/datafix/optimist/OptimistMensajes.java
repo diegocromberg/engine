@@ -40,8 +40,14 @@ final class OptimistMensajes {
     private static final int CADA_MS = 120_000;
     private static final DateTimeFormatter DMYHM = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    /** Los objetos de MensajesCrear que no se llaman como su TRN. */
-    private static final Map<String, String> OBJETO_TRN = Map.of("MSTK", "MovStock", "PEDP", "PED");
+    /** Los objetos de MensajesCrear que no se llaman como su TRN (E3: los da la aplicación). */
+    private static String trnDelObjeto(String objeto) {
+        for (OptimistExtension e : OptimistExtension.todas()) {
+            String t = e.objetosMensajes().get(objeto.toUpperCase(Locale.ROOT));
+            if (t != null) return t;
+        }
+        return objeto;
+    }
 
     private static final String UI_CAMPANA = "optimist.mensajes.campana";
     private static final String UI_POLL = "optimist.mensajes.poll";
@@ -289,7 +295,7 @@ final class OptimistMensajes {
     /** trn/<ruta> (se abre con ?ver=<id>) si el objeto del mensaje es una TRN de clave simple; si no, null (sin botón Ver). */
     private static String rutaObjeto(Mensaje m) {
         if (m.objeto().isBlank() || m.objetoId() == 0) return null;
-        String nombre = OBJETO_TRN.getOrDefault(m.objeto().toUpperCase(Locale.ROOT), m.objeto());
+        String nombre = trnDelObjeto(m.objeto());
         try {
             for (OptimistTrnDefinicion.Trn t : OptimistTrnCatalogo.todas())
                 if (t.nombre().equalsIgnoreCase(nombre) && t.cabecera().claves().size() == 1)

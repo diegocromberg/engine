@@ -400,11 +400,11 @@ public final class OptimistShell {
     private static void pendiente(SubMenu sub, String texto) {
         MenuItem mi = sub.addItem(texto, e -> avisoPendiente(texto));
         mi.getElement().getStyle().set("color", "var(--lumo-disabled-text-color)").set("font-style", "italic");
-        mi.getElement().setAttribute("title", texto + ": " + OptimistMenu.AVISO_PENDIENTE);
+        mi.getElement().setAttribute("title", texto + ": " + OptimistMenu.avisoPendiente());
     }
 
     private static void avisoPendiente(String texto) {
-        com.vaadin.flow.component.notification.Notification.show(texto + ": " + OptimistMenu.AVISO_PENDIENTE + ".", 4000,
+        com.vaadin.flow.component.notification.Notification.show(texto + ": " + OptimistMenu.avisoPendiente() + ".", 4000,
                 com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
     }
 
@@ -481,7 +481,7 @@ public final class OptimistShell {
                 b.setWidthFull();
                 b.getStyle().set("justify-content", "flex-start").set("background", "transparent")
                         .set("color", "var(--lumo-disabled-text-color)").set("font-style", "italic");
-                b.getElement().setAttribute("title", it.titulo() + ": " + OptimistMenu.AVISO_PENDIENTE);
+                b.getElement().setAttribute("title", it.titulo() + ": " + OptimistMenu.avisoPendiente());
                 g.agregar(b);
             }
             else if (h instanceof OptimistMenu.Item it) g.agregar(item(it.titulo(), it.ruta()));

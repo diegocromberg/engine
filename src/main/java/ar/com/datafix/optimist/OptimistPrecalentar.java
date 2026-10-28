@@ -30,8 +30,12 @@ import java.util.*;
 public class OptimistPrecalentar {
     private static final Logger LOG = LoggerFactory.getLogger(OptimistPrecalentar.class);
     private final OptimistDatabase db;
-    /** La parte de gestión (Diego, 05/10/2026). Composi = Fórmulas (también se acepta "Formulas": se busca por el título). */
-    static final String TRN_POR_DEFECTO = "Articulos,Composi,CostoArt,PRS,PED,CPBC,SC,CMP,CPBP,COBR,PAGO,MovCaja,MovBanco,MovStock,Asientos";
+    /** E3: las TRN que se precalientan si el optimist.cfg no dice otra cosa: las que diga la aplicación (en OPTIMIST ERP, la parte de gestión). */
+    static String trnPorDefecto() {
+        List<String> r = new ArrayList<>();
+        for (OptimistExtension e : OptimistExtension.todas()) r.addAll(e.precalentarTrn());
+        return String.join(",", r);
+    }
 
     public OptimistPrecalentar(OptimistDatabase db) { this.db = db; }
 
@@ -94,7 +98,7 @@ public class OptimistPrecalentar {
                     t = System.currentTimeMillis();
                     int tablas = OptimistProcedimiento.esquema(c).size();
                     hecho.add("estructura de " + tablas + " tablas (" + (System.currentTimeMillis() - t) + " ms)");
-                    for (String n : db.propiedad("application.precalentarTrn", TRN_POR_DEFECTO).split(",")) {
+                    for (String n : db.propiedad("application.precalentarTrn", trnPorDefecto()).split(",")) {
                         if (n.isBlank()) continue;
                         hecho.add(abrirUltimo(n.trim(), trns, c));
                     }

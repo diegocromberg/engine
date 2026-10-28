@@ -301,11 +301,16 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
      */
     private Set<String> variablesDeInstalacion() {
         if (variablesDeInstalacion != null) return variablesDeInstalacion;
-        Set<String> r = new HashSet<>(Set.of("&instalacion"));
+        // E3: las fijas y los patrones los da la aplicación (OPTIMIST ERP: &Instalacion y GetParamGlbValorAlfa.Call(1, &X))
+        Set<String> r = new HashSet<>();
+        for (OptimistExtension e : OptimistExtension.todas()) r.addAll(e.variablesInstalacion());
         String inicio = trn.workwith().acciones() == null ? null : trn.workwith().acciones().inicio();
         if (inicio != null) {
-            java.util.regex.Matcher p1 = java.util.regex.Pattern.compile("(?i)GetParamGlbValorAlfa\\.Call\\(\\s*1\\s*,\\s*(&\\w+)").matcher(inicio);
-            while (p1.find()) r.add(p1.group(1).toLowerCase(Locale.ROOT));
+            for (OptimistExtension e : OptimistExtension.todas())
+                for (java.util.regex.Pattern pat : e.patronesInstalacion()) {
+                    java.util.regex.Matcher p1 = pat.matcher(inicio);
+                    while (p1.find()) r.add(p1.group(1).toLowerCase(Locale.ROOT));
+                }
             boolean otra = true;
             while (otra) {   // &X = ... &Instalacion ... (y en cadena)
                 otra = false;
@@ -2728,13 +2733,12 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         d.open();
     }
 
-    /** Texto del 'segun': para EntidadesTipoEntidad, Cliente / Proveedor; para otra columna, el valor tal cual. */
+    /** Texto del 'segun' (E3: lo da la aplicación; en OPTIMIST ERP, EntidadesTipoEntidad = Cliente / Proveedor); si no, el valor tal cual. */
     private static String tipoEntidad(String columna, Object v) {
         if (v == null) return "";
-        if (columna.equalsIgnoreCase("EntidadesTipoEntidad")) {
-            String s = String.valueOf(v).trim();
-            if (s.equals("1")) return "Cliente";
-            if (s.equals("2")) return "Proveedor";
+        for (OptimistExtension e : OptimistExtension.todas()) {
+            String t = e.textoSegun(columna, v);
+            if (t != null) return t;
         }
         return String.valueOf(v);
     }

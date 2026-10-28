@@ -68,15 +68,18 @@ public class OptimistDatabase {
     static OptimistDatabase instancia() { return INSTANCIA; }
 
     /**
-     * V83: nombre del sistema que muestra la pantalla (login, barra, títulos). optimist.cfg: sistema.nombre
-     * (sin la línea: OPTIMIST ERP). Así el mismo motor sirve para otro sistema (ej. OPTIMIST SQL).
+     * V83: nombre del sistema que muestra la pantalla (login, barra, títulos). optimist.cfg: sistema.nombre; sin la línea,
+     * el de la aplicación (E3, OptimistExtension.nombreSistema: OPTIMIST ERP) o "OPTIMIST".
      */
     public static String nombreSistema() {
+        String n = null;
         try {
             OptimistDatabase d = INSTANCIA;
-            String n = d == null ? null : d.propiedad("sistema.nombre", null);
-            return n == null || n.isBlank() ? "OPTIMIST ERP" : n.trim();
-        } catch (RuntimeException e) { return "OPTIMIST ERP"; }
+            n = d == null ? null : d.propiedad("sistema.nombre", null);
+        } catch (RuntimeException ignorado) { }
+        if (n != null && !n.isBlank()) return n.trim();
+        for (OptimistExtension e : OptimistExtension.todas()) { String x = e.nombreSistema(); if (x != null && !x.isBlank()) return x.trim(); }
+        return "OPTIMIST";
     }
 
     /** V83: false = sistema sin PostIts (optimist.cfg: sistema.postits=false): no se muestra el botón ni se lee la tabla PostIts. */
@@ -84,18 +87,6 @@ public class OptimistDatabase {
         try {
             OptimistDatabase d = INSTANCIA;
             return d == null || !"false".equalsIgnoreCase(d.propiedad("sistema.postits", "true").trim());
-        } catch (RuntimeException e) { return true; }
-    }
-
-    /**
-     * V83: true (lo de siempre) = el usuario trabaja con empresa/división como en OPTIMIST ERP (PerfilUsuario,
-     * EmpDivStkCst, SecUserHabilitado). optimist.cfg: sistema.empresas=false para un sistema sin empresas (OPTIMIST SQL):
-     * el login solo valida usuario y contraseña en SecUser.
-     */
-    public static boolean conEmpresas() {
-        try {
-            OptimistDatabase d = INSTANCIA;
-            return d == null || !"false".equalsIgnoreCase(d.propiedad("sistema.empresas", "true").trim());
         } catch (RuntimeException e) { return true; }
     }
 

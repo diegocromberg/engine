@@ -48,11 +48,15 @@ public final class OptimistProcedimientos {
             return Map.of("context", new OptimistProcedimiento.Sdt(x == null ? Map.of() : x.valores()));
         };
         OptimistProcedimiento.registrarNativo("LoadWWPContext", "out: &Context", cargar);
-        // V49y: la configuración por usuario (GetUsrProc, VERCampo...) se recuerda por usuario + empresa + división
+        // V49y: la configuración por usuario (GetUsrProc, VERCampo...) se recuerda por usuario (+ lo que diga la aplicación)
         OptimistProcedimiento.claveUsuario = () -> {
             OptimistContexto x = OptimistContexto.actual();
             if (x == null) return List.of();
-            return Arrays.asList(x.valor("SecUserId"), x.valor("Empresa"), x.valor("Division"), x.valor("EmpLst"), x.valor("DivLst"));
+            // E3: además del usuario, lo que diga la aplicación (OPTIMIST ERP: empresa, división y la de listas de precios)
+            List<Object> r = new ArrayList<>();
+            r.add(x.valor("SecUserId"));
+            for (OptimistExtension e : OptimistExtension.todas()) for (String v : e.claveUsuario()) r.add(x.valor(v));
+            return r;
         };
         OptimistProcedimiento.registrarNativo("GetWWPContext", "out: &Context", cargar);
         // SetWWPContext: guarda los cambios en el contexto de la sesión
@@ -96,52 +100,15 @@ public final class OptimistProcedimientos {
             out.put("posicion", v == null ? java.math.BigDecimal.ZERO : v);
             return out;
         });
-        // V48c: Logueo en Java (el de GeneXus escribe con DFWOpen/DFWPTxt, que el motor no ejecuta): agrega el renglón
-        // fecha-hora, usuario, programa y texto a optlogueo<empresa>.txt, en la carpeta desde donde corre el servidor.
-        // Si no puede escribir, no corta el proceso que lo llamó.
-        OptimistProcedimiento.registrarNativo("Logueo", "in: &LogPrograma, in: &LogTexto", (in, c) -> {
-            try {
-                OptimistContexto x = OptimistContexto.actual();
-                String usuario = x == null || x.valor("SecUserName") == null ? "" : String.valueOf(x.valor("SecUserName"));
-                String empresa = x == null || x.valor("EmpresaCaption") == null ? "" : String.valueOf(x.valor("EmpresaCaption"));
-                String renglon = java.time.LocalDateTime.now().withNano(0).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
-                        + "\t" + String.format("%-15.15s", usuario) + "\t" + String.format("%-25.25s", String.valueOf(in.getOrDefault("logprograma", "")))
-                        + "\t" + in.getOrDefault("logtexto", "") + System.lineSeparator();
-                java.nio.file.Files.writeString(java.nio.file.Path.of("optlogueo" + empresa.replace(" ", "").trim() + ".txt"), renglon,
-                        java.nio.charset.StandardCharsets.ISO_8859_1, java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-            } catch (Exception ignorado) { }
-            return Map.of();
-        });
-        reemplazar("Logueo");
-        // V48c: LogueoFile (igual, al archivo <&FileNameIn>.txt; con &bRemove lo vacía antes)
-        OptimistProcedimiento.registrarNativo("LogueoFile", "in: &LogPrograma, in: &LogTexto, in: &FileNameIn, in: &bRemove", (in, c) -> {
-            try {
-                String archivo = String.valueOf(in.getOrDefault("filenamein", "")).replace(" ", "").trim().replace("/", "-") + ".txt";
-                OptimistContexto x = OptimistContexto.actual();
-                String usuario = x == null || x.valor("SecUserName") == null ? "" : String.valueOf(x.valor("SecUserName"));
-                String renglon = java.time.LocalDateTime.now().withNano(0).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
-                        + "\t" + String.format("%-15.15s", usuario) + "\t" + String.format("%-25.25s", String.valueOf(in.getOrDefault("logprograma", "")))
-                        + "\t" + in.getOrDefault("logtexto", "") + System.lineSeparator();
-                java.nio.file.Path ar = java.nio.file.Path.of(archivo);
-                if (OptimistFormula.verdad(in.get("bremove"))) java.nio.file.Files.deleteIfExists(ar);
-                java.nio.file.Files.writeString(ar, renglon, java.nio.charset.StandardCharsets.ISO_8859_1,
-                        java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-            } catch (Exception ignorado) { }
-            return Map.of();
-        });
-        reemplazar("LogueoFile");
         // V48c: todas las TRN (atributos fórmula en los For Each)
         OptimistProcedimiento.trns = () -> {
             try { return OptimistTrnCatalogo.cargar().trns().values(); } catch (RuntimeException e) { return List.of(); }
         };
-        // V48: GetPrecioArtLista en Java, con una consulta (OptimistPrecios)
-        OptimistPrecios.registrar();
-        // V81: factura electrónica: ticket del WSAA (AfipTicket) y consultas a WSFEv1 / WSFEX (AfipConsultar)
-        OptimistAfip.registrar();
-        // V66t: Listado de Stock: los artículos de un almacén con saldos y política de stock, en pocas consultas
-        OptimistListarStock.registrar();
-        // V83: OPTIMIST SQL: ProcCheckDiferenciaArchivos, ProcClonarEmpresa y ProcBorrarEmpresa (usan los Blob de Empresas)
-        OptimistSql.registrar();
+        // E3: los procedimientos en Java de la aplicación (en OPTIMIST ERP: precios, AFIP, Listado de Stock, OPTIMIST SQL, Logueo...)
+        for (OptimistExtension e : OptimistExtension.todas()) {
+            try { e.registrarProcedimientos(); }
+            catch (RuntimeException ex) { LOG.error("Extensión {}: no se pudieron registrar sus procedimientos: {}", e.getClass().getSimpleName(), ex.toString()); }
+        }
         // V48: la tabla extendida de los For Each usa las referencias de las TRN (subtipos: PRSEntidadesPK -> Entidades)
         OptimistProcedimiento.referenciasDeTabla = tabla -> {
             List<OptimistTrnDefinicion.Referencia> r = new ArrayList<>();
@@ -221,65 +188,7 @@ public final class OptimistProcedimientos {
         OptimistProcedimiento.registrarNativo("CompararRegistros", "in: &Trn, in: &ClaveOri, in: &ClaveDst, in: &Ignorar, out: &Diferencias",
                 (in, c) -> Map.of("diferencias", compararRegistros(c, texto(in.get("trn")), texto(in.get("claveori")),
                         texto(in.get("clavedst")), texto(in.get("ignorar")))));
-        // V73b: QR de un texto (Listar Despachos de TECNOCOM: empresa + división + número del pedido). En GeneXus era código
-        // Java embebido con archivos temporales; acá la imagen va directa al PDF.
-        OptimistProcedimiento.registrarNativo("GetQRImageGeneric", "in: &PEDNumeroQRImage, out: &QRImage", (in, c) -> {
-            Map<String, Object> r = new HashMap<>();
-            String t = texto(in.get("pednumeroqrimage"));
-            r.put("qrimage", t.isBlank() ? null : qrPng(t));
-            return r;
-        });
-        reemplazar("GetQRImageGeneric");
-        // V62: QR de AFIP (RG 4892) de un comprobante: los datos en el Sdt SDTQRImage (los arma GetQRArmarSDTQRImage)
-        OptimistProcedimiento.registrarNativo("GetQRImageAFIP", "in: &SDTQRImage, out: &QRImage, out: &QRImage64, out: &QRImageBlob",
-                (in, c) -> {
-                    byte[] png = qrAfip(in.get("sdtqrimage"));
-                    Map<String, Object> r = new HashMap<>();
-                    r.put("qrimage", png);
-                    r.put("qrimageblob", png);
-                    r.put("qrimage64", png == null ? "" : java.util.Base64.getEncoder().encodeToString(png));
-                    return r;
-                });
     }
-
-    /** V62: campos del QR de AFIP, en el orden de la especificación; true = numérico (va sin comillas en el JSON). */
-    private static final Map<String, Boolean> CAMPOS_QR = new LinkedHashMap<>();
-    static {
-        CAMPOS_QR.put("ver", true); CAMPOS_QR.put("fecha", false); CAMPOS_QR.put("cuit", true); CAMPOS_QR.put("ptoVta", true);
-        CAMPOS_QR.put("tipoCmp", true); CAMPOS_QR.put("nroCmp", true); CAMPOS_QR.put("importe", true); CAMPOS_QR.put("moneda", false);
-        CAMPOS_QR.put("ctz", true); CAMPOS_QR.put("tipoDocRec", true); CAMPOS_QR.put("nroDocRec", true);
-        CAMPOS_QR.put("tipoCodAut", false); CAMPOS_QR.put("codAut", true);
-    }
-
-    /**
-     * V62: el texto del QR de AFIP: https://www.afip.gob.ar/fe/qr/?p= + el JSON de los datos en base 64.
-     * Los números van sin ceros de más (12100.5, no 12100.50); los textos, entre comillas.
-     */
-    static String textoQrAfip(Object sdt) {
-        Map<String, Object> m = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        if (sdt instanceof Map<?, ?> x) x.forEach((k, v) -> { if (k != null) m.put(String.valueOf(k), v); });
-        StringBuilder j = new StringBuilder("{");
-        for (var e : CAMPOS_QR.entrySet()) {
-            Object v = m.get(e.getKey());
-            if (j.length() > 1) j.append(',');
-            j.append('"').append(e.getKey()).append("\":");
-            if (e.getValue()) {
-                java.math.BigDecimal n;
-                try { n = new java.math.BigDecimal(String.valueOf(v == null ? "0" : v).trim().isEmpty() ? "0" : String.valueOf(v).trim()); }
-                catch (NumberFormatException ex) { n = java.math.BigDecimal.ZERO; }
-                n = n.stripTrailingZeros();
-                j.append(n.scale() < 0 ? n.setScale(0).toPlainString() : n.toPlainString());
-            } else {
-                j.append('"').append(texto(v).replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
-            }
-        }
-        j.append('}');
-        return "https://www.afip.gob.ar/fe/qr/?p="
-                + java.util.Base64.getEncoder().encodeToString(j.toString().getBytes(StandardCharsets.UTF_8));
-    }
-
-    /** V62: la imagen (PNG) del QR de AFIP, o null si no se pudo armar. */
-    static byte[] qrAfip(Object sdt) { return qrPng(textoQrAfip(sdt)); }
 
     /** V73b: la imagen PNG de un QR con ese texto (null si no se pudo). */
     static byte[] qrPng(String texto) {
@@ -302,7 +211,7 @@ public final class OptimistProcedimientos {
         }
     }
 
-    private static String texto(Object o) { return o == null ? "" : String.valueOf(o).trim(); }
+    static String texto(Object o) { return o == null ? "" : String.valueOf(o).trim(); }
 
     /**
      * V60c: compara un registro de una TRN (la copia) con otro (el original) directo en la base: la cabecera y cada nivel

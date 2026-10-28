@@ -1,0 +1,43 @@
+/* V21: únicamente los campos del login. No afecta a WorkWith ni a otras TRN. */
+:host([theme~="optimist-login"]) {
+  --lumo-base-color: #12313a;
+  --lumo-body-text-color: #f5f7fb;
+  --lumo-secondary-text-color: #c8dce2;
+  --lumo-primary-color: #69b9d4;
+  color: #f5f7fb;
+}
+:host([theme~="optimist-login"]) [part="input-field"] {
+  background: #12313a !important;
+  background-image: none !important;
+  box-shadow: inset 0 0 0 1px #47717d;
+  -webkit-mask-image: none;
+  mask-image: none;
+  opacity: 1;
+}
+:host([theme~="optimist-login"]) [part="input-field"]::before,
+:host([theme~="optimist-login"]) [part="input-field"]::after {
+  background: none !important;
+  box-shadow: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+:host([theme~="optimist-login"]) [part="label"],
+:host([theme~="optimist-login"]) [part="reveal-button"] {
+  color: #e3f0f3;
+  opacity: 1;
+}
+:host([theme~="optimist-login"]) input {
+  color: #f5f7fb !important;
+  background: transparent !important;
+  background-image: none !important;
+  -webkit-text-fill-color: #f5f7fb !important;
+  caret-color: #f5f7fb;
+}
+:host([theme~="optimist-login"]) input:-webkit-autofill,
+:host([theme~="optimist-login"]) input:-webkit-autofill:hover,
+:host([theme~="optimist-login"]) input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #12313a inset !important;
+  -webkit-text-fill-color: #f5f7fb !important;
+  caret-color: #f5f7fb;
+  transition: background-color 99999s ease-out 0s;
+}

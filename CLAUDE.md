@@ -27,9 +27,10 @@
   - `factory`: Factory, seguimiento de incidentes (KB GeneXus 17 + WorkWithPlus).
 - **Etapa 1 (28/10/2026, hecha)**: mudanza pura. Las clases se movieron SIN cambios; el `pom.xml` de cada aplicación compila también
   `../engine/src/main/java` (build-helper). El WAR de cada cliente sale igual que antes. El motor todavía no compila solo.
-- **Etapa 2 (pendiente)**: motor independiente del ERP. Lo que hoy da por sentado del ERP (multiempresa, empresa/división de stock,
-  ParamGlb, tablas del ERP) pasa a ser configuración de cada aplicación, con la del ERP prendida por defecto para no cambiarle nada;
-  lo propio del ERP se engancha como extensión. Recién ahí el motor tiene su propio `pom.xml` y se prueba con Factory.
+- **Etapa 2 / E3 (28/10/2026, hecha)**: el motor no nombra nada del ERP. Lo propio de cada aplicación se engancha con
+  `OptimistExtension` (ServiceLoader; guía 23): el ERP con `OptimistExtensionErp` y `OptimistExtensionStock`; Factory sin ninguna
+  (solo YAML). El motor tiene su `pom.xml` (jar) y compila solo. **Regla**: nada de tablas, procedimientos ni clientes de una
+  aplicación en el motor; si el motor necesita algo, se agrega un método a `OptimistExtension` con valor por defecto.
 - **Importador de GeneXus (E2, hecho)**: en el Designer (`herramientas/disenador/importador.js` + pantalla en `disenador.src.html`;
   guía 11.2). `gx2yaml.py` es la REFERENCIA: todo cambio de criterio va primero ahí, después en `importador.js`, y las salidas se
   comparan (idénticas). Probado con GeneXus 17 + WWP (Factory). Falta validar con XML reales de GX15 (la KB del ERP), GX16/18 y
@@ -40,7 +41,7 @@
 ## Cómo se compila
 - Maven, Java 25. En la PC de Diego todo va en `D:\Mis Documentos\OPTIMIST` (antes "OPTIMIST ERP", renombrada el 28/10/2026):
   `engine`, `optimist-erp` y `factory`, una al lado de la otra.
-- En el entorno de Claude no hay acceso a Maven Central: el chequeo es `python3 herramientas/chequear_java.py src/main/java ../optimist-erp/src/main/java`
+- En el entorno de Claude no hay acceso a Maven Central: el chequeo es `python3 herramientas/chequear_java.py src/main/java` (motor solo) y `... src/main/java ../optimist-erp/src/main/java`
   (los avisos de Vaadin/Spring son falsos; comparar contra la corrida anterior) y `optimist-erp/herramientas/prueba_mariadb/compilar.sh`.
 - Changelog del motor: `CAMBIOS.md` (uno solo, consolidado). La historia anterior a la separación está en `optimist-erp` (CAMBIOS.md y git).
 

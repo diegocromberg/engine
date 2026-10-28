@@ -328,7 +328,7 @@ public final class OptimistPdf {
         for (int k : numPag) kids.append(k).append(" 0 R ");
         objs.set(nCatalogo - 1, ("<< /Type /Catalog /Pages " + nPaginas + " 0 R >>").getBytes(StandardCharsets.ISO_8859_1));
         objs.set(nPaginas - 1, ("<< /Type /Pages /Kids [" + kids.toString().trim() + "] /Count " + numPag.size() + " >>").getBytes(StandardCharsets.ISO_8859_1));
-        objs.set(nInfo - 1, ("<< /Producer (OPTIMIST ERP) /Title (" + (titulo == null ? "" : titulo.replaceAll("[()\\\\]", ""))
+        objs.set(nInfo - 1, ("<< /Producer (" + OptimistDatabase.nombreSistema().replaceAll("[()\\\\]", "") + ") /Title (" + (titulo == null ? "" : titulo.replaceAll("[()\\\\]", ""))
                 + ") >>").getBytes(StandardCharsets.ISO_8859_1));
         ByteArrayOutputStream o = new ByteArrayOutputStream();
         o.writeBytes("%PDF-1.4\n%âãÏÓ\n".getBytes(StandardCharsets.ISO_8859_1));

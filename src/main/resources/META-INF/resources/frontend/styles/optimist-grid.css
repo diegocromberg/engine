@@ -1,0 +1,31 @@
+/* Shadow DOM de vaadin-grid: cubre también el espacio SIN registros. */
+:host { --vaadin-grid-cell-background: var(--optimist-fondo, #091e24);
+  --vaadin-grid-background: var(--optimist-fondo, #091e24);
+  --lumo-base-color: var(--optimist-fondo, #091e24);
+  --lumo-body-text-color: var(--optimist-texto, #f5f7fb);
+  background: var(--optimist-fondo, #091e24) !important;
+  color: var(--optimist-texto, #f5f7fb); }
+[part~="items"], [part~="body"], [part~="row"], [part~="body-cell"],
+[part~="cell"], #items, #scroller, #table, #overflow {
+  background-color: var(--optimist-fondo, #091e24) !important;
+  color: var(--optimist-texto, #f5f7fb);
+}
+[part~="header-cell"] { color: var(--optimist-texto, #f5f7fb); }
+/* V82n / V82p: con el ancho de las columnas ajustable, el ícono de ordenar quedaba pegado al borde que se arrastra (había que
+   apuntar al milímetro). El contenido del encabezado deja 14 px libres a la derecha y la zona para arrastrar es de 10 px.
+   Diego: la separación entre columnas, una línea azul fina (2 px; V82q: antes 1) que se ve siempre y no cambia al pasar el mouse ni al
+   arrastrar (antes Vaadin la engordaba). */
+[part~="header-cell"] ::slotted(vaadin-grid-cell-content) { padding-right: 14px !important; }
+[part~="resize-handle"], [part~="resize-handle"]:hover, [part~="resize-handle"]:active,
+:host([column-resizing]) [part~="resize-handle"] {
+  width: 10px !important; right: -5px !important;
+  background: linear-gradient(to right, transparent 4px, var(--lumo-primary-color, #1676f3) 4px,
+              var(--lumo-primary-color, #1676f3) 6px, transparent 6px) !important;
+}
+[part~="resize-handle"]::before, [part~="resize-handle"]:hover::before, [part~="resize-handle"]:active::before,
+:host([column-resizing]) [part~="resize-handle"]::before {
+  width: 10px !important; transform: none !important; left: 0 !important; background: none !important;
+}
+/* V84c: la fila de TOTALES con la letra del resto de los números (Lumo la achicaba a font-size-s); va en negrita
+   (Diego, 26/10/2026: para todas las listas: WorkWith, consultas, web panels y ventanas) */
+[part~="footer-cell"], [part~="footer-cell"] ::slotted(vaadin-grid-cell-content) { font-size: var(--lumo-font-size-m) !important; }

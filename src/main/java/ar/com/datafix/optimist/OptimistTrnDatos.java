@@ -232,18 +232,15 @@ public class OptimistTrnDatos {
         return contarYSumar(trn, filtros, extra, List.of()).cantidad();
     }
 
-    /** V77: las monedas (tabla Monedas) para el combo del filtro de la columna de moneda; vacío si no se pudieron leer. */
+    /** V77: las monedas para el combo del filtro de la columna de moneda (E3: las da la aplicación); vacío si no hay o no se pudieron leer. */
     public List<OptimistTrnDefinicion.Valor> monedas() {
-        List<OptimistTrnDefinicion.Valor> r = new ArrayList<>();
-        try (Connection c = abrir(); Statement st = c.createStatement();
-             ResultSet rs = st.executeQuery("SELECT MonedasId, MonedasDescrip FROM Monedas ORDER BY MonedasId")) {
-            while (rs.next()) {
-                String id = texto(rs.getObject(1)), de = texto(rs.getObject(2));
-                if (id == null || id.isBlank()) continue;
-                r.add(new OptimistTrnDefinicion.Valor(id.strip(), id.strip() + (de == null || de.isBlank() ? "" : " - " + de.strip())));
+        try (Connection c = abrir()) {
+            for (OptimistExtension e : OptimistExtension.todas()) {
+                List<OptimistTrnDefinicion.Valor> r = e.monedas(c);
+                if (r != null && !r.isEmpty()) return r;
             }
         } catch (SQLException | RuntimeException ex) { return List.of(); }
-        return r;
+        return List.of();
     }
 
     /** V75: la cantidad de registros y la suma de algunas columnas (claves de la grilla), con los mismos filtros. */
@@ -1146,7 +1143,7 @@ public class OptimistTrnDatos {
 
     // ------------------------------------------------------------------ V47: código en lugar de la clave interna
 
-    private static String texto(Object o) { return o == null ? "" : String.valueOf(o).stripTrailing(); }
+    static String texto(Object o) { return o == null ? "" : String.valueOf(o).stripTrailing(); }
 
     /** El código de una clave interna (ArticulosPK 75 -> "TTESP0500002"). null si no existe. */
     public String codigoDe(Referencia ref, Object clave) throws SQLException {

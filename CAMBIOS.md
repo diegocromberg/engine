@@ -2,6 +2,29 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E3 — Separación, etapa 2: el motor sin nada del ERP (28/10/2026)
+
+- **Extensiones de la aplicación** (`OptimistExtension`, guía 23): lo propio de cada aplicación se engancha por `ServiceLoader`
+  (`META-INF/services/ar.com.datafix.optimist.OptimistExtension`). El motor ya no nombra tablas, procedimientos, clientes ni
+  comprobantes del ERP. Una aplicación sin Java propio (Factory) no declara ninguna y anda solo con sus YAML.
+- Salió del motor hacia OPTIMIST ERP: el contexto de empresa / división / stock / costos / listas y el menú por permisos
+  (`OptimistContexto` ahora solo lee `SecUser`), el control "usuario sin empresa" del login, los procedimientos nativos del ERP
+  (Logueo, LogueoFile, QR de AFIP) y el registro de Precios, AFIP, ListarStock y OPTIMIST SQL, el cálculo de la consulta de stock
+  (`calculo: stock`), los procesos fijos de las consultas, ParamGlb, la tabla Monedas, EntidadesTipoEntidad, `&instalacion`,
+  los objetos de los mensajes y la lista de TRN a precalentar.
+- Entró al motor: `OptimistComercial` (el cálculo comercial `calculo:` de las TRN es del motor; los decimales por defecto los da
+  la extensión), los estilos de la pantalla y el logo (`src/main/resources/META-INF/resources`), y
+  `OptimistVentanas.abrirRegistro(trn, id)`.
+- `OptimistConsultaView.Calculo`: interfaz para las consultas con un cálculo propio (`calculo: nombre`).
+- El nombre del sistema: `sistema.nombre` del optimist.cfg, si no el de la extensión, si no "OPTIMIST".
+- **`pom.xml` propio** (jar `optimist-engine`): el motor compila solo, sin ninguna aplicación.
+- Probado: el motor solo y motor + ERP compilan igual que antes; contra MariaDB, Logueo, PasarContabilidad, CtaCteImprimir,
+  QR y NumeroArgentino dan lo mismo que el código anterior. Las 8 TRN de Factory se leen sin errores.
+- Designer: **arreglo** del diseñador de impresiones, roto desde la E2 (el importador tenía una función con el mismo nombre
+  que la que dibuja la impresión y la pisaba). Y el importador, si la aplicación tiene `src/main/resources` sin carpeta `trn`, la
+  crea ahí (donde la lee el motor) y no en la raíz.
+- **Necesita** bajar también `optimist-erp` (su extensión). Ningún YAML cambia.
+
 ## E2b — Importador: ventanita "Procesando…" (28/10/2026)
 
 - Como todo proceso del motor: al leer la KB, convertir e importar se ve el % y lo que está haciendo ("Leyendo Factory.xml

@@ -72,6 +72,21 @@ final class OptimistVentanas {
     }
 
     /** Ir a otra pantalla (una TRN, una consulta) desde una ventana: al volver, las ventanas abiertas se vuelven a abrir. */
+    /**
+     * V84 / E3: el registro de una TRN en modo ver (las lupas del stock del ERP, los vínculos de los web panels). Al cerrarlo
+     * se vuelve a la pantalla de abajo con las ventanas que estaban abiertas.
+     */
+    static void abrirRegistro(String trn, Object id) {
+        if (id == null || OptimistFormula.num(id).signum() == 0) return;
+        OptimistTrnDefinicion.Trn t = OptimistPanelView.trn(trn);
+        if (t == null) {
+            com.vaadin.flow.component.notification.Notification.show("No existe la TRN " + trn, 5000,
+                    com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+            return;
+        }
+        navegar("trn/" + t.ruta(), QueryParameters.of("ver", OptimistFormula.num(id).stripTrailingZeros().toPlainString()));
+    }
+
     static void navegar(String ruta, QueryParameters qp) {
         UI ui = UI.getCurrent();
         if (ui == null) return;

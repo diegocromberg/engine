@@ -1,0 +1,53 @@
+/* Los diálogos Vaadin son overlays: tokens heredados de documentElement. */
+:host([theme~="optimist-dialog"]) {
+  --lumo-base-color: var(--optimist-fondo, #091e24);
+  --lumo-body-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-header-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-secondary-text-color: var(--optimist-texto, #f5f7fb);
+  --lumo-primary-color: var(--optimist-acento, #0ea88f);
+  --lumo-font-family: var(--optimist-fuente, Arial, sans-serif);
+  --lumo-font-size-m: var(--optimist-letra, 15px);
+}
+:host([theme~="optimist-dialog"]) [part="overlay"],
+:host([theme~="optimist-dialog"]) [part="header"],
+:host([theme~="optimist-dialog"]) [part="footer"],
+:host([theme~="optimist-dialog"]) [part="content"] {
+  background-color: var(--optimist-fondo, #091e24) !important;
+  color: var(--optimist-texto, #f5f7fb) !important;
+  font-family: var(--optimist-fuente, Arial, sans-serif);
+  font-size: var(--optimist-letra, 15px);
+}
+
+/* V69: los PostIts (notas de colores pegadas a un registro): fondo de color, letra oscura, compactos */
+:host([theme~="optimist-postit"]) {
+  --lumo-body-text-color: #222;
+  --lumo-header-text-color: #222;
+  --lumo-secondary-text-color: #444;
+  --lumo-space-l: 6px;
+  --lumo-space-m: 6px;
+  --postit: #fff59d;
+}
+:host([theme~="postit-amarillo"]) { --postit: #fff59d; }
+:host([theme~="postit-rosa"]) { --postit: #f8bbd0; }
+:host([theme~="postit-verde"]) { --postit: #c8e6c9; }
+:host([theme~="postit-celeste"]) { --postit: #b3e5fc; }
+:host([theme~="postit-naranja"]) { --postit: #ffcc80; }
+:host([theme~="optimist-postit"]) [part="overlay"] {
+  background: var(--postit) !important;
+  color: #222 !important;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, .35);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, .2);
+}
+:host([theme~="optimist-postit"]) [part="header"],
+:host([theme~="optimist-postit"]) [part="content"],
+:host([theme~="optimist-postit"]) [part="footer"] {
+  background: transparent !important;
+  color: #222 !important;
+  padding: 4px 8px;
+  min-height: 0;
+}
+:host([theme~="optimist-postit"]) [part="header"] { cursor: move; border-bottom: 1px dashed rgba(0, 0, 0, .25); background: rgba(0, 0, 0, .08) !important; }
+:host([theme~="optimist-postit"]) [part="footer"] { font-size: 11px; justify-content: flex-start; }
+:host([theme~="postit-vencido"]) [part="overlay"] { outline: 3px solid #c62828; }
+:host([theme~="postit-vencido"]) [part="footer"] { color: #c62828 !important; font-weight: 700; }

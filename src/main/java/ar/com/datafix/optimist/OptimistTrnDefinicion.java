@@ -24,24 +24,31 @@ public final class OptimistTrnDefinicion {
 
     // ------------------------------------------------------------------ V30: contexto de sesión (WWPContext)
 
-    /** Variables del contexto que se pueden usar en el YAML como "&Empresa" (default: y workwith.filtro:). */
-    public static final List<String> VARIABLES_CONTEXTO = List.of("SecUserId", "SecUserName", "Empresa", "Division",
-            "EmpStk", "DivStk", "EmpCst", "DivCst", "EmpLst", "DivLst", "EmpCta2", "DivCta2",
-            "PerfilUsuarioColorLogo", "EmpresaCaption", "SecUserEntidadesPK");
+    /**
+     * Variables del contexto que se pueden usar en el YAML como "&SecUserId" (default: y workwith.filtro:): las del motor y
+     * las que agrega la aplicación (E3, OptimistExtension.variablesContexto; en OPTIMIST ERP: &Empresa, &Division, &EmpStk...).
+     */
+    public static List<String> variablesContexto() {
+        List<String> r = new ArrayList<>(List.of("SecUserId", "SecUserName"));
+        for (OptimistExtension e : OptimistExtension.todas())
+            for (String v : e.variablesContexto()) if (r.stream().noneMatch(v::equalsIgnoreCase)) r.add(v);
+        return r;
+    }
 
     /** Lo instala OptimistContexto al iniciar sesión: nombre de variable -> valor del usuario actual. */
     private static volatile java.util.function.Function<String, Object> contexto = v -> null;
     static void instalarContexto(java.util.function.Function<String, Object> f) { contexto = f; }
 
-    /** "&Empresa" -> "Empresa" (nombre canónico); null si no es una variable de contexto. */
+    /** "&SecUserId" -> "SecUserId" (nombre canónico); null si no es una variable de contexto. */
     static String variableContexto(Object v) {
         if (!(v instanceof String s) || !s.startsWith("&")) return null;
         String n = s.substring(1).trim().replaceFirst("(?i)^WWPContext\\.", "");
         if (n.equalsIgnoreCase("Today") || n.equalsIgnoreCase("Now")) return n.equalsIgnoreCase("Today") ? "Today" : "Now";   // V48c: fecha del día
         if (n.equalsIgnoreCase("NewGuid")) return "NewGuid";   // V83: un UUID nuevo (el GUID.NewGuid() de GeneXus)
-        return VARIABLES_CONTEXTO.stream().filter(x -> x.equalsIgnoreCase(n)).findFirst()
+        List<String> vars = variablesContexto();
+        return vars.stream().filter(x -> x.equalsIgnoreCase(n)).findFirst()
                 .orElseThrow(() -> error("variable de contexto desconocida '" + s + "' (se puede usar: &"
-                        + String.join(", &", VARIABLES_CONTEXTO) + ")"));
+                        + String.join(", &", vars) + ")"));
     }
 
     /** Valor de un literal del YAML o de una variable de contexto, llevado al dominio (null si el contexto no la tiene). */
@@ -1815,7 +1822,7 @@ public final class OptimistTrnDefinicion {
                     else if (x.getValue() instanceof Number || x.getValue() instanceof String || x.getValue() instanceof Boolean) vals.put(k, x.getValue());
                     else throw error("referencia " + tabla + ".donde." + col + "." + k + ": tiene que ser un número, un texto o true/false");
                 }
-                if (campo == null) throw error("referencia " + tabla + ".donde." + col + ": falta 'campo' (ej. {campo: PRSCPI, C: 1, P: 2})");
+                if (campo == null) throw error("referencia " + tabla + ".donde." + col + ": falta 'campo' (ej. {campo: TipoComprobante, C: 1, P: 2})");
                 r.put(col, new DondeCampo(campo, Map.copyOf(vals)));
                 continue;
             }
