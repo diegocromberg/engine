@@ -1,0 +1,16 @@
+# OPTIMIST Engine
+/target/
+*.class
+*.war
+*.jar
+*.cfg
+*.p12
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+__pycache__/
+*.log
