@@ -73,10 +73,16 @@ public final class OptimistContexto implements Serializable {
         valores.put(existente == null ? variable : existente, valor);
     }
 
-    /** E3: lo que se muestra al lado del usuario en la barra (en OPTIMIST ERP: "Razón social - División"); lo pone la aplicación. */
-    private String caption = "";
-    public String caption() { return caption; }
-    public void caption(String c) { caption = c == null ? "" : c; }
+    /**
+     * E3: lo que se muestra al lado del usuario en la barra: el valor AL DÍA de la variable de contexto que dice la aplicación
+     * (OPTIMIST ERP: EmpresaCaption, "Razón social - División"; si un procedimiento la cambia con SetWWPContext, la barra la sigue).
+     */
+    private String captionDe;
+    public String caption() {
+        Object v = captionDe == null ? null : valor(captionDe);
+        return v == null ? "" : String.valueOf(v);
+    }
+    public void captionDe(String variable) { captionDe = variable; }
 
     public void guardarEnSesion() {
         VaadinSession.getCurrent().setAttribute(ATRIBUTO, this);

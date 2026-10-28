@@ -15,6 +15,10 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 - Entró al motor: `OptimistComercial` (el cálculo comercial `calculo:` de las TRN es del motor; los decimales por defecto los da
   la extensión), los estilos de la pantalla y el logo (`src/main/resources/META-INF/resources`), y
   `OptimistVentanas.abrirRegistro(trn, id)`.
+- Si una extensión anotada no se puede cargar o falla al registrar sus procedimientos, el sistema no arranca (como antes).
+- `{proceso: N}` (GetUsrProc del ERP) también va por la extensión (`procesoHabilitado`). La empresa de la barra sigue a la
+  variable de contexto que indica la aplicación (`captionDe`): si un procedimiento la cambia con SetWWPContext, se ve al día.
+- Build de producción de las aplicaciones (`-Pproduction`): el `pom.xml` le indica a Vaadin que los estilos están en el motor.
 - `OptimistConsultaView.Calculo`: interfaz para las consultas con un cálculo propio (`calculo: nombre`).
 - El nombre del sistema: `sistema.nombre` del optimist.cfg, si no el de la extensión, si no "OPTIMIST".
 - **`pom.xml` propio** (jar `optimist-engine`): el motor compila solo, sin ninguna aplicación.

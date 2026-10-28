@@ -63,7 +63,14 @@ public interface OptimistExtension {
      * y cómo los ajusta (ej. OPTIMIST ERP: sin el 156 ni el 157, la cantidad).
      */
     default Set<Integer> procesosConsulta() { return Set.of(); }
+
     default void ajustarProcesosConsulta(Map<Integer, Boolean> procesos) {}
+
+    /**
+     * Si el proceso N está habilitado para el usuario de la sesión ({proceso: N} de las TRN y consultas), o null si la aplicación
+     * no maneja procesos. OPTIMIST ERP: GetUsrProc (por usuario y empresa).
+     */
+    default Boolean procesoHabilitado(Connection cn, int numero) { return null; }
 
     /**
      * El valor de un parámetro global (variables 'paramGlb: N' de las consultas; tipo "alfa", "numero" o "boolean"), o null
@@ -99,16 +106,14 @@ public interface OptimistExtension {
         private static final Logger LOG = LoggerFactory.getLogger(OptimistExtension.class);
         static final List<OptimistExtension> TODAS;
         static {
+            // una extensión declarada que no se puede cargar es un error de la aplicación: el sistema no arranca a medias
+            // (ej. el ERP sin su extensión dejaría entrar sin empresa)
             List<OptimistExtension> l = new ArrayList<>();
-            // una extensión que no se puede cargar no impide las demás
-            Iterator<OptimistExtension> it = ServiceLoader.load(OptimistExtension.class, OptimistExtension.class.getClassLoader()).iterator();
-            for (int vueltas = 0; vueltas < 1000; vueltas++) {
-                try {
-                    if (!it.hasNext()) break;
-                    l.add(it.next());
-                } catch (ServiceConfigurationError e) {
-                    LOG.error("No se pudo cargar una extensión de la aplicación: {}", e.getMessage());
-                }
+            try {
+                for (OptimistExtension e : ServiceLoader.load(OptimistExtension.class, OptimistExtension.class.getClassLoader())) l.add(e);
+            } catch (ServiceConfigurationError e) {
+                LOG.error("No se pudo cargar una extensión de la aplicación: {}", e.getMessage());
+                throw new IllegalStateException("No se pudo cargar una extensión de la aplicación: " + e.getMessage(), e);
             }
             TODAS = List.copyOf(l);
             LOG.info("[OPTIMIST] Extensiones de la aplicación: {}", TODAS.isEmpty() ? "ninguna" : TODAS.stream().map(x -> x.getClass().getSimpleName()).toList());

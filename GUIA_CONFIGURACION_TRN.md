@@ -1595,7 +1595,8 @@ src/main/resources/META-INF/services/ar.com.datafix.optimist.OptimistExtension
 ```
 
 (un renglón por clase, con el nombre completo; es el `ServiceLoader` estándar de Java). El motor las carga al arrancar y lo anota en
-el log: `[OPTIMIST] Extensiones de la aplicación: [...]`. Todo tiene valor por defecto, así que se implementa solo lo que hace falta.
+el log: `[OPTIMIST] Extensiones de la aplicación: [...]`. Si una extensión anotada no se puede cargar, o falla al registrar sus
+procedimientos, el sistema **no arranca** (no queda andando a medias). Todo tiene valor por defecto, así que se implementa solo lo que hace falta.
 
 | Método | Para qué | OPTIMIST ERP |
 |---|---|---|
@@ -1608,6 +1609,7 @@ el log: `[OPTIMIST] Extensiones de la aplicación: [...]`. Todo tiene valor por 
 | `calculosConsulta()` | consultas con `calculo: nombre` (sección 21) | `stock` |
 | `consultaOcultasSiempre()` | columnas que toda consulta trae aunque no se vean | ArticulosId, ArticulosDescrip |
 | `procesosConsulta()` / `ajustarProcesosConsulta()` | procesos (GetUsrProc) de todas las consultas | 156, 157, 107, 78 |
+| `procesoHabilitado(cn, n)` | `{proceso: N}` de las TRN y consultas: si el usuario tiene el proceso (null = la aplicación no maneja procesos) | GetUsrProc |
 | `parametroGlobal(cn, n, tipo)` | variables `paramGlb: N` de las consultas | GetParamGlbValor… |
 | `decimalesPrecios()` | de dónde salen los decimales de `calculo:` si el YAML no dice `decimales` | ParamGlb 30 |
 | `monedas(cn)` | monedas del filtro de los totales (V77) | tabla Monedas |

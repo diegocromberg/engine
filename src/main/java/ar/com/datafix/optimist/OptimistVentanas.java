@@ -71,7 +71,6 @@ final class OptimistVentanas {
         d.addDetachListener(ev -> { if (!e.navegando) e.abiertas.remove(a); });
     }
 
-    /** Ir a otra pantalla (una TRN, una consulta) desde una ventana: al volver, las ventanas abiertas se vuelven a abrir. */
     /**
      * V84 / E3: el registro de una TRN en modo ver (las lupas del stock del ERP, los vínculos de los web panels). Al cerrarlo
      * se vuelve a la pantalla de abajo con las ventanas que estaban abiertas.
@@ -87,6 +86,7 @@ final class OptimistVentanas {
         navegar("trn/" + t.ruta(), QueryParameters.of("ver", OptimistFormula.num(id).stripTrailingZeros().toPlainString()));
     }
 
+    /** Ir a otra pantalla (una TRN, una consulta) desde una ventana: al volver, las ventanas abiertas se vuelven a abrir. */
     static void navegar(String ruta, QueryParameters qp) {
         UI ui = UI.getCurrent();
         if (ui == null) return;

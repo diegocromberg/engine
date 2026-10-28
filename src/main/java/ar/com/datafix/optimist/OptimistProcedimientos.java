@@ -105,10 +105,8 @@ public final class OptimistProcedimientos {
             try { return OptimistTrnCatalogo.cargar().trns().values(); } catch (RuntimeException e) { return List.of(); }
         };
         // E3: los procedimientos en Java de la aplicación (en OPTIMIST ERP: precios, AFIP, Listado de Stock, OPTIMIST SQL, Logueo...)
-        for (OptimistExtension e : OptimistExtension.todas()) {
-            try { e.registrarProcedimientos(); }
-            catch (RuntimeException ex) { LOG.error("Extensión {}: no se pudieron registrar sus procedimientos: {}", e.getClass().getSimpleName(), ex.toString()); }
-        }
+        // (como antes de la E3: si una falla, no arranca, en lugar de seguir con procedimientos sin registrar)
+        for (OptimistExtension e : OptimistExtension.todas()) e.registrarProcedimientos();
         // V48: la tabla extendida de los For Each usa las referencias de las TRN (subtipos: PRSEntidadesPK -> Entidades)
         OptimistProcedimiento.referenciasDeTabla = tabla -> {
             List<OptimistTrnDefinicion.Referencia> r = new ArrayList<>();
@@ -587,18 +585,15 @@ public final class OptimistProcedimientos {
     }
 
     /**
-     * V55: si el proceso está habilitado para el usuario (GetUsrProc, recordado por usuario y empresa como siempre). Ej. 156
-     * ConsultaStockPorBultos y 157 ConsultaStockPorCantidad: con qué se muestra el stock en todas las pantallas.
+     * V55: si el proceso está habilitado para el usuario ({proceso: N} de los YAML). E3: lo contesta la aplicación
+     * (OptimistExtension.procesoHabilitado; OPTIMIST ERP: GetUsrProc); sin ninguna que conteste, no.
      */
     public static boolean procesoHabilitado(Connection c, int id) {
-        try {
-            Map<String, Object> s = ejecutar("GetUsrProc", new ArrayList<>(java.util.Arrays.asList(java.math.BigDecimal.valueOf(id),
-                    java.math.BigDecimal.ZERO, Boolean.FALSE, Boolean.FALSE)), c, new ArrayList<>());
-            Object v = s.get("procesoshabilitado");
-            return v instanceof Boolean b ? b : v != null && (String.valueOf(v).equals("1") || String.valueOf(v).equalsIgnoreCase("true"));
-        } catch (SQLException | RuntimeException e) {
-            return false;
+        for (OptimistExtension e : OptimistExtension.todas()) {
+            Boolean b = e.procesoHabilitado(c, id);
+            if (b != null) return b;
         }
+        return false;
     }
 
     /** Como una función (Nombre.udp(...)): devuelve el último parámetro out/inout. */
