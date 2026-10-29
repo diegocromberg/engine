@@ -47,6 +47,8 @@
 ## Cómo se compila
 - Maven, Java 25. **E4: el motor es una librería** (`optimist-engine.jar`): `mvn install` en `engine` y las aplicaciones lo usan como
   dependencia (`optimist.engine.version` en su pom). Después de bajar el motor, Diego tiene que hacer `mvn install` en `engine`.
+  No agregar `spring-boot-devtools` (separa los cargadores de clases y rompe el acceso package-private del ERP al motor), ni
+  `spring-boot-maven-plugin` ni un `application.properties` al pom/recursos del motor.
 - En la PC de Diego todo va en `D:\Mis Documentos\OPTIMIST` (antes "OPTIMIST ERP", renombrada el 28/10/2026):
   `engine`, `optimist-erp` y `factory`, una al lado de la otra.
 - En el entorno de Claude no hay acceso a Maven Central: el chequeo es `python3 herramientas/chequear_java.py src/main/java` (motor solo) y `... src/main/java ../optimist-erp/src/main/java`
