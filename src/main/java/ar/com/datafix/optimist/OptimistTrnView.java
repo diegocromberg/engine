@@ -631,11 +631,13 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         // V77: la columna de la moneda de los totales filtra con un combo de las monedas (igual, no "contiene": "$" no trae "U$S")
         String monedaTot = trn.workwith().monedaTotales(cab);
         List<OptimistTrnDefinicion.Valor> monedasFiltro = monedaTot == null ? List.of() : datos.monedas();
+        List<OptimistTrnDefinicion.Valor> comboRef;   // E4f: filtro combo de la descripción de una referencia chica
         for (String n : trn.workwith().columnas()) {
             // V84: workwith.columnasSi: la columna va solo si su condición da verdadero (ej. el Saldo según VERCampos)
             String si = trn.workwith().condicionColumna(n);
             if (si != null && !cumple(si, Map.of())) continue;
             Campo c = cab.campo(n);
+            comboRef = null;
             // V47: clave interna de una tabla con código (ArticulosPK, EntidadesPK): se ve el código (lo trae listar())
             String kCod = OptimistTrnDatos.referenciaConCodigo(cab, c.nombre()) == null ? null : OptimistTrnDatos.claveCodigo(c.nombre());
             if (kCod != null) {
@@ -659,6 +661,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             else if (c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATE || c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATETIME)
                 pantalla.tipoFiltro(c.nombre(), "fecha");
             else if (c.nombre().equalsIgnoreCase(monedaTot)) pantalla.filtroValores(c.nombre(), monedasFiltro);   // V77
+            else if ((comboRef = datos.valoresReferencia(cab, c)) != null) pantalla.filtroValores(c.nombre(), comboRef);   // E4f
             Grid.Column<Map<String, Object>> col = pantalla.columna(c.nombre(), trn.workwith().titulo(c),
                     f -> OptimistTrnCampos.mostrar(c, f.get(c.nombre())), valorExcel, formato,
                     c.insignia() == null ? null : f -> OptimistTrnCampos.colorInsignia(c, cab, f),   // V40: pastilla de color
@@ -667,7 +670,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             if (trn.workwith().totaliza(c)) pantalla.totalizar(c.nombre(), formato);   // V75: total al pie
             // V50: el filtro por tipo necesita lugar: operador + valor (números) o desde + hasta (fechas)
             if (trn.workwith().anchos().get(c.nombre()) == null) {
-                int min = c.dominio().esCombo() ? 140   // V60: el combo de selección múltiple
+                int min = c.dominio().esCombo() || comboRef != null ? 140   // V60: el combo de selección múltiple (E4f: o de una referencia)
                         : c.dominio().esNumerico() ? 90
                         : c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATE || c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATETIME ? 130 : 0;
                 String w = col.getWidth();

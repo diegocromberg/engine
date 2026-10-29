@@ -2,6 +2,14 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4f — Combo en el filtro de las descripciones de referencias (29/10/2026)
+
+- Diego: en Factory el filtro de Estado de Incidentes era "contiene" y en GeneXus se elegía de una lista. La columna que muestra la
+  descripción de una referencia (Estado, Tipo, Usuario…) tiene ahora el **combo de selección múltiple** (el de V60) con los
+  registros de esa tabla, si tiene **hasta 50** (Diego). Con más, "contiene". WorkWith, vistas y consultas; sin configurar nada;
+  caché de 10 minutos por base. Guía, sección 9.
+- **Hay que hacer `mvn install` en `engine`** y reiniciar las aplicaciones.
+
 ## E4e — Importador: todo el flujo de Python e informe de lo que no se migra (29/10/2026)
 
 Diego: "el usuario tiene que enterarse de todas las cosas que no se pudieron importar… esto no puede pasar bajo ninguna

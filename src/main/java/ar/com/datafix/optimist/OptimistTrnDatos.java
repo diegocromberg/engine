@@ -243,6 +243,53 @@ public class OptimistTrnDatos {
         return List.of();
     }
 
+    /**
+     * E4f (Diego, 29/10/2026): la columna que muestra la descripción de una referencia (ej. EstadosDescrip en Incidentes) tiene
+     * como filtro un combo de selección múltiple con los registros de esa tabla, si es chica: hasta COMBO_REFERENCIA registros
+     * (como el filtro con lista de WorkWithPlus). Con más, sigue "contiene". null: no corresponde. Caché de 10 minutos por base.
+     */
+    public static final int COMBO_REFERENCIA = 50;
+    private static final Map<String, Object[]> VALORES_REFERENCIA = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public List<OptimistTrnDefinicion.Valor> valoresReferencia(Nivel cab, Campo c) {
+        if (c == null || !c.inferido() || c.dominio().esCombo() || c.dominio().esNumerico()) return null;
+        if (c.dominio().tipo() != Tipo.CHAR && c.dominio().tipo() != Tipo.VARCHAR) return null;
+        if (OptimistTrnDefinicion.sqlLista(cab.tabla(), c.nombre()) != null) return null;
+        Referencia ref = cab.referencias().stream().filter(r -> r.trae().containsKey(c.nombre())).findFirst().orElse(null);
+        if (ref == null) return null;
+        String columna = ref.trae().get(c.nombre());
+        List<String> fijas = ref.condicionesFijas("");
+        OptimistDatabase.Cliente cli = OptimistDatabase.clienteActual();
+        String clave = (cli == null ? "" : String.valueOf(cli.id())) + "|" + ref.tabla() + "|" + columna + "|" + fijas;
+        Object[] cache = VALORES_REFERENCIA.get(clave);
+        if (cache != null && System.currentTimeMillis() - (Long) cache[0] < 600_000) {
+            @SuppressWarnings("unchecked") List<OptimistTrnDefinicion.Valor> r = (List<OptimistTrnDefinicion.Valor>) cache[1];
+            return r.isEmpty() ? null : r;
+        }
+        List<OptimistTrnDefinicion.Valor> r = new ArrayList<>();
+        // los registros de la tabla (no DISTINCT: así no recorre una tabla grande; con más de COMBO_REFERENCIA no hay combo)
+        String sql = "SELECT " + col(columna) + " FROM " + ref.tabla() + (fijas.isEmpty() ? "" : " WHERE " + String.join(" AND ", fijas))
+                + " LIMIT " + (COMBO_REFERENCIA + 1);
+        try (Connection cn = abrir(); Statement st = cn.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            List<String> textos = new ArrayList<>();
+            int n = 0;
+            while (rs.next()) {
+                n++;
+                String t = rs.getString(1);
+                if (t != null && !t.isBlank()) textos.add(t.trim());
+            }
+            if (n <= COMBO_REFERENCIA) {
+                java.text.Collator orden = java.text.Collator.getInstance(Locale.forLanguageTag("es"));
+                orden.setStrength(java.text.Collator.PRIMARY);
+                TreeSet<String> unicos = new TreeSet<>(orden);
+                unicos.addAll(textos);
+                for (String t : unicos) r.add(new OptimistTrnDefinicion.Valor(t, t));
+            }
+        } catch (SQLException | RuntimeException ex) { return null; }   // sin combo: queda "contiene"
+        VALORES_REFERENCIA.put(clave, new Object[]{System.currentTimeMillis(), List.copyOf(r)});
+        return r.isEmpty() ? null : r;
+    }
+
     /** V75: la cantidad de registros y la suma de algunas columnas (claves de la grilla), con los mismos filtros. */
     public record Conteo(int cantidad, Map<String, BigDecimal> sumas, List<PorMoneda> porMoneda) {
         public Conteo(int cantidad, Map<String, BigDecimal> sumas) { this(cantidad, sumas, List.of()); }

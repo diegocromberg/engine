@@ -458,6 +458,10 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
             pantalla.tipoFiltro(c.nombre(), "fecha");
         else if (c.nombre().equalsIgnoreCase(OptimistTrnDefinicion.monedaTotales(def.totalesMoneda(), def.columnas(), trn.cabecera())))
             pantalla.filtroValores(c.nombre(), datos.monedas());   // V77: la moneda, con combo (igual, no "contiene")
+        else {   // E4f: la descripción de una referencia chica (hasta 50 registros): combo de selección múltiple
+            List<OptimistTrnDefinicion.Valor> vr = datos.valoresReferencia(base.cabecera(), c);
+            if (vr != null) pantalla.filtroValores(c.nombre(), vr);
+        }
         Grid.Column<Map<String, Object>> col = pantalla.columna(c.nombre(), titulo, f -> OptimistTrnCampos.mostrar(c, f.get(c.nombre())),
                 excel, formato, null, null);
         String ancho = def.anchos().get(c.nombre());

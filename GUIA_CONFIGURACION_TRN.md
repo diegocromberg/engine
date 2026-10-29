@@ -672,6 +672,11 @@ workwith:
 
 **Filtro de selección múltiple (V60)**: las columnas con dominio enumerado (un combo: ClaseCbte, CPI, Status, Tipo Documento AFIP...) tienen como filtro un **combo de selección múltiple** con los valores del dominio: se tildan uno o varios (se puede escribir para buscar en la lista) y la lista trae los registros que tienen **cualquiera** de ellos (`IN (...)` en la consulta a la base). Sin ninguno tildado, no filtra. Vale para las TRN, las vistas y las consultas, sin configurar nada. (En GeneXus el combo del filtro dejaba elegir uno solo.) **Necesita el motor V60.**
 
+**Combo en las descripciones de referencias (E4f)**: la columna que muestra la descripción de una referencia (ej. `EstadosDescrip`,
+el usuario o el tipo en Incidentes) tiene el mismo combo de selección múltiple, con los registros de la tabla referenciada,
+**si esa tabla tiene hasta 50 registros** (como el filtro con lista de WorkWithPlus). Con más (clientes, artículos) sigue
+"contiene". Vale para los WorkWith, las vistas y las consultas, sin configurar nada; la lista se relee cada 10 minutos.
+
 **Columnas fórmula en la lista (V82p, `workwith.columnasSql`)**: una fórmula que no se graba (ej. el saldo del comprobante) puede ser columna del WorkWith si se da su expresión SQL (`t0` es la tabla de la TRN): `columnasSql: {CPBCSaldo: "IFNULL((SELECT m.MovCtaCteSaldo FROM MovCtaCte m WHERE m.MovCtaCteCBTEId = t0.CPBCId ...), 0)"}`. La lista la trae, la filtra, la ordena y la suma en la base; en el formulario se calcula con su `formula:`. Ejemplo completo en `trn/CPBC.yaml`.
 
 **Columnas según una condición (V84, `workwith.columnasSi`)**: una columna va en la lista solo si su condición da verdadero; la condición usa las `&variables` del inicio de las acciones (`workwith.acciones.inicio`). Si no va, tampoco sale en el Excel, el PDF ni la ventana ⚙. Ej. en `trn/CPBC.yaml`, el Total, el Saldo y la Moneda según VERCampos (como el WWCPBC de GeneXus):
