@@ -68,6 +68,11 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 - **Necesita**: `mvn install` en `engine`; bajar también `optimist-erp` (trae `seguridad.yaml`, prende PostIts y mensajes y usa el
   jar) y `factory`.
 
+## V86 — 29/10/2026: For con fechas
+- **`For &Fecha = &FechaDesde To &FechaHasta`** recorre los días, como GeneXus (con `Step n`, de a n días; negativo, hacia atrás).
+  Antes las fechas se tomaban como números y daba una sola vuelta con 0 (ej. Rendimiento de Centros Operativos, que recorre
+  los días del período). Guía 16.
+
 ## V85 — 28/10/2026: botones PostIt y Σ con fondo
 - El botón **PostIt** (de la pantalla y del formulario de un registro) y el **Σ** de los totales pasan a ser botones comunes, con su
   fondo, como Excel, PDF y Apariencia (antes eran "terciarios": sin fondo, parecían un texto).

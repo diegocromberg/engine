@@ -419,9 +419,30 @@ public final class OptimistProcedimiento {
                 List<Sentencia> c = bloque(Set.of("endfor", "end for"), subs);
                 i++;
                 return e -> {
+                    // V86: For &Fecha = &FechaDesde To &FechaHasta [Step n]: recorre los días, como GeneXus (antes daba una sola vuelta con 0)
+                    Object d0 = e.evaluar(desde);
+                    if (d0 instanceof java.time.LocalDate || d0 instanceof java.time.LocalDateTime) {
+                        Object h0 = e.evaluar(hasta);
+                        java.time.LocalDate dh = h0 instanceof java.time.LocalDateTime hd ? hd.toLocalDate() : h0 instanceof java.time.LocalDate hl ? hl : null;
+                        if (dh == null) return;
+                        long dias = paso == null ? 1 : OptimistFormula.num(e.evaluar(paso)).longValue();
+                        if (dias == 0) return;
+                        java.time.LocalDate dia = d0 instanceof java.time.LocalDateTime dt ? dt.toLocalDate() : (java.time.LocalDate) d0;
+                        e.asignar(var, dia);
+                        try {
+                            while (true) {
+                                Object v = e.valorVariable(var);
+                                java.time.LocalDate actual = v instanceof java.time.LocalDateTime vt ? vt.toLocalDate() : v instanceof java.time.LocalDate vd ? vd : null;
+                                if (actual == null || (dias > 0 ? actual.isAfter(dh) : actual.isBefore(dh))) break;
+                                e.ejecutar(c);
+                                e.asignar(var, actual.plusDays(dias));
+                            }
+                        } catch (Salir s) { /* Exit */ }
+                        return;
+                    }
                     BigDecimal h = OptimistFormula.num(e.evaluar(hasta));
                     BigDecimal p = paso == null ? BigDecimal.ONE : OptimistFormula.num(e.evaluar(paso));
-                    e.asignar(var, OptimistFormula.num(e.evaluar(desde)));
+                    e.asignar(var, OptimistFormula.num(d0));
                     try {
                         while (p.signum() >= 0 ? OptimistFormula.num(e.valorVariable(var)).compareTo(h) <= 0
                                                : OptimistFormula.num(e.valorVariable(var)).compareTo(h) >= 0) {
