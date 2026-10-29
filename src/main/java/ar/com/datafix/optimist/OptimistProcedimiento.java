@@ -1889,6 +1889,23 @@ public final class OptimistProcedimiento {
             put("Authentication", BigDecimal.ZERO); put("Secure", BigDecimal.ZERO);
             Sdt s = new Sdt(); s.put("Name", ""); s.put("Address", ""); put("Sender", s);
             error(0, "");
+            // E4d: los datos del servidor de correo salen del optimist.cfg del cliente (fuera del código y de GitHub); lo que
+            // asigne el procedimiento manda igual. mail.host, mail.puerto, mail.usuario, mail.clave, mail.seguro,
+            // mail.remitente.nombre, mail.remitente.direccion
+            try {
+                OptimistDatabase db = OptimistDatabase.instancia();
+                if (db != null) {
+                    String h = db.propiedad("mail.host", ""), u = db.propiedad("mail.usuario", ""), c = db.propiedad("mail.clave", "");
+                    String pu = db.propiedad("mail.puerto", ""), se = db.propiedad("mail.seguro", "");
+                    if (!h.isBlank()) put("Host", h.trim());
+                    if (!u.isBlank()) { put("UserName", u.trim()); put("Authentication", BigDecimal.ONE); }
+                    if (!c.isEmpty()) put("Password", c);
+                    if (pu.trim().matches("\\d{1,5}")) put("Port", new BigDecimal(pu.trim()));
+                    if (se.equalsIgnoreCase("true") || (se.isBlank() && pu.trim().equals("465"))) put("Secure", BigDecimal.ONE);
+                    s.put("Name", db.propiedad("mail.remitente.nombre", "").trim());
+                    s.put("Address", db.propiedad("mail.remitente.direccion", u).trim());
+                }
+            } catch (RuntimeException ignorado) { }
         }
         void error(int codigo, String texto) { put("ErrCode", BigDecimal.valueOf(codigo)); put("ErrDescription", texto == null ? "" : texto); }
         String texto(String k) { Object v = get(k); return v == null ? "" : String.valueOf(v).trim(); }
@@ -3116,6 +3133,16 @@ public final class OptimistProcedimiento {
                 if (r != NO_ES) return r;
             }
             return switch (n) {
+                // E4d: archivos de texto delimitados (DFWOpen / DFWPTxt / DFWPNum / DFWPDate / DFWNext / DFWClose de GeneXus)
+                case "dfwopen" -> Dfw.abrir(s(a, 0), a.size() > 1 ? s(a, 1) : ",", a.size() > 2 ? s(a, 2) : "\"",
+                        a.size() > 3 && a.get(3) != null && OptimistFormula.num(a.get(3)).signum() != 0, a.size() > 4 ? s(a, 4) : "");
+                case "dfwptxt" -> Dfw.campo(a.isEmpty() ? "" : s(a, 0), true);
+                case "dfwpnum" -> Dfw.campo(a.isEmpty() || a.get(0) == null ? "" : (a.size() > 1
+                        ? OptimistFormula.num(a.get(0)).setScale(OptimistFormula.num(a.get(1)).intValue(), RoundingMode.HALF_UP)
+                        : OptimistFormula.num(a.get(0))).toPlainString(), false);
+                case "dfwpdate" -> Dfw.campo(a.isEmpty() || a.get(0) == null ? "" : String.valueOf(a.get(0)), false);
+                case "dfwnext" -> Dfw.siguiente();
+                case "dfwclose" -> Dfw.cerrar();
                 case "random" -> BigDecimal.valueOf(Math.random());   // V66: Random() de GeneXus (entre 0 y 1)
                 case "strreplace" -> s(a, 0).replace(s(a, 1), s(a, 2));
                 case "strsearch" -> {
@@ -3306,6 +3333,61 @@ public final class OptimistProcedimiento {
             if (v instanceof List<?> l) return l.isEmpty();
             if (v instanceof Map<?, ?> m) return m.values().stream().allMatch(Funciones::vacioGx);
             return false;
+        }
+
+        /**
+         * E4d: el archivo de texto que escribe el procedimiento (DFW de GeneXus), uno por hilo. Una ruta relativa va a la
+         * carpeta del cliente (la del optimist.cfg). Devuelven 0 si anduvo y -1 si no (como GeneXus).
+         */
+        static final class Dfw {
+            private static final ThreadLocal<Dfw> ACTUAL = new ThreadLocal<>();
+            private final java.io.Writer w;
+            private final String sepCampo, sepTexto;
+            private boolean primero = true;
+            private Dfw(java.io.Writer w, String sepCampo, String sepTexto) { this.w = w; this.sepCampo = sepCampo; this.sepTexto = sepTexto; }
+
+            static BigDecimal abrir(String archivo, String sepCampo, String sepTexto, boolean agregar, String codificacion) {
+                cerrar();
+                try {
+                    java.nio.file.Path p = java.nio.file.Path.of(archivo.trim());
+                    if (!p.isAbsolute()) {
+                        java.nio.file.Path base = OptimistDatabase.carpetaCliente();
+                        if (base != null) p = base.resolve(p);
+                    }
+                    if (p.getParent() != null) java.nio.file.Files.createDirectories(p.getParent());
+                    java.nio.charset.Charset cs = java.nio.charset.StandardCharsets.UTF_8;
+                    String c = codificacion == null ? "" : codificacion.replace('_', '-').trim();
+                    if (!c.isEmpty()) try { cs = java.nio.charset.Charset.forName(c.replaceAll("(?i)^encoding\\.", "")); } catch (RuntimeException ignorado) { }
+                    java.io.Writer w = new java.io.BufferedWriter(new java.io.OutputStreamWriter(new java.io.FileOutputStream(p.toFile(), agregar), cs));
+                    ACTUAL.set(new Dfw(w, sepCampo == null ? "," : sepCampo, sepTexto == null ? "" : sepTexto));
+                    return BigDecimal.ZERO;
+                } catch (java.io.IOException | RuntimeException ex) {
+                    System.out.println("[DFWOpen] " + archivo + ": " + ex.getMessage());
+                    return BigDecimal.ONE.negate();
+                }
+            }
+            static BigDecimal campo(String texto, boolean esTexto) {
+                Dfw d = ACTUAL.get();
+                if (d == null) return BigDecimal.ONE.negate();
+                try {
+                    if (!d.primero) d.w.write(d.sepCampo);
+                    d.w.write(esTexto ? d.sepTexto + texto + d.sepTexto : texto);
+                    d.primero = false;
+                    return BigDecimal.ZERO;
+                } catch (java.io.IOException ex) { return BigDecimal.ONE.negate(); }
+            }
+            static BigDecimal siguiente() {
+                Dfw d = ACTUAL.get();
+                if (d == null) return BigDecimal.ONE.negate();
+                try { d.w.write(System.lineSeparator()); d.primero = true; return BigDecimal.ZERO; }
+                catch (java.io.IOException ex) { return BigDecimal.ONE.negate(); }
+            }
+            static BigDecimal cerrar() {
+                Dfw d = ACTUAL.get();
+                ACTUAL.remove();
+                if (d == null) return BigDecimal.ZERO;
+                try { d.w.close(); return BigDecimal.ZERO; } catch (java.io.IOException ex) { return BigDecimal.ONE.negate(); }
+            }
         }
 
         private static String s(List<Object> a, int i) {

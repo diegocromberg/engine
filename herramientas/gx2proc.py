@@ -198,7 +198,7 @@ def armar(nombre, p, kb, enums, descripcion=None):
         if t is None:
             problemas.append(f'&{n}: tipo no soportado ({v["props"].get("idBasedOn") or v["props"].get("ATTCUSTOMTYPE")})')
             t = 'Ext(Desconocido)'
-        elif t.startswith(('Bc(', 'Ext(')) and not t.startswith('Ext(WebSession'):
+        elif t.startswith(('Bc(', 'Ext(')) and not t.startswith(('Ext(WebSession', 'Ext(SMTPSession', 'Ext(MailMessage', 'Ext(MailRecipient', 'Ext(ExcelDocument')):   # E4d: los que el intérprete ya ejecuta
             problemas.append(f'&{n}: {t} (el intérprete todavía no ejecuta sus métodos)')
         vars_.append((n, t))
     fuente = reemplazar_enums(partes.get(P_SOURCE, '') or '', enums).replace('\r\n', '\n').strip('\n')

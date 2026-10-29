@@ -2,6 +2,17 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4d — Mails, archivos de texto y WWPContext (29/10/2026)
+
+- **Mails**: el `&SMTP` de los procedimientos toma servidor, puerto, usuario, clave y remitente del `optimist.cfg` (`mail.*`,
+  guía 16.1). La clave sale del código fuente (en GeneXus suele estar escrita en el procedimiento).
+- **Archivos de texto** (`DFWOpen`, `DFWPTxt`, `DFWPNum`, `DFWPDate`, `DFWNext`, `DFWClose`): antes daban error; una ruta sin
+  carpeta va a la carpeta del cliente.
+- `&WWPContext.UserId` y `.UserName` (los de WorkWithPlus) = el usuario conectado.
+- `gx2proc.py` ya no marca para revisar `&SMTP`, `&MailMessage`, `&MailRecipient` ni `&ExcelDocument` (el motor los ejecuta).
+- Probado con Factory contra MariaDB y un servidor de correo de prueba: al pasar un incidente a Finalizado, IncidentesUpdateLastStatus
+  graba la Historia de Estados y Emailing manda el mail a los usuarios con email ("Incidente: 710 - … - Finalizado").
+
 ## E4c — Archivos en los detalles (29/10/2026)
 
 - Los archivos (el Blob de GeneXus) también en un **detalle** (`archivos:` dentro del detalle; guía 5.4): en cada renglón,

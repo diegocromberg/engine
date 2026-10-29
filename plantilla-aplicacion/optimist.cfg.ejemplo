@@ -11,3 +11,11 @@ sistema.nombre={{TITULO}}
 application.precalentar=true
 # Usuarios que pueden ver los totales de las listas (botón Σ); * = todos. Sin la línea, nadie.
 # totales.usuarios=*
+# Correo (los procedimientos que mandan mails con &SMTP toman de acá el servidor; la clave no va en el código)
+# mail.host=mail.miempresa.com
+# mail.puerto=465
+# mail.seguro=true
+# mail.usuario=sistema@miempresa.com
+# mail.clave=CAMBIAR
+# mail.remitente.nombre=Mi Sistema
+# mail.remitente.direccion=sistema@miempresa.com

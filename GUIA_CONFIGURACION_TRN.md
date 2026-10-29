@@ -1033,6 +1033,16 @@ EndFor
 
 ---
 
+### 16.1 Mails y archivos de texto (E4d)
+
+- **Mails** (`&SMTP` Ext(SMTPSession), `&MailMessage`, `&MailRecipient`, como en GeneXus): el servidor, el puerto, el usuario, la
+  clave y el remitente salen del `optimist.cfg` del cliente (`mail.host`, `mail.puerto`, `mail.seguro`, `mail.usuario`,
+  `mail.clave`, `mail.remitente.nombre`, `mail.remitente.direccion`), así la clave no queda escrita en el procedimiento ni en
+  GitHub. Lo que asigne el procedimiento (`&SMTP.Host = ...`) manda igual.
+- **Archivos de texto** (`DFWOpen` / `DFWPTxt` / `DFWPNum` / `DFWPDate` / `DFWNext` / `DFWClose`): una ruta sin carpeta va a la
+  carpeta del `optimist.cfg` del cliente. Devuelven 0 si anduvo.
+- `&WWPContext.UserId` / `.UserName` son el usuario conectado (`&SecUserId` / `&SecUserName`).
+
 ## 17. Reglas e inicio (V35)
 
 Las reglas de GeneXus van en la sección `reglas:` del YAML, **con la misma sintaxis** (cada una termina en `;` y puede tener comentarios `//` y `/* */`). El evento Start va en `inicio:` (como un procedimiento: `Variables … EndVariables` y código).
@@ -1685,6 +1695,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E4d**: mails con los datos del servidor en el optimist.cfg, archivos de texto (DFW), `&WWPContext.UserId` / `UserName` (16.1).
 - **E4c**: archivos (Blob) también en los detalles: Ver, Bajar, Subir y Quitar en cada renglón (5.4).
 - **E4**: botón **❓ Ayuda** (y F1) en el Designer: este documento y el manual del desarrollador, con índice y buscador, abiertos en el tema de lo que se está haciendo.
 - **E4**: usuarios en `seguridad.yaml` y PostIts / mensajes como módulos (24); `visibleSi` con `application.X` del optimist.cfg; Nueva aplicación (25). El ERP necesita `seguridad.yaml` (ya está en su repositorio).

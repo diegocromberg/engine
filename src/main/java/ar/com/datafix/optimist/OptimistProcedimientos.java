@@ -45,7 +45,10 @@ public final class OptimistProcedimientos {
         // LoadWWPContext / GetWWPContext: el contexto del usuario (empresa, división, usuario...) como estructura
         OptimistProcedimiento.Nativo cargar = (in, c) -> {
             OptimistContexto x = OptimistContexto.actual();
-            return Map.of("context", new OptimistProcedimiento.Sdt(x == null ? Map.of() : x.valores()));
+            OptimistProcedimiento.Sdt sdt = new OptimistProcedimiento.Sdt(x == null ? Map.of() : x.valores());
+            // E4d: el WWPContext de WorkWithPlus llama UserId / UserName al usuario (en el motor, SecUserId / SecUserName)
+            if (x != null) { sdt.putIfAbsent("UserId", x.valor("SecUserId")); sdt.putIfAbsent("UserName", x.valor("SecUserName")); }
+            return Map.of("context", sdt);
         };
         OptimistProcedimiento.registrarNativo("LoadWWPContext", "out: &Context", cargar);
         // V49y: la configuración por usuario (GetUsrProc, VERCampo...) se recuerda por usuario (+ lo que diga la aplicación)
