@@ -2,6 +2,10 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## V85 — 28/10/2026: botones PostIt y Σ con fondo
+- El botón **PostIt** (de la pantalla y del formulario de un registro) y el **Σ** de los totales pasan a ser botones comunes, con su
+  fondo, como Excel, PDF y Apariencia (antes eran "terciarios": sin fondo, parecían un texto).
+
 ## E3 — Separación, etapa 2: el motor sin nada del ERP (28/10/2026)
 
 - **Extensiones de la aplicación** (`OptimistExtension`, guía 23): lo propio de cada aplicación se engancha por `ServiceLoader`

@@ -72,7 +72,7 @@ public final class OptimistPostIts {
                 abiertos.add(ventana(db, id, p, abiertos, true));
             } catch (SQLException ex) { error(ex); }
         });
-        pegar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        // V85: botón común, con su fondo, como los demás botones del formulario (antes LUMO_TERTIARY: sin fondo)
         pegar.getElement().setAttribute("title", "Pegar un PostIt en este registro");
         pegar.setText("PostIt");
         OptimistVisuals.alLadoDeLosBotones(formulario, pegar);   // V82i: a la derecha de los botones (como en los web panels)
@@ -258,7 +258,7 @@ public final class OptimistPostIts {
                 abiertos.add(ventana(db, id, p, abiertos, true));
             } catch (SQLException ex) { error(ex); }
         });
-        pegar.addThemeVariants(ButtonVariant.LUMO_TERTIARY);   // como el de las TRN
+        // V85: botón común, con su fondo, como Excel, PDF y Apariencia (antes LUMO_TERTIARY: sin fondo)
         pegar.getStyle().set("flex-shrink", "0");
         pegar.getElement().setAttribute("title", "Pegar un PostIt en esta pantalla (solo lo ves vos)");
         pegar.setVisible(OptimistDatabase.conPostIts());   // V83: sistema sin PostIts (sistema.postits=false)

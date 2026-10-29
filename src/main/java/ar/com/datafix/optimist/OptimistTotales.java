@@ -1,7 +1,6 @@
 package ar.com.datafix.optimist;
 
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Span;
 
 import java.util.Locale;
@@ -50,8 +49,7 @@ final class OptimistTotales {
 
     /** El botón Σ: muestra Σ con los totales apagados (tocarlo los prende) y Σ tachada con los totales prendidos. */
     static Button boton(Consumer<Boolean> alCambiar) {
-        Button b = new Button();
-        b.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        Button b = new Button();   // V85: botón común, con su fondo, como los demás de la barra
         b.addClickListener(e -> {
             boolean ahora = !Boolean.TRUE.equals(b.getElement().getProperty("optimistTotales", false));
             pintar(b, ahora);
