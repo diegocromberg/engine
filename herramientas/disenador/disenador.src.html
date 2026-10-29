@@ -2298,7 +2298,18 @@ function pintarProps() {
       texto('Título', m.top.titulo, x => set('titulo', x)),
       h('div', { class: 'fila' }, texto('Singular', m.top.singular, x => set('singular', x)), texto('Plural', m.top.plural, x => set('plural', x))),
       h('div', { class: 'campo' }, h('label', { class: 'l' }, 'Género'), gen),
-      texto('Encabezado del formulario', m.top.encabezado, x => set('encabezado', x), 'Ej: "Presupuesto {PRSId} - {PRSEntidadesRazonSocial}"'));
+      texto('Encabezado del formulario', m.top.encabezado, x => set('encabezado', x), 'Ej: "Presupuesto {PRSId} - {PRSEntidadesRazonSocial}". Los campos van entre llaves; el resto es texto fijo.'),
+      (() => {   // E4b: elegir los campos del encabezado de una lista (se agregan al final; el texto se retoca arriba)
+        const sel_ = h('select', null, h('option', { value: '' }, '＋ Agregar un campo al encabezado…'),
+          ...m.campos.filter(c => !c.vals.formula || c.vals.guardar).map(c => h('option', { value: c.vals.nombre },
+            c.vals.nombre + (c.vals.etiqueta ? ' — ' + c.vals.etiqueta : '') + (c.vals.oculto ? ' (oculto)' : ''))));
+        sel_.addEventListener('change', () => {
+          const n = sel_.value; if (!n) return;
+          const actual = (m.top.encabezado || '').trim();
+          set('encabezado', actual ? actual + ' - {' + n + '}' : '{' + n + '}');
+        });
+        return h('div', { class: 'campo' }, h('label', { class: 'l' }, ''), sel_);
+      })());
   } else if (sel.tipo === 'tabla') {
     const t = porRuta(sel.ruta); if (!t) { sel = null; return pintarProps(); }
     const set = (k, x) => cambiar(() => { const tt = porRuta(sel.ruta); tt[k] = x.trim(); if (tt.implicita && (k !== 'titulo' || x)) tt.implicita = false; });

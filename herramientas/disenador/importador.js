@@ -525,6 +525,14 @@ function gx17AHtml(s) {
     }
     return `<gxGrid ControlName="${nombre}">${cols}</gxGrid>`;
   });
+  // E4b: las solapas de GeneXus 17 (<tab><item itemControlName=.. caption=..>...</item></tab>) como las de GeneXus 15
+  let nSolapa = 0;
+  s = s.replace(/<tab\b[^>]*>/g, '<gxgxui.TabPanel>').split('</tab>').join('</gxgxui.TabPanel>');
+  s = s.replace(/<item\b[^>]*\bitemControlName="[^"]*"[^>]*>/g, m0 => {
+    nSolapa++;
+    const cap = atributo('caption', m0) || atributo('itemControlName', m0) || 'Solapa ' + nSolapa;
+    return `<container containerId="TitletabPanel${nSolapa}">${cap}</container><container containerId="tabPanel${nSolapa}">`;
+  }).split('</item>').join('</container>');
   s = s.replace(/<textblock\b[^>]*\/>/g, m0 => { const cap = atributo('caption', m0); return cap ? `<gxTextBlock CaptionExpression="${cap}" />` : ''; });
   s = s.replace(/<data\b[^>]*\/>/g, tag => {
     const att = atributo('attribute', tag);
@@ -974,6 +982,10 @@ function generar(kb, trnNombre, solapasIds) {
     let desc = sinNone(cab.descAtt);
     if (numeradores.has(desc) || (desc && noSoportadoTipo(M, desc))) desc = null;
     desc = desc || info.propios.find(c => /(Descrip|Nombre|RazonSocial)$/.test(c)) || '';
+    // E4b: un texto largo (ej. la descripción completa de un incidente) no va en el encabezado: se busca uno corto
+    const largo = a => { const r = M.tipo(a)[1].match(/\((\d+)/); return r ? +r[1] : 0; };
+    if (desc && largo(desc) > 200)
+      desc = info.propios.find(c => c !== desc && /(Descort|Descrip|Nombre|RazonSocial|Titulo)$/.test(c) && largo(c) > 0 && largo(c) <= 200) || '';
     const propiosEnc = info.propios.includes('ArticulosId') ? ['ArticulosId'] : cab.atts.filter(a => a.key).map(a => a.n);
     const sing = textos.singular || trnNombre.toLowerCase();
     const partes = [sing.slice(0, 1).toUpperCase() + sing.slice(1), '{' + propiosEnc[0] + '}'];

@@ -2,6 +2,15 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4b — Importador: solapas de GeneXus 17 y encabezado elegible (29/10/2026)
+
+- **Solapas de GeneXus 17**: el importador (y `gx2yaml.py`) solo veía la primera; ahora arma todas, como en GeneXus (ej. Incidentes
+  de Factory: Datos Generales, Archivos, Historia Estados, Facturación, cada detalle en su solapa). Las KB de GeneXus 15 no cambian.
+- **Encabezado del formulario**: si la descripción de la TRN es un texto largo (ej. la descripción completa de un incidente), el
+  importador usa una corta (Descort, Titulo, Nombre…). En el Designer, propiedades de la transacción: además de escribirlo,
+  **"＋ Agregar un campo al encabezado"** elige los campos de una lista.
+- `gx2yaml.py` e `importador.js` siguen dando exactamente el mismo YAML (comparadas las TRN de Factory).
+
 ## E4a — Ayuda en el Designer (29/10/2026)
 
 - Botón **❓ Ayuda** (y F1) en OPTIMIST Designer: el manual del desarrollador y la guía de los YAML en una ventana con índice y

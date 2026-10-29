@@ -1043,6 +1043,14 @@ function gx17AHtml(s) {
     }
     return `<gxGrid ControlName="${nombre}">${cols}</gxGrid>`;
   });
+  // E4b: las solapas de GeneXus 17 (<tab><item itemControlName=.. caption=..>...</item></tab>) como las de GeneXus 15
+  let nSolapa = 0;
+  s = s.replace(/<tab\b[^>]*>/g, '<gxgxui.TabPanel>').split('</tab>').join('</gxgxui.TabPanel>');
+  s = s.replace(/<item\b[^>]*\bitemControlName="[^"]*"[^>]*>/g, m0 => {
+    nSolapa++;
+    const cap = atributo('caption', m0) || atributo('itemControlName', m0) || 'Solapa ' + nSolapa;
+    return `<container containerId="TitletabPanel${nSolapa}">${cap}</container><container containerId="tabPanel${nSolapa}">`;
+  }).split('</item>').join('</container>');
   s = s.replace(/<textblock\b[^>]*\/>/g, m0 => { const cap = atributo('caption', m0); return cap ? `<gxTextBlock CaptionExpression="${cap}" />` : ''; });
   s = s.replace(/<data\b[^>]*\/>/g, tag => {
     const att = atributo('attribute', tag);
@@ -1492,6 +1500,10 @@ function generar(kb, trnNombre, solapasIds) {
     let desc = sinNone(cab.descAtt);
     if (numeradores.has(desc) || (desc && noSoportadoTipo(M, desc))) desc = null;
     desc = desc || info.propios.find(c => /(Descrip|Nombre|RazonSocial)$/.test(c)) || '';
+    // E4b: un texto largo (ej. la descripción completa de un incidente) no va en el encabezado: se busca uno corto
+    const largo = a => { const r = M.tipo(a)[1].match(/\((\d+)/); return r ? +r[1] : 0; };
+    if (desc && largo(desc) > 200)
+      desc = info.propios.find(c => c !== desc && /(Descort|Descrip|Nombre|RazonSocial|Titulo)$/.test(c) && largo(c) > 0 && largo(c) <= 200) || '';
     const propiosEnc = info.propios.includes('ArticulosId') ? ['ArticulosId'] : cab.atts.filter(a => a.key).map(a => a.n);
     const sing = textos.singular || trnNombre.toLowerCase();
     const partes = [sing.slice(0, 1).toUpperCase() + sing.slice(1), '{' + propiosEnc[0] + '}'];
@@ -5861,7 +5873,18 @@ function pintarProps() {
       texto('Título', m.top.titulo, x => set('titulo', x)),
       h('div', { class: 'fila' }, texto('Singular', m.top.singular, x => set('singular', x)), texto('Plural', m.top.plural, x => set('plural', x))),
       h('div', { class: 'campo' }, h('label', { class: 'l' }, 'Género'), gen),
-      texto('Encabezado del formulario', m.top.encabezado, x => set('encabezado', x), 'Ej: "Presupuesto {PRSId} - {PRSEntidadesRazonSocial}"'));
+      texto('Encabezado del formulario', m.top.encabezado, x => set('encabezado', x), 'Ej: "Presupuesto {PRSId} - {PRSEntidadesRazonSocial}". Los campos van entre llaves; el resto es texto fijo.'),
+      (() => {   // E4b: elegir los campos del encabezado de una lista (se agregan al final; el texto se retoca arriba)
+        const sel_ = h('select', null, h('option', { value: '' }, '＋ Agregar un campo al encabezado…'),
+          ...m.campos.filter(c => !c.vals.formula || c.vals.guardar).map(c => h('option', { value: c.vals.nombre },
+            c.vals.nombre + (c.vals.etiqueta ? ' — ' + c.vals.etiqueta : '') + (c.vals.oculto ? ' (oculto)' : ''))));
+        sel_.addEventListener('change', () => {
+          const n = sel_.value; if (!n) return;
+          const actual = (m.top.encabezado || '').trim();
+          set('encabezado', actual ? actual + ' - {' + n + '}' : '{' + n + '}');
+        });
+        return h('div', { class: 'campo' }, h('label', { class: 'l' }, ''), sel_);
+      })());
   } else if (sel.tipo === 'tabla') {
     const t = porRuta(sel.ruta); if (!t) { sel = null; return pintarProps(); }
     const set = (k, x) => cambiar(() => { const tt = porRuta(sel.ruta); tt[k] = x.trim(); if (tt.implicita && (k !== 'titulo' || x)) tt.implicita = false; });

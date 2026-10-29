@@ -458,6 +458,17 @@ def gx17_a_html(s):
         return f'<gxTextBlock CaptionExpression="{cap}" />' if cap else ''
 
     s = re.sub(r'<simplegrid\b([^>]*)>(.*?)</simplegrid>', grilla, s, flags=re.S)
+    # E4b: las solapas de GeneXus 17 (<tab><item itemControlName=.. caption=..>...</item></tab>) como las de GeneXus 15
+    # (gxgxui.TabPanel con un container por solapa y su título): el resto del conversor las toma igual
+    n_solapa = [0]
+
+    def solapa(m):
+        n_solapa[0] += 1
+        cap = atributo('caption', m.group(0)) or atributo('itemControlName', m.group(0)) or f'Solapa {n_solapa[0]}'
+        return (f'<container containerId="TitletabPanel{n_solapa[0]}">{cap}</container>'
+                f'<container containerId="tabPanel{n_solapa[0]}">')
+    s = re.sub(r'<tab\b[^>]*>', '<gxgxui.TabPanel>', s).replace('</tab>', '</gxgxui.TabPanel>')
+    s = re.sub(r'<item\b[^>]*\bitemControlName="[^"]*"[^>]*>', solapa, s).replace('</item>', '</container>')
     s = re.sub(r'<textblock\b[^>]*/>', texto, s)   # la etiqueta de los combos (TableSplitted: texto + combo + clave oculta)
     s = re.sub(r'<data\b[^>]*/>', data, s)
     s = re.sub(r'<row\b', '<tr', s).replace('</row>', '</tr>')
@@ -1064,6 +1075,11 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
             desc = None   # V30: el numerador o una imagen no son campos de la cabecera
         desc = desc or next(
             (c for c in info['propios'] if re.search(r'(Descrip|Nombre|RazonSocial)$', c)), '')
+        # E4b: un texto largo (ej. la descripción completa de un incidente) no va en el encabezado: se busca uno corto
+        largo = lambda a: int((re.search(r'\((\d+)', M.tipo(a)[1]) or [0, 0])[1])
+        if desc and largo(desc) > 200:
+            desc = next((c for c in info['propios'] if c != desc and re.search(r'(Descort|Descrip|Nombre|RazonSocial|Titulo)$', c)
+                         and 0 < largo(c) <= 200), '')
         propios_enc = [c for c in (workwith or []) if c != desc] or \
                       [c for c in ('ArticulosId',) if c in info['propios']] or [a['n'] for a in cab['atts'] if a['key']]
         sing = (textos.get('singular') or trn_nombre.lower())
