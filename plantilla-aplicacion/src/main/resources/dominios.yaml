@@ -1,0 +1,15 @@
+# Dominios, clases y códigos comunes a todas las TRN de {{TITULO}} (guía de OPTIMIST Engine).
+# Cada TRN importada de GeneXus trae sus propios dominios; acá van los que se quieran compartir.
+
+# Dominios de importes con separador de miles y los que se totalizan al pie de las listas.
+conMiles: []
+totalizar: []
+
+# Clases de estilo para los campos (clase: Nombre en la TRN).
+clases:
+  Destacado: {negrita: true, tamaño: "-1px", color: "30,100,180"}
+
+# Código que ve el usuario en lugar de la clave interna (ej. Articulos: {codigo: ArticulosId}).
+codigos: {}
+
+dominios: {}

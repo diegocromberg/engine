@@ -1,0 +1,7 @@
+# Menú lateral de {{TITULO}} (guía de OPTIMIST Engine, sección 10).
+# Ítem de una TRN:   - {titulo: Clientes, trn: Clientes}
+# Carpeta:           - Nombre:  (y adentro sus ítems, con más sangría)
+# "Inicio" se agrega siempre al principio de la primera categoría.
+# El importador de GeneXus del Designer no toca este archivo: agregá acá las TRN que vayas importando.
+
+{{TITULO}}: []

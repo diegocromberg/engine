@@ -1,0 +1,9 @@
+# Usuarios de {{TITULO}} (guía de OPTIMIST Engine, sección 24).
+# tipoClave: texto | md5 | sha1 | sha256 (el hash guardado en hexadecimal).
+# Otro sistema de ingreso (ej. GAM de GeneXus): con una extensión en Java (OptimistExtension.autenticar).
+usuarios:
+  tabla: {{U_TABLA}}
+  id: {{U_ID}}
+  nombre: {{U_NOMBRE}}
+  clave: {{U_CLAVE}}
+  tipoClave: {{U_TIPO}}

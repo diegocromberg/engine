@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- OPTIMIST Engine (E3): el motor solo, sin ninguna aplicación. Compila por su cuenta (mvn -q compile) para comprobar que
-         no depende de ninguna aplicación. Las aplicaciones (optimist-erp, factory) lo compilan junto con lo suyo desde
-         ../engine (ver su pom.xml); este pom no hace falta para armar sus WAR. -->
+    <!-- OPTIMIST Engine (E4): el motor como librería. "mvn install" arma optimist-engine.jar y lo deja en el repositorio
+         Maven de la PC (carpeta .m2); las aplicaciones (optimist-erp, factory...) lo usan como dependencia. Después de bajar
+         una versión nueva del motor, se vuelve a hacer "mvn install" acá. -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -73,6 +73,21 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <release>25</release>
+                </configuration>
+            </plugin>
+            <!-- Vaadin busca pantallas y estilos (META-INF/resources/frontend) en los .jar que lo declaran -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Vaadin-Package-Version>1</Vaadin-Package-Version>
+                            <Implementation-Title>OPTIMIST Engine</Implementation-Title>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Implementation-Vendor>DATAFIX SRL</Implementation-Vendor>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>

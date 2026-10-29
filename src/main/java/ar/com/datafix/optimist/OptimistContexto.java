@@ -4,8 +4,6 @@ import com.vaadin.flow.server.VaadinSession;
 
 import java.io.Serializable;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
@@ -90,20 +88,16 @@ public final class OptimistContexto implements Serializable {
 
     /**
      * SetDefaultUsuario de GeneXus. Devuelve null si el usuario no existe.
-     * El motor lee el usuario de SecUser (SecUserId, SecUserName); lo demás del contexto (empresa, división...) lo agrega
+     * El motor pone el usuario ya validado (E4: OptimistUsuarios, seguridad.yaml) como SecUserId y SecUserName; lo demás del
+     * contexto (empresa, división...) lo agrega
      * cada aplicación con sus extensiones (E3, OptimistExtension.alIniciarSesion), que pueden cortar el ingreso con un
      * SQLException con el mensaje para el usuario (ej. "Usuario no habilitado").
      */
-    public static OptimistContexto cargar(Connection cn, String usuario) throws SQLException {
+    public static OptimistContexto cargar(Connection cn, String usuario, OptimistUsuarios.Ingreso ingreso) throws SQLException {
+        if (ingreso == null || !ingreso.valido()) return null;
         OptimistContexto x = new OptimistContexto();
-        try (PreparedStatement p = cn.prepareStatement("SELECT SecUserId, SecUserName FROM SecUser WHERE SecUserName=?")) {
-            p.setString(1, usuario);
-            try (ResultSet r = p.executeQuery()) {
-                if (!r.next()) return null;
-                x.valores.put("SecUserId", r.getObject(1));
-                x.valores.put("SecUserName", r.getString(2));
-            }
-        }
+        x.valores.put("SecUserId", ingreso.id());
+        x.valores.put("SecUserName", ingreso.nombre());
         for (OptimistExtension e : OptimistExtension.todas()) e.alIniciarSesion(cn, usuario, x);
         return x;
     }

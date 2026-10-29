@@ -26,9 +26,6 @@ public final class OptimistMenu {
     /** Carpeta del menú. hijos: Item o Carpeta, en el mismo orden que en el YAML. */
     public record Carpeta(String nombre, List<Object> hijos) {}
 
-    private static final List<String> BASICAS = List.of("Menú General", "Stock y Producción", "Costos", "Ventas",
-            "Logística", "Compras", "CRM", "Cuentas Corrientes", "Impuestos", "Caja y Bancos", "Contabilidad",
-            "Estadísticas", "Servicios");
 
     /**
      * V48e: el menú del usuario. Si la base tiene las tablas Menu y MenuSecUser (de GeneXus) y el usuario tiene
@@ -236,7 +233,7 @@ public final class OptimistMenu {
             return cats;
         } catch (Exception e) {
             LOG.error("No se pudo leer menu.yaml: {}", e.getMessage());
-            return BASICAS.stream().map(n -> new Carpeta(n, List.of())).toList();
+            return List.of(new Carpeta("Menú", List.of()));   // E4: sin menú de ninguna aplicación en el motor
         }
     }
 

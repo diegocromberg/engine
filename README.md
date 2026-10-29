@@ -9,13 +9,16 @@ convertidores de GeneXus a YAML.
 | `src/main/java` | El motor. |
 | `herramientas/disenador/OPTIMIST-Designer.html` | OPTIMIST Designer (se abre en Chrome o Edge). |
 | `herramientas/gx2*.py` | Convertidores de la KB GeneXus a los YAML del motor (ver `herramientas/LEEME.md`). |
+| `plantilla-aplicacion/` | La aplicación vacía que arma "Nueva aplicación" del Designer. |
+| `MANUAL_DESARROLLADOR.md` | Manual del desarrollador: de la KB de GeneXus al WAR. |
 | `GUIA_CONFIGURACION_TRN.md` | Cómo se escriben los YAML. |
 | `CAMBIOS.md` | Cambios del motor. |
 
-## Cómo se usa (etapa 1)
+## Cómo se usa
 
-Cada aplicación (por ejemplo `optimist-erp`) vive en su propia carpeta **al lado** de `engine` y su `pom.xml` compila también
-`../engine/src/main/java`:
+1. `mvn install` en esta carpeta: deja `optimist-engine.jar` en el repositorio Maven de la PC (una vez por versión del motor).
+2. Cada aplicación vive en su propia carpeta (al lado de `engine`) y usa el motor como dependencia (`optimist-engine`). Una nueva se
+   crea con el Designer (**✨ Nueva aplicación**).
 
 ```
 OPTIMIST\
@@ -23,3 +26,5 @@ OPTIMIST\
   optimist-erp\    <- OPTIMIST ERP
   factory\         <- Factory
 ```
+
+El paso a paso completo está en `MANUAL_DESARROLLADOR.md`.

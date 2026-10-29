@@ -55,6 +55,7 @@ final class OptimistMensajes {
 
     /** La campanita para la barra (null si no hay usuario o base). verticalMenu: en el menú vertical, centrada. */
     static Component campana(boolean menuVertical) {
+        if (!OptimistDatabase.conModulo("mensajes")) return null;   // E4: módulo opcional (OPTIMIST ERP lo prende)
         Long usuario = secUserId();
         OptimistDatabase db = OptimistDatabase.instancia();
         UI ui = UI.getCurrent();

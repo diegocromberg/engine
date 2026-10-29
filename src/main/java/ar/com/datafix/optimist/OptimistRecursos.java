@@ -27,8 +27,8 @@ public final class OptimistRecursos {
     /**
      * V49k: la carpeta src/main/resources del proyecto. Antes se buscaba solo en la carpeta desde donde se arrancó (user.dir):
      * si VS Code arrancaba desde la carpeta de arriba del proyecto, no la encontraba, leía los YAML compilados (target/classes)
-     * y los cambios no se veían hasta reiniciar. Ahora también se busca a partir de donde están las clases (target/classes)
-     * y en optimist-erp/ adentro de user.dir. Se puede fijar con -Doptimist.recursos=C:/ruta/src/main/resources.
+     * y los cambios no se veían hasta reiniciar. Ahora también se busca a partir de donde están los recursos de la
+     * aplicación (target/classes; E4: no las clases, que vienen en el .jar del motor). Se puede fijar con -Doptimist.recursos=C:/ruta/src/main/resources.
      */
     private static Path buscarFuentes() {
         List<Path> candidatas = new ArrayList<>();
@@ -36,14 +36,19 @@ public final class OptimistRecursos {
         if (fija != null && !fija.isBlank()) candidatas.add(Path.of(fija.trim()));
         Path ud = Path.of(System.getProperty("user.dir"));
         candidatas.add(ud.resolve("src").resolve("main").resolve("resources"));
-        try {
-            Path clases = Path.of(OptimistRecursos.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-            // .../proyecto/target/classes -> .../proyecto/src/main/resources
-            if (clases.getFileName() != null && clases.getFileName().toString().equals("classes") && clases.getParent() != null
-                    && clases.getParent().getParent() != null)
-                candidatas.add(clases.getParent().getParent().resolve("src").resolve("main").resolve("resources"));
-        } catch (Exception ignorado) { }
-        candidatas.add(ud.resolve("optimist-erp").resolve("src").resolve("main").resolve("resources"));
+        // E4: a partir de dónde están los recursos de la APLICACIÓN (el motor viene en su .jar):
+        // .../proyecto/target/classes/menu.yaml -> .../proyecto/src/main/resources
+        for (String r : new String[]{"menu.yaml", "seguridad.yaml", "dominios.yaml"}) {
+            try {
+                java.net.URL u = OptimistRecursos.class.getClassLoader().getResource(r);
+                if (u == null || !"file".equals(u.getProtocol())) continue;
+                Path clases = Path.of(u.toURI()).getParent();
+                if (clases != null && clases.getFileName() != null && clases.getFileName().toString().equals("classes")
+                        && clases.getParent() != null && clases.getParent().getFileName() != null
+                        && clases.getParent().getFileName().toString().equals("target") && clases.getParent().getParent() != null)
+                    candidatas.add(clases.getParent().getParent().resolve("src").resolve("main").resolve("resources"));
+            } catch (Exception ignorado) { }
+        }
         for (Path c : candidatas) if (Files.isDirectory(c.resolve("trn"))) return c.toAbsolutePath();
         return candidatas.get(fija != null && !fija.isBlank() ? 1 : 0);
     }

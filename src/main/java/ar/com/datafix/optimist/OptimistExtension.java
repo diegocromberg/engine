@@ -28,7 +28,20 @@ public interface OptimistExtension {
     default void registrarProcedimientos() {}
 
     /**
-     * Al iniciar sesión, después de que el motor leyó el usuario de SecUser (SecUserId y SecUserName en el contexto): lo que
+     * E4: validar usuario y contraseña con un sistema propio (ej. GAM de GeneXus), en lugar de la tabla de seguridad.yaml.
+     * null = esta extensión no valida usuarios; OptimistUsuarios.Ingreso.rechazado() = usuario o contraseña incorrectos.
+     */
+    default OptimistUsuarios.Ingreso autenticar(Connection cn, String usuario, String clave) throws SQLException { return null; }
+
+    /**
+     * E4: los módulos opcionales del motor que la aplicación usa: "postits" (tabla PostIts) y "mensajes" (campanita de los
+     * mensajes internos, tablas Mensajes...). Apagados si ninguna extensión los pide; el optimist.cfg manda igual
+     * (sistema.postits / sistema.mensajes = true o false).
+     */
+    default Set<String> modulos() { return Set.of(); }
+
+    /**
+     * Al iniciar sesión, después de que el motor leyó el usuario (seguridad.yaml) (SecUserId y SecUserName en el contexto): lo que
      * la aplicación agrega al contexto (el WWPContext de GeneXus: empresa, división...). Un SQLException con mensaje corta el
      * ingreso con ese mensaje (ej. "Usuario no habilitado").
      */

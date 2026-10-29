@@ -329,6 +329,7 @@ button.rojo:disabled { opacity: .4; }
   <span class="marca">OPTIMIST Designer</span>
   <button id="bAbrir" title="Elegir la carpeta del proyecto o src/main/resources/trn">📂 Abrir carpeta</button>
   <button id="bArchivo" title="Abrir un solo YAML (TRN, web panel, impresión o consulta); se graba en el mismo lugar">📄 Abrir archivo</button>
+  <button id="bNueva" title="Crear una aplicación nueva de OPTIMIST Engine (pom, menú, dominios, usuarios, configuración)">✨ Nueva aplicación</button>
   <button id="bImportar" title="Importar transacciones desde el export XML o XPZ de una KB de GeneXus">⬇ Importar de GeneXus</button>
   <select id="lista" disabled><option>— sin carpeta —</option></select>
   <button id="bDeshacer" disabled title="Ctrl+Z">↶ Deshacer</button>
@@ -4672,7 +4673,7 @@ const IMP = { kb: null, archivo: '', lista: [], destino: null, control: { trns: 
 const CONTROL_IMP = '_importacion.json';
 
 function abrirImportador() {
-  if (!IMP.destino && dir && /^trn$/i.test(dir.name)) { IMP.destino = dir; leerDestinoImp().then(pintarImp); }
+  if (!IMP.destino && dir && /^trn$/i.test(dir.name)) { IMP.destino = dir; leerDestinoImp().then(pintarImportador); }
   $('#imp').classList.add('abierto');
   pintarImportador();
 }
@@ -4992,6 +4993,92 @@ async function importarImp(nombres) {
     botones: [{ texto: 'Aceptar', clase: 'primario', valor: true }] });
   return hechas.length > 0;
 }
+// ------------------------------------------------------------------ E4 · NUEVA APLICACIÓN
+// La plantilla (engine/plantilla-aplicacion) la mete armar.py: {archivo: contenido} con marcadores {{NOMBRE}}, {{TITULO}}...
+const PLANTILLA_APP = /*PLANTILLA*/null;
+const VERSION_MOTOR = /*VERSION_MOTOR*/'';
+async function nuevaAplicacion() {
+  if (!window.showDirectoryPicker) { aviso('Este navegador no permite crear carpetas: usá Chrome o Edge.', true); return; }
+  if (!PLANTILLA_APP) { aviso('Este Designer se armó sin la plantilla de aplicación (armar.py).', true); return; }
+  const v = { nombre: 'mi-aplicacion', titulo: 'Mi Aplicación', grupo: 'com.miempresa', puerto: '18082', base: '',
+              usuarios: 'wwp', tabla: 'SecUser', id: 'SecUserId', unombre: 'SecUserName', clave: 'SecUserPassword', tipo: 'texto' };
+  const err = h('div', { style: 'color:var(--peligro);min-height:18px;margin-top:8px' });
+  let bCrear = null;
+  const IDENT = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
+  const validar = () => {
+    const m = !/^[a-z][a-z0-9-]{1,40}$/.test(v.nombre) ? 'Carpeta: minúsculas, números y guiones (ej. mi-aplicacion)'
+      : !v.titulo.trim() ? 'Falta el título'
+      : !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(v.grupo) ? 'Grupo Maven: como un dominio al revés (ej. com.miempresa)'
+      : !/^\d{2,5}$/.test(v.puerto) || +v.puerto < 1024 || +v.puerto > 65535 ? 'Puerto: un número entre 1024 y 65535'
+      : !IDENT.test(v.base) ? 'Falta el nombre de la base de datos (letras, números y _)'
+      : v.usuarios === 'otra' && ![v.tabla, v.id, v.unombre, v.clave].every(x => IDENT.test(x)) ? 'Usuarios: tabla y columnas con nombres válidos'
+      : '';
+    err.textContent = m; if (bCrear) bCrear.disabled = !!m;
+    return !m;
+  };
+  const campo = (etq, k, ayuda) => [h('label', { style: 'align-self:center' }, etq),
+    h('div', null, h('input', { type: 'text', value: v[k], style: 'width:100%', oninput: e => { v[k] = e.target.value.trim(); validar(); } }),
+      ayuda ? h('div', { style: 'color:var(--suave);font-size:11px' }, ayuda) : null)];
+  const otra = h('div', { style: 'display:none;grid-column:1 / -1;display:none' });
+  const grillaOtra = h('div', { style: 'display:grid;grid-template-columns:150px 1fr;gap:6px 10px' },
+    ...campo('Tabla', 'tabla'), ...campo('Columna id', 'id'), ...campo('Columna usuario', 'unombre'), ...campo('Columna clave', 'clave'),
+    h('label', { style: 'align-self:center' }, 'Clave guardada'),
+    h('select', { onchange: e => { v.tipo = e.target.value; } }, ...['texto', 'md5', 'sha1', 'sha256'].map(t => h('option', { value: t }, t === 'texto' ? 'en texto plano' : 'hash ' + t.toUpperCase()))));
+  otra.append(grillaOtra);
+  const elegirUsuarios = h('select', { onchange: e => { v.usuarios = e.target.value; otra.style.display = v.usuarios === 'otra' ? 'block' : 'none'; validar(); } },
+    h('option', { value: 'wwp' }, 'SecUser de WorkWithPlus (texto plano)'), h('option', { value: 'otra' }, 'Otra tabla…'));
+  const cuerpo = [
+    h('p', { style: 'margin:0 0 10px' }, 'Arma la carpeta de una aplicación de OPTIMIST Engine lista para arrancar e importar las TRN de GeneXus. ',
+      'Después vas a elegir dónde crearla (por ejemplo, la carpeta donde está ', h('code', null, 'engine'), ').'),
+    h('div', { style: 'display:grid;grid-template-columns:150px 1fr;gap:6px 10px' },
+      ...campo('Carpeta', 'nombre', 'También el nombre del WAR (ej. factory → factory.war)'),
+      ...campo('Título', 'titulo', 'El nombre que muestra la pantalla'),
+      ...campo('Grupo Maven', 'grupo'),
+      ...campo('Puerto', 'puerto', 'Para probarla en esta PC (http://localhost:puerto)'),
+      ...campo('Base de datos', 'base', 'Nombre de la base MySQL'),
+      h('label', { style: 'align-self:center' }, 'Usuarios'), elegirUsuarios, otra),
+    err];
+  const ok = await dialogoImp({ titulo: '✨ Nueva aplicación', cuerpo,
+    botones: [{ texto: 'Crear', clase: 'primario', valor: true }, { texto: 'Cancelar', valor: false }],
+    alArmar: b => { bCrear = b[0]; validar(); } });
+  if (!ok || !validar()) return;
+  let padre;
+  try { padre = await showDirectoryPicker({ id: 'optimist-nueva', mode: 'readwrite' }); }
+  catch (e) { if (!e || e.name !== 'AbortError') aviso('No se pudo usar esa carpeta: ' + ((e && e.message) || e), true); return; }
+  try {
+    try { await padre.getDirectoryHandle(v.nombre); aviso('Ya existe la carpeta ' + v.nombre + ' en ' + padre.name + ': elegí otro nombre o borrala.', true); return; }
+    catch (e) { if (e && e.name !== 'NotFoundError') throw e; }
+    const raiz = await padre.getDirectoryHandle(v.nombre, { create: true });
+    const u = v.usuarios === 'wwp' ? { tabla: 'SecUser', id: 'SecUserId', unombre: 'SecUserName', clave: 'SecUserPassword', tipo: 'texto' } : v;
+    const marcas = { NOMBRE: v.nombre, TITULO: v.titulo.trim(), GRUPO: v.grupo, PUERTO: v.puerto, BASE: v.base, VERSION_MOTOR,
+                     U_TABLA: u.tabla, U_ID: u.id, U_NOMBRE: u.unombre, U_CLAVE: u.clave, U_TIPO: u.tipo };
+    const yamlTexto = t => /^[\w áéíóúñÁÉÍÓÚÑ.-]+$/.test(t) ? t : '"' + t.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    const xmlTexto = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/--/g, '- -');
+    const total = Object.keys(PLANTILLA_APP).length; let n = 0;
+    for (const [ruta, texto] of Object.entries(PLANTILLA_APP)) {
+      await procesandoImp('Nueva aplicación', 'Creando ' + v.nombre + '/' + ruta + '…', n++ / total);
+      const esc = ruta.endsWith('.yaml') ? yamlTexto : ruta.endsWith('.xml') ? xmlTexto : x => x;
+      const contenido = texto.replace(/\{\{(\w+)\}\}/g, (m, k) => k in marcas ? (k === 'TITULO' ? esc(marcas[k]) : marcas[k]) : m);
+      const partes = ruta.split('/'); let d = raiz;
+      for (const p of partes.slice(0, -1)) d = await d.getDirectoryHandle(p, { create: true });
+      const w = await (await d.getFileHandle(partes.at(-1), { create: true })).createWritable();
+      await w.write(contenido); await w.close();
+    }
+    procesandoImp(null);
+    let trn = raiz; for (const p of ['src', 'main', 'resources', 'trn']) trn = await trn.getDirectoryHandle(p, { create: true });
+    IMP.destino = trn; IMP.destinoPadre = v.nombre; await leerDestinoImp();
+    const seguir = await dialogoImp({ titulo: 'Aplicación creada', cuerpo: [
+      h('p', null, 'Se creó ', h('b', null, padre.name + '/' + v.nombre), ' con ', total, ' archivos.'),
+      h('p', null, 'Para arrancarla: copiar ', h('code', null, 'optimist.cfg.ejemplo'), ' afuera del proyecto con los datos de la base y seguir el ', h('code', null, 'README.md'), '.'),
+      h('p', null, '¿Importás ahora las TRN de GeneXus? Van a ir a esta aplicación.')],
+      botones: [{ texto: '⬇ Importar de GeneXus', clase: 'primario', valor: true }, { texto: 'Más tarde', valor: false }] });
+    if (seguir) abrirImportador();
+  } catch (e) {
+    procesandoImp(null);
+    aviso('No se pudo crear la aplicación: ' + ((e && e.message) || e), true);
+  }
+}
+$('#bNueva').addEventListener('click', nuevaAplicacion);
 $('#bImportar').addEventListener('click', abrirImportador);
 
 $('#centro').append(h('div', { id: 'bienvenida' },

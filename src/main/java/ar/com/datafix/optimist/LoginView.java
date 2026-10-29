@@ -54,10 +54,13 @@ public class LoginView extends VerticalLayout implements com.vaadin.flow.router.
                 }
                 VaadinSession.getCurrent().setAttribute(OptimistDatabase.ATRIBUTO_CLIENTE,cliente[0]);
             }
-            if(db.validarUsuario(u,clave.getValue())){
+            // E4: los usuarios salen de seguridad.yaml (o de una extensión de la aplicación)
+            OptimistUsuarios.Ingreso ingreso;
+            try(java.sql.Connection cn=db.openConnection()){ ingreso=OptimistUsuarios.validar(cn,u,clave.getValue()); }
+            if(ingreso.valido()){
                 // V30: contexto de la sesión (WWPContext), como SecLogIn -> SetDefaultUsuario (lo propio lo agrega la aplicación, E3)
                 OptimistContexto ctx;
-                try(java.sql.Connection cn=db.openConnection()){ ctx=OptimistContexto.cargar(cn,u); }
+                try(java.sql.Connection cn=db.openConnection()){ ctx=OptimistContexto.cargar(cn,u,ingreso); }
                 catch(java.sql.SQLException ex){
                     if("Usuario no habilitado".equals(ex.getMessage())){Notification.show(ex.getMessage(),5000,Notification.Position.MIDDLE);return;}
                     throw ex;

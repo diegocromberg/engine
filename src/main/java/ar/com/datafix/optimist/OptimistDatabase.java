@@ -82,12 +82,22 @@ public class OptimistDatabase {
         return "OPTIMIST";
     }
 
-    /** V83: false = sistema sin PostIts (optimist.cfg: sistema.postits=false): no se muestra el botón ni se lee la tabla PostIts. */
-    public static boolean conPostIts() {
+    /** V83 / E4: PostIts (módulo opcional): sin ellos no se muestra el botón ni se lee la tabla PostIts. */
+    public static boolean conPostIts() { return conModulo("postits"); }
+
+    /**
+     * E4: un módulo opcional del motor ("postits", "mensajes"): el optimist.cfg manda (sistema.postits=true/false); si no
+     * dice nada, prendido si alguna extensión de la aplicación lo pide (OptimistExtension.modulos); si no, apagado.
+     */
+    public static boolean conModulo(String modulo) {
         try {
             OptimistDatabase d = INSTANCIA;
-            return d == null || !"false".equalsIgnoreCase(d.propiedad("sistema.postits", "true").trim());
-        } catch (RuntimeException e) { return true; }
+            String v = d == null ? null : d.propiedad("sistema." + modulo, null);
+            if (v != null && !v.isBlank()) return "true".equalsIgnoreCase(v.trim());
+        } catch (RuntimeException ignorado) { }
+        for (OptimistExtension e : OptimistExtension.todas())
+            for (String m : e.modulos()) if (modulo.equalsIgnoreCase(m)) return true;
+        return false;
     }
 
     public OptimistDatabase(ServletContext servletContext, Environment environment) {
@@ -219,7 +229,20 @@ public class OptimistDatabase {
     }
     private static final java.util.concurrent.ConcurrentHashMap<Path, Object[]> CFG_AL_DIA = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public boolean moduloMutual() { return Boolean.parseBoolean(propiedad("application.moduloMutual", "false")); }
+    /**
+     * E4: una condición de 'visibleSi' de los YAML (ej. visibleSi: ModuloMutual): la clave application.<Condicion>=true del
+     * optimist.cfg del cliente (sin distinguir mayúsculas; ej. application.moduloMutual=true). Sin la clave, no se cumple.
+     */
+    public boolean condicion(String nombre) {
+        if (nombre == null || nombre.isBlank()) return false;
+        String buscada = "application." + nombre.trim();
+        Properties p;
+        if (modoCentral) { Cliente c = clienteActual(); p = c != null ? c.config() : central; }
+        else p = config;
+        for (String k : p.stringPropertyNames())
+            if (k.equalsIgnoreCase(buscada)) return Boolean.parseBoolean(p.getProperty(k).trim());
+        return false;
+    }
 
     Connection openConnection() throws SQLException {
         return connection();
@@ -282,11 +305,4 @@ public class OptimistDatabase {
         return new Cliente(id, razon, ck, dir, p);
     }
 
-    public boolean validarUsuario(String usuario, String password) throws SQLException {
-        String sql = "SELECT 1 FROM SecUser WHERE SecUserName=? AND SecUserPassword=? LIMIT 1";
-        try (Connection cn=connection(); PreparedStatement ps=cn.prepareStatement(sql)) {
-            ps.setString(1, usuario); ps.setString(2, password);
-            try(ResultSet rs=ps.executeQuery()){ return rs.next(); }
-        }
-    }
 }

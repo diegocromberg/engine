@@ -56,13 +56,10 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     private Trn trn;
     private OptimistWorkWith.Pantalla<Map<String, Object>> pantalla;
 
-    /** Condiciones de visibleSi. Para agregar una: una línea acá. Desconocida = oculto. */
-    private final Map<String, BooleanSupplier> condiciones = new HashMap<>();
 
     public OptimistTrnView(@Autowired OptimistTrnDatos datos, @Autowired OptimistDatabase db) {
         this.datos = datos;
         this.db = db;
-        condiciones.put("modulomutual", db::moduloMutual);
     }
 
     // V48d: el formulario abierto es un paso del historial del navegador (atrás lo cierra, adelante lo vuelve a abrir)
@@ -856,8 +853,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     private boolean visible(Campo c) {
         if (c.oculto()) return false;
         if (c.visibleSi() == null) return true;
-        BooleanSupplier s = condiciones.get(c.visibleSi().toLowerCase(Locale.ROOT));
-        return s != null && s.getAsBoolean();
+        return db.condicion(c.visibleSi());   // E4: application.<Condicion>=true en el optimist.cfg
     }
     /**
      * V49o: columna de un detalle. Una oculta (oculto: true) que tiene una regla "X.Visible = ..." igual se arma, escondida:

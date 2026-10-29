@@ -2,9 +2,32 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4 — El motor como producto: librería, sin tablas propias, Nueva aplicación (29/10/2026)
+
+- **El motor es una librería** (`optimist-engine.jar`): `mvn install` en `engine` y las aplicaciones lo usan como dependencia
+  (antes compilaban las fuentes de `../engine`). Sus estilos y el logo van dentro del jar (el build de producción los encuentra
+  solo). El `pom.xml` de cada aplicación indica la clase que arranca (`OptimistApplication`, del motor).
+- **Sin tablas propias**:
+  - Usuarios: `src/main/resources/seguridad.yaml` de cada aplicación (tabla, columnas, clave en texto o hash md5 / sha1 / sha256;
+    guía 24.1), o una extensión (`autenticar`, ej. GAM). Antes, `SecUser` fijo.
+  - PostIts y mensajes: **módulos opcionales**, apagados salvo que la aplicación los pida (`OptimistExtension.modulos`) o el
+    `optimist.cfg` los prenda (`sistema.postits`, `sistema.mensajes`; guía 24.2).
+  - `visibleSi: X` de los YAML: `application.X=true` en el `optimist.cfg` (antes solo existía ModuloMutual, fijo en el motor).
+  - El menú de emergencia (si `menu.yaml` falla) ya no trae las categorías del ERP.
+  - Dónde están los YAML en desarrollo: se busca a partir de los recursos de la aplicación (antes, de las clases, que ahora vienen
+    en el jar) y ya no se busca una carpeta `optimist-erp`.
+- **OPTIMIST Designer: ✨ Nueva aplicación** (guía 25): arma la aplicación completa (pom, menú, dominios, usuarios, configuración de
+  ejemplo, prueba de los YAML, README) desde `plantilla-aplicacion/` y ofrece importar las TRN de GeneXus ahí. Arreglo: abrir el
+  importador con la carpeta `trn` ya elegida repintaba el diseñador de impresiones.
+- **`MANUAL_DESARROLLADOR.md`**: el camino de punta a punta (instalar el motor, crear la aplicación, importar, arrancar, WAR,
+  extensiones). Se actualiza con cada versión.
+- **Necesita**: `mvn install` en `engine`; bajar también `optimist-erp` (trae `seguridad.yaml`, prende PostIts y mensajes y usa el
+  jar) y `factory`.
+
 ## V85 — 28/10/2026: botones PostIt y Σ con fondo
 - El botón **PostIt** (de la pantalla y del formulario de un registro) y el **Σ** de los totales pasan a ser botones comunes, con su
   fondo, como Excel, PDF y Apariencia (antes eran "terciarios": sin fondo, parecían un texto).
+
 
 ## E3 — Separación, etapa 2: el motor sin nada del ERP (28/10/2026)
 

@@ -1,0 +1,34 @@
+# {{TITULO}} - Filtro de lo que se sube a GitHub.
+
+# Configuración con datos de conexión: NUNCA se sube (optimist.cfg.ejemplo sí)
+optimist.cfg
+*.cfg
+
+# Compilación y archivos generados
+/target/
+*.class
+*.war
+*.jar
+
+# Vaadin / Node (se regeneran solos)
+/node_modules/
+/frontend/generated/
+/src/main/frontend/generated/
+/src/main/bundles/
+vite.generated.ts
+types.d.ts
+package.json
+package-lock.json
+tsconfig.json
+
+# Logs y archivos sueltos
+*.log
+*.bak
+
+# Editor y sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,13 @@
+# Copiar FUERA del proyecto, por ejemplo C:/optimist/config/{{NOMBRE}}/optimist.cfg
+# No incluir contraseñas reales dentro del WAR.
+database.host=localhost
+database.port=3306
+database.name={{BASE}}
+database.user=CAMBIAR_USUARIO
+database.password=CAMBIAR_PASSWORD
+# Nombre que muestra la pantalla (login, barra, títulos)
+sistema.nombre={{TITULO}}
+# Precalentado al arrancar (deja armadas las TRN). false = apagado.
+application.precalentar=true
+# Usuarios que pueden ver los totales de las listas (botón Σ); * = todos. Sin la línea, nadie.
+# totales.usuarios=*

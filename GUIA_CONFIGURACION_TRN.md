@@ -181,7 +181,7 @@ Cada campo es una línea `- {nombre: ..., dominio: ..., etiqueta: ..., <opciones
 | `guardar: true` | Junto con `formula`: fórmula **redundante** (GeneXus la guarda en la tabla). El motor la calcula al grabar, con todo lo de 5.1. (V42) Si no se puede calcular, no se graba: queda lo que había. Como está en la tabla, puede ser columna, oculta u orden del WorkWith. Puede sumar campos de los detalles. |
 | `nulo: true` | Vacío se graba como NULL (por defecto: `''` en textos, `0` en números, NULL en fechas). |
 | `editableEnModificacion: false` | Solo se carga en el alta. |
-| `visibleSi: ModuloMutual` | Solo se ve si se cumple la condición (condiciones registradas en el motor). |
+| `visibleSi: ModuloMutual` | Solo se ve si el `optimist.cfg` del cliente dice `application.ModuloMutual=true` (E4: cualquier nombre; sin la línea, no se ve). |
 | `ancho: 300px` | Ancho del campo (también `30%`, `20ch`; `300` = `300px`). Por defecto, según el dominio. |
 | `estilo: {negrita: true, italica: true, letra: Consolas, tamaño: "+2px", color: "30,100,180"}` | (V33) Letra de la etiqueta y del contenido del campo. (V46) **El `tamaño:` es relativo a la letra que eligió el usuario**: ver 5.3. Cualquier combinación; tiene prioridad sobre Apariencia. El color entre comillas: `"30,100,180"` (rojo, verde, azul, V45), `"#1e64b4"` o un nombre (`red`). (V45) `letra:` es la familia de letra (Arial, Calibri, "Courier New"...; varias separadas por coma, se usa la primera que tenga la PC) y **manda sobre la letra que eligió el usuario**. `negrita: false` / `italica: false` le sacan a un campo lo que le pone su clase. Manda sobre la clase (ver 5.2). En los detalles se aplica a cada línea. |
 | `clase: Importe` | (V45) Estilo con nombre, definido una vez en `clases:` (ver 5.2). Varias: `clase: [Importe, Rojo]` (la de la derecha manda). |
@@ -218,7 +218,7 @@ El contenido queda en la columna como lo deja GeneXus, así cualquier otro progr
 | Caso | Cómo se hace |
 |---|---|
 | No se usa en ningún cliente | `oculto: true` en el campo. Puede quedar en la `pantalla` (su lugar queda vacío) o sacarse de ahí. |
-| Se ve o no según el cliente | Se deja en la `pantalla` y se pone `visibleSi: Condicion`. Cada cliente lo ve o no según su parámetro. Hoy existe `ModuloMutual`; las demás condiciones llegan con los parámetros (`GetUsrProc`/`GetParamGlb`). |
+| Se ve o no según el cliente | Se deja en la `pantalla` y se pone `visibleSi: Condicion`. Cada cliente lo ve o no según su `optimist.cfg`: `application.Condicion=true` (E4). |
 
 Ejemplo:
 ```yaml
@@ -699,7 +699,7 @@ Todas las listas (los WorkWith de las TRN y las consultas) llevan una **fila de 
 
 ### 9.1 Contexto del usuario: empresa y división (el WWPContext de GeneXus)
 
-> **E3**: el motor solo pone `&SecUserId` y `&SecUserName` (de `SecUser`). Lo demás de esta sección es de **OPTIMIST ERP**: lo agrega su extensión (`OptimistExtensionErp`, sección 23). Una aplicación sin extensión (ej. Factory) tiene solo esas dos variables.
+> **E3 / E4**: el motor solo pone `&SecUserId` y `&SecUserName` (de la tabla de usuarios de `seguridad.yaml`, sección 24). Lo demás de esta sección es de **OPTIMIST ERP**: lo agrega su extensión (`OptimistExtensionErp`, sección 23). Una aplicación sin extensión (ej. Factory) tiene solo esas dos variables.
 
 En OPTIMIST ERP, al iniciar sesión se arma el contexto del usuario igual que `SecLogIn` → `SetDefaultUsuario`: empresa y división de `PerfilUsuario`, las de stock, costos, listas de precios y cta2 de `EmpDivStkCst` (stock y costos vacías = la del usuario) y `SecUserEntidadesPK`. La empresa/división se ve en el menú, debajo del usuario. Un usuario sin empresa asignada no puede entrar (salvo `Administrator`).
 
@@ -925,7 +925,7 @@ En producción (WAR) los YAML van adentro del WAR: un cambio requiere generar el
 
 **Al generar el WAR se validan todos los YAML** (cada TRN, `dominios.yaml` y `menu.yaml`, incluido que cada `trn:` del menú exista). Si hay errores, el WAR **no se genera** y Maven lista archivo y motivo. En un apuro se puede saltear: `mvn clean package -Pproduction -DskipTests`.
 
-Los YAML y esta guía viven en GitHub (`diegocromberg/optimist-erp`): se editan en VS Code, se prueban y se suben con Confirmar + Sincronizar. Los zips de código no los traen, para no pisarlos.
+Los YAML viven en el repositorio de cada aplicación y esta guía en el del motor (`diegocromberg/engine`): se editan en VS Code, se prueban y se suben con Confirmar + Sincronizar. Los zips de código no los traen, para no pisarlos.
 
 ---
 
@@ -1602,6 +1602,8 @@ procedimientos, el sistema **no arranca** (no queda andando a medias). Todo tien
 
 | Método | Para qué | OPTIMIST ERP |
 |---|---|---|
+| `autenticar(cn, usuario, clave)` | validar el ingreso con un sistema propio (ej. GAM) en lugar de `seguridad.yaml` (null = no valida) | — |
+| `modulos()` | módulos opcionales que usa: `postits`, `mensajes` (sección 24.2) | los dos |
 | `nombreSistema()` | nombre si el optimist.cfg no dice `sistema.nombre` | "OPTIMIST ERP" |
 | `registrarProcedimientos()` | procedimientos en Java (`OptimistProcedimiento.registrarNativo`) | Logueo, AFIP, precios, stock, OPTIMIST SQL, QR |
 | `alIniciarSesion(cn, usuario, ctx)` | agregar variables al contexto (el WWPContext); un `SQLException` corta el ingreso con su mensaje | empresa, división, EmpStk…, menú por permisos |
@@ -1622,12 +1624,49 @@ procedimientos, el sistema **no arranca** (no queda andando a medias). Todo tien
 
 ### 23.1 Una aplicación sin Java propio (ej. Factory)
 
-Solo YAML: `trn/`, `menu.yaml`, `dominios.yaml` (y si hace falta `wbp/`, `proc/`, `consultas/`, `impresiones/`), un `pom.xml`
-igual al del ERP (compila `../engine/src/main/java` y sus recursos) y su `optimist.cfg` (`sistema.nombre`, y `sistema.postits=false`
-si la base no tiene la tabla PostIts). El login usa `SecUser` (SecUserName / SecUserPassword) y el menú sale completo del `menu.yaml`.
-Las tablas de mensajes y PostIts son opcionales: sin ellas, la campanita queda sin número y no hay PostIts.
+Solo YAML: `trn/`, `menu.yaml`, `dominios.yaml`, `seguridad.yaml` (y si hace falta `wbp/`, `proc/`, `consultas/`, `impresiones/`),
+el `pom.xml` (usa `optimist-engine` como dependencia) y su `optimist.cfg` (`sistema.nombre`). Lo arma el Designer con
+**✨ Nueva aplicación** (sección 25). El menú sale completo del `menu.yaml`; PostIts y mensajes, apagados.
+
+## 24. Usuarios y módulos opcionales (E4)
+
+El motor no da por sentada ninguna tabla.
+
+### 24.1 Usuarios (`src/main/resources/seguridad.yaml`)
+
+```yaml
+usuarios:
+  tabla: SecUser           # la de WorkWithPlus, o cualquier otra
+  id: SecUserId
+  nombre: SecUserName      # lo que se escribe en "Usuario"
+  clave: SecUserPassword
+  tipoClave: texto         # texto | md5 | sha1 | sha256 (el hash guardado en hexadecimal)
+```
+
+- La comparación la hace la base (en MySQL, sin distinguir mayúsculas, como el SecLogIn de GeneXus).
+- En el contexto el usuario queda como `&SecUserId` y `&SecUserName`, aunque la tabla sea otra.
+- Sin el archivo, el login avisa "Falta configurar los usuarios de la aplicación".
+- Otro sistema de ingreso (ej. **GAM** de GeneXus): una extensión con `autenticar` (sección 23).
+
+### 24.2 Módulos opcionales
+
+| Módulo | Qué es | Tablas |
+|---|---|---|
+| `postits` | PostIts en los registros y las pantallas (V69, V82i) | `PostIts` |
+| `mensajes` | Campanita de mensajes internos (V72) | `Mensajes`, `MensajesEnvios`, `MensajesEnviosUsuarios`, `MensajesNoLeidos` |
+
+Apagados por defecto. Los prende la aplicación (extensión, `modulos()`); el `optimist.cfg` del cliente manda igual:
+`sistema.postits=true|false`, `sistema.mensajes=true|false`. OPTIMIST ERP los tiene prendidos.
+
+## 25. Nueva aplicación (OPTIMIST Designer, E4)
+
+Botón **✨ Nueva aplicación**: pide carpeta, título, grupo Maven, puerto, base de datos y de dónde salen los usuarios, y arma en la
+carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion`: `pom.xml`, `application.properties`,
+`index.html`, `menu.yaml`, `dominios.yaml`, `seguridad.yaml`, `trn/`, `optimist.cfg.ejemplo`, la prueba que valida los YAML al
+armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E4**: usuarios en `seguridad.yaml` y PostIts / mensajes como módulos (24); `visibleSi` con `application.X` del optimist.cfg; Nueva aplicación (25). El ERP necesita `seguridad.yaml` (ya está en su repositorio).
 - **E3**: extensiones de la aplicación (`OptimistExtension`, 23); el contexto de empresa y división pasa a ser de OPTIMIST ERP (9.1). No cambia ningún YAML.
 - **V82i**: PostIts de la pantalla (botón PostIt a la derecha de los botones de cada pantalla: WorkWith, consultas, web panels; en las TRN, el del registro también va a la derecha de los botones; la principal no lleva); cada usuario ve solo los suyos. Tamaño inicial de todos los PostIts: 380 x 320. No cambia ningún YAML.
 - **V69**: PostIts en el formulario de todas las TRN y su marca en el WorkWith (tabla PostIts). No cambia ningún YAML.

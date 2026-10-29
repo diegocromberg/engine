@@ -1,0 +1,1 @@
+Acá van las TRN de {{TITULO}} (un .yaml por TRN). Se importan de GeneXus con OPTIMIST Designer: "Importar de GeneXus".

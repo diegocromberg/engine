@@ -31,6 +31,12 @@
   `OptimistExtension` (ServiceLoader; guía 23): el ERP con `OptimistExtensionErp` y `OptimistExtensionStock`; Factory sin ninguna
   (solo YAML). El motor tiene su `pom.xml` (jar) y compila solo. **Regla**: nada de tablas, procedimientos ni clientes de una
   aplicación en el motor; si el motor necesita algo, se agrega un método a `OptimistExtension` con valor por defecto.
+- **E4 (29/10/2026)**: motor como jar; sin tablas propias (usuarios por `seguridad.yaml`, PostIts y mensajes como módulos que prende
+  la aplicación); "Nueva aplicación" en el Designer (plantilla en `plantilla-aplicacion/`, la mete `armar.py`); `MANUAL_DESARROLLADOR.md`
+  (se actualiza con cada versión). Pendiente: ofuscar el jar (ProGuard) al armar la versión para vender, junto con el licenciamiento.
+- **Plan acordado (29/10/2026)**: E5 SQL Server (+ instalación como servicio de Windows, para la comunidad .NET); validar el importador
+  con la KB del ERP (GX15); al final, licencia del Designer (archivo firmado + ofuscado + validación en un servidor de DATAFIX).
+  Precio pensado: US$ 2.000 por única vez (lanzamiento US$ 1.000), un año de actualizaciones, sin cuota anual.
 - **Importador de GeneXus (E2, hecho)**: en el Designer (`herramientas/disenador/importador.js` + pantalla en `disenador.src.html`;
   guía 11.2). `gx2yaml.py` es la REFERENCIA: todo cambio de criterio va primero ahí, después en `importador.js`, y las salidas se
   comparan (idénticas). Probado con GeneXus 17 + WWP (Factory). Falta validar con XML reales de GX15 (la KB del ERP), GX16/18 y
@@ -39,7 +45,9 @@
 - Licencia: clave por PC (huella de la PC → archivo de licencia firmado con clave privada de DATAFIX).
 
 ## Cómo se compila
-- Maven, Java 25. En la PC de Diego todo va en `D:\Mis Documentos\OPTIMIST` (antes "OPTIMIST ERP", renombrada el 28/10/2026):
+- Maven, Java 25. **E4: el motor es una librería** (`optimist-engine.jar`): `mvn install` en `engine` y las aplicaciones lo usan como
+  dependencia (`optimist.engine.version` en su pom). Después de bajar el motor, Diego tiene que hacer `mvn install` en `engine`.
+- En la PC de Diego todo va en `D:\Mis Documentos\OPTIMIST` (antes "OPTIMIST ERP", renombrada el 28/10/2026):
   `engine`, `optimist-erp` y `factory`, una al lado de la otra.
 - En el entorno de Claude no hay acceso a Maven Central: el chequeo es `python3 herramientas/chequear_java.py src/main/java` (motor solo) y `... src/main/java ../optimist-erp/src/main/java`
   (los avisos de Vaadin/Spring son falsos; comparar contra la corrida anterior) y `optimist-erp/herramientas/prueba_mariadb/compilar.sh`.
