@@ -18,6 +18,7 @@ de Factory al cambiar el estado de un incidente) ni avisaba lo que quedaba afuer
   migrados, permisos de WorkWithPlus que el motor todavía no aplica (por modo y por campo), reglas sin traducir, tipos no
   soportados, los `REVISAR` de los procedimientos traídos y los objetos que faltan en el export.
 - **⚠ N en la lista** del importador: lo que ya se sabe que no se migra (antes de importar) o lo que quedó (después).
+  Clic en el ⚠: la lista de esa TRN; botón **⚠ Ver lo que no se migra**: la de las tildadas (o todas), con Copiar.
 - **Franja amarilla en el Designer** ("⚠ No hace todo lo de GeneXus: N sin migrar") en las TRN con el bloque `# ---- SIN MIGRAR`
   que el importador deja al final del YAML; clic: la lista. Se conserva al guardar desde el Designer.
 - Carpeta de la aplicación: hace falta la del proyecto (o `src/main/resources`), no solo la `trn`.

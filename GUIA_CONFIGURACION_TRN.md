@@ -914,7 +914,8 @@ Botón **⬇ Importar de GeneXus** de la barra del Designer. Corre **todo el flu
    carpeta `trn`: el importador también graba en `proc/`, `wbp/` e `impresiones/`. Si no hay `trn`, ofrece crearla.
 3. La lista muestra cada TRN con su **estado** (*nueva*, *ya migrada*, *cambió en GeneXus* —lo sabe por el checksum del objeto—
    o *no se puede*: sin clave, o clave de un tipo que el motor no maneja) y la columna **Sin migrar**: **⚠ N** con lo que ya se
-   sabe que no se va a migrar (pasando el mouse se ve qué), o lo que quedó la última vez que se importó. Las TRN del patrón
+   sabe que no se va a migrar, o lo que quedó la última vez que se importó. Clic en el ⚠: qué es; **⚠ Ver lo que no se migra**:
+   lo de todas las tildadas (o de todas, si no hay ninguna), con Copiar. Las TRN del patrón
    WorkWithPlus (seguridad, menú) se ven tildando "Ver también las del patrón".
 4. **👁 Ver**: la TRN convertida (con el mismo importador) se abre en el diseñador **sin grabar nada**; "Volver al importador" deja
    todo como estaba. Ctrl+S no la graba.

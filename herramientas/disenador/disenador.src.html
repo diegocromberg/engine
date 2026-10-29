@@ -4806,19 +4806,36 @@ function visiblesImp() {
   return IMP.lista.filter(t => (IMP.verWwp || !t.base) && (!f || t.nombre.toLowerCase().includes(f) || (t.desc || '').toLowerCase().includes(f)));
 }
 /** E4e: ⚠ con lo que no se migra. Importada: lo que dio la importación (trn/_importacion.json). Si no: lo que ya se sabe de la KB. */
-function celdaSinMigrarImp(t, est) {
-  if (t.problema) return '';
+function sinMigrarImp(t, est) {
+  if (t.problema) return null;
   const c = IMP.control.trns[t.nombre];
-  if (est !== 'nueva' && c && c.sinMigrar != null) {
-    const items = c.pendientes || [];
-    return c.sinMigrar ? h('span', { class: 'sinmig', title: 'Cuando se importó quedaron sin migrar:\n- ' + items.join('\n- ') + '\n(detalle: trn/_gx/_informe_importacion.txt)' }, '⚠ ' + c.sinMigrar)
-                       : h('span', { class: 'sinmig ok', title: 'Cuando se importó quedó completa' }, '✓');
+  if (est !== 'nueva' && c && c.sinMigrar != null) return { items: c.pendientes || [], cuando: 'importada' };
+  if (IMP.errorPy) return { error: IMP.errorPy };
+  if (!IMP.pre) return null;
+  return { items: IMP.pre[t.nombre] || [], cuando: 'kb' };
+}
+function celdaSinMigrarImp(t, est) {
+  const r = sinMigrarImp(t, est);
+  if (!r) return t.problema ? '' : h('span', { class: 'sinmig ok', title: 'Analizando la KB…' }, '…');
+  if (r.error) return h('span', { class: 'sinmig', title: r.error }, '?');
+  if (!r.items.length) return h('span', { class: 'sinmig ok', title: r.cuando === 'importada' ? 'Cuando se importó quedó completa' : 'Por lo que se ve en la KB, no queda nada sin migrar (lo confirma el informe al importar)' }, '✓');
+  return h('span', { class: 'sinmig', style: 'cursor:pointer;text-decoration:underline dotted', title: 'Clic: ver qué no se migra',
+    onclick: e => { e.stopPropagation(); verSinMigrarImp([t]); } }, '⚠ ' + r.items.length);
+}
+/** E4e: lo que no se migra de esas TRN, en una ventana (antes de importar: lo que ya se sabe de la KB; importadas: lo que quedó). */
+async function verSinMigrarImp(trns) {
+  const l = [];
+  for (const t of trns) {
+    const r = sinMigrarImp(t, estadoImp(t));
+    if (!r || r.error || !r.items.length) continue;
+    l.push('TRN ' + t.nombre + (r.cuando === 'importada' ? ' (cuando se importó)' : '') + ':', ...r.items.map(x => '  - ' + x), '');
   }
-  if (IMP.errorPy) return h('span', { class: 'sinmig', title: IMP.errorPy }, '?');
-  if (!IMP.pre) return h('span', { class: 'sinmig ok', title: 'Analizando la KB…' }, '…');
-  const items = IMP.pre[t.nombre] || [];
-  return items.length ? h('span', { class: 'sinmig', title: 'Ya se sabe que esto no se migra (al importar puede aparecer algo más; sale todo en el informe):\n- ' + items.join('\n- ') }, '⚠ ' + items.length)
-                      : h('span', { class: 'sinmig ok', title: 'Por lo que se ve en la KB, no queda nada sin migrar (lo confirma el informe al importar)' }, '✓');
+  const texto = l.length ? l.join('\n') : 'Nada: por lo que se ve en la KB, estas TRN se migran completas.';
+  const r = await dialogoImp({ titulo: '⚠ Lo que no se migra', cuerpo: [h('div', { id: 'informeImp' },
+      h('p', null, 'Lo que ya se sabe mirando la KB. Al importar puede aparecer algo más (por ejemplo, lo de los procedimientos que se traen): sale todo en el informe del final.'),
+      h('pre', null, texto))],
+    botones: [{ texto: '📋 Copiar', valor: 'copiar' }, { texto: 'Cerrar', clase: 'primario', valor: true }] });
+  if (r === 'copiar') { try { await navigator.clipboard.writeText(texto); aviso('Copiado'); } catch { aviso('No se pudo copiar', true); } }
 }
 function pintarAvanceImp() { const b = $('#imp .barraAvance div'); if (b) b.style.width = Math.round((IMP.avance || 0) * 100) + '%'; }
 
@@ -4834,7 +4851,7 @@ function pintarImportador() {
     h('button', { onclick: elegirArchivoGx, disabled: IMP.avance != null }, '📄 Archivo de GeneXus…'),
     h('span', { class: 'dato' }, IMP.archivo ? [h('b', null, IMP.archivo), kb ? ' · KB ' + (kb.nombre || '?') + ' · export ' + (kb.version || '?') + ' · ' + propias + ' TRN' + (wwp ? ' (y ' + wwp + ' del patrón WorkWithPlus)' : '') : ''] : 'El export de la KB (XML o XPZ): en GeneXus, Knowledge Manager → Export, con las transacciones y sus instancias de WorkWithPlus.'),
     h('button', { onclick: elegirDestinoImp }, '📂 Carpeta de la aplicación…'),
-    h('span', { class: 'dato' }, IMP.destino ? [h('b', null, (IMP.destinoPadre && IMP.destino.name !== IMP.destinoPadre ? IMP.destinoPadre + ' / ' : '') + IMP.destino.name), ' · ' + IMP.existentes.size + ' TRN ya hay'] : 'Dónde van las TRN (la carpeta del proyecto, o su carpeta trn).')));
+    h('span', { class: 'dato' }, IMP.destino ? [h('b', null, (IMP.destinoPadre && IMP.destino.name !== IMP.destinoPadre ? IMP.destinoPadre + ' / ' : '') + IMP.destino.name), ' · ' + IMP.existentes.size + ' TRN ya hay'] : 'La carpeta del proyecto (ej. factory), no la trn: también se graban procedimientos, web panels e impresiones.')));
   const herr = h('div', { class: 'herr' });
   if (IMP.avance != null) herr.append('Leyendo la KB… ', h('div', { class: 'barraAvance' }, h('div')));
   else if (kb) {
@@ -4844,7 +4861,9 @@ function pintarImportador() {
       h('input', { type: 'text', placeholder: 'Buscar TRN…', value: IMP.filtro, oninput: e => { IMP.filtro = e.target.value; pintarTablaImp(); } }),
       h('label', null, h('input', { type: 'checkbox', checked: IMP.verWwp, onchange: e => { IMP.verWwp = e.target.checked; pintarImportador(); } }), 'Ver también las del patrón WorkWithPlus (seguridad, menú)'),
       h('button', { class: 'chico', onclick: () => { vis.forEach(t => todas ? IMP.marcadas.delete(t.nombre) : IMP.marcadas.add(t.nombre)); pintarImportador(); } }, todas ? 'Destildar todas' : 'Tildar todas'),
-      h('button', { class: 'chico', onclick: () => { IMP.marcadas.clear(); vis.filter(t => estadoImp(t) === 'nueva').forEach(t => IMP.marcadas.add(t.nombre)); pintarImportador(); } }, 'Tildar las nuevas'));
+      h('button', { class: 'chico', onclick: () => { IMP.marcadas.clear(); vis.filter(t => estadoImp(t) === 'nueva').forEach(t => IMP.marcadas.add(t.nombre)); pintarImportador(); } }, 'Tildar las nuevas'),
+      h('button', { class: 'chico', style: 'margin-left:auto', title: 'Lo que no se migra de las TRN tildadas (o de todas, si no hay ninguna tildada)',
+        onclick: () => { const m = vis.filter(t => IMP.marcadas.has(t.nombre)); verSinMigrarImp(m.length ? m : vis); } }, '⚠ Ver lo que no se migra'));
   }
   ven.append(herr);
   ven.append(h('div', { class: 'tabla', id: 'impTabla' }));
