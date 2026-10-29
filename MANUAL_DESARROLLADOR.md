@@ -1,6 +1,6 @@
 # OPTIMIST Engine — Manual del desarrollador
 
-Versión del manual: **E4** (29/10/2026). Se actualiza con cada versión del motor (ver `CAMBIOS.md`).
+Versión del manual: **E4e** (29/10/2026). Se actualiza con cada versión del motor (ver `CAMBIOS.md`).
 El detalle de cada YAML está en `GUIA_CONFIGURACION_TRN.md` (la "guía"); este manual es el camino de punta a punta.
 Los dos se leen desde el Designer con **❓ Ayuda** (o F1), que abre en el tema de lo que se está haciendo.
 
@@ -63,13 +63,18 @@ Queda armada con: `pom.xml`, `src/main/resources/` (`menu.yaml`, `dominios.yaml`
 
 ## 5. Importar de GeneXus
 
-1. En GeneXus: **Knowledge Manager → Export** de las transacciones con sus instancias de WorkWithPlus (XML o XPZ).
-2. En el Designer: **⬇ Importar de GeneXus** → elegir el archivo exportado y la carpeta de la aplicación.
-3. La lista muestra cada TRN con su estado: *nueva*, *ya migrada*, *cambió en GeneXus* o *no se puede*. Tildar las que se
-   quieren migrar (👁 muestra el formulario y el WorkWith antes de importar). Avisa las TRN que usan otras todavía no migradas.
-4. **Importar**: deja `trn/<TRN>.yaml` y, por cada una, `trn/_gx/<TRN>.gx.txt` con lo que GeneXus tenía y el motor no tradujo
-   (reglas y eventos especiales). Ese texto está pensado para pasárselo a la IA que use cada uno y terminar la traducción.
-5. Agregar las TRN al `menu.yaml`:
+1. En GeneXus: **Knowledge Manager → Export** de las transacciones con sus instancias de WorkWithPlus y los procedimientos,
+   web panels y Data Providers que usan (XML o XPZ; lo más simple es exportar la KB entera).
+2. En el Designer: **⬇ Importar de GeneXus** → elegir el archivo exportado y la **carpeta de la aplicación** (no la `trn`).
+3. La lista muestra cada TRN con su estado (*nueva*, *ya migrada*, *cambió en GeneXus* o *no se puede*) y **⚠ N** con lo que ya se
+   sabe que no se va a migrar (pasando el mouse, qué). Tildar las que se quieren migrar (👁 muestra cómo queda, sin grabar).
+   Avisa las TRN que usan otras todavía no migradas.
+4. **Importar**: corre el mismo flujo con que se migró OPTIMIST ERP: la TRN, fórmulas, paneles, reglas, evento Start, acciones del
+   WorkWith y todo lo que llaman (procedimientos, impresiones, Data Providers, web panels), hasta el final.
+5. Al terminar muestra **el informe de lo que no se pudo migrar**. Leerlo siempre: hasta resolver eso, la aplicación no hace todo
+   lo que hacía GeneXus. Queda en `trn/_gx/_informe_importacion.txt`, al final de cada TRN (bloque `SIN MIGRAR`, que el Designer
+   muestra en una franja amarilla) y en `trn/_gx/<TRN>.gx.txt`, con el código de GeneXus, para pasárselo a la IA de cada uno.
+6. Agregar las TRN al `menu.yaml`:
    ```yaml
    Mi Aplicación:
      - {titulo: Clientes, trn: Clientes}
@@ -77,7 +82,10 @@ Queda armada con: `pom.xml`, `src/main/resources/` (`menu.yaml`, `dominios.yaml`
          - {titulo: Países, trn: Paises}
    ```
 
-Volver a importar una TRN ya migrada **pisa** lo que se haya cambiado a mano (pide confirmación y deja un `.bak`).
+Volver a importar una TRN ya migrada **pisa** lo que se haya cambiado a mano en su YAML (pide confirmación y deja un `.bak`).
+Los procedimientos, web panels e impresiones que la aplicación ya tiene **no se pisan** (el informe dice cuáles difieren de GeneXus).
+
+Si un procedimiento manda mails, configurar el servidor de correo en el `optimist.cfg` (`mail.*`, sección 8).
 
 Probado con GeneXus 17 + WorkWithPlus. *GeneXus 15, 16, 18, Evolution y K2BTools: en validación.*
 
@@ -187,3 +195,4 @@ no se puede cargar, la aplicación no arranca (para no quedar andando a medias).
 | "No encontré …optimist.cfg" | la ruta de `--optimist.config` no existe |
 | Una TRN no abre y muestra un error de YAML | el mensaje dice archivo y motivo; corregir y reabrir la pantalla |
 | Un cambio en un YAML no se ve | la aplicación corre desde otra carpeta: arrancarla desde la carpeta del proyecto |
+| Importar: "falta el archivo optimist-python.js" | el Designer se copió solo: `optimist-python.js` tiene que estar al lado de `OPTIMIST-Designer.html` |

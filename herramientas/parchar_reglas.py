@@ -265,6 +265,9 @@ def inicio_de(eventos, enums, campos=frozenset(), a_reglas=None):
                 out.append(sangria + f'&{var} = {expr}    // pasó a reglas: {m.group(1)}.{m.group(2)}')
                 if a_reglas is not None:
                     FOTOS.append(var)
+        elif codigo and re.match(r'(?i)^[A-Za-z_]\w*\s*\.\s*display\s*=', codigo):
+            out.append(sangria + '// (lo resuelve el motor: Ver / Bajar del archivo) ' + s.strip())
+            continue
         elif codigo and INICIO_NO.match(codigo):
             out.append(sangria + '// REVISAR (de la pantalla de GeneXus): ' + s.strip())
             continue

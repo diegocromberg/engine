@@ -2,6 +2,31 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4e — Importador: todo el flujo de Python e informe de lo que no se migra (29/10/2026)
+
+Diego: "el usuario tiene que enterarse de todas las cosas que no se pudieron importar… esto no puede pasar bajo ninguna
+circunstancia". El importador del Designer convertía solo la TRN: no traía los procedimientos que llaman las reglas (ej. los mails
+de Factory al cambiar el estado de un incidente) ni avisaba lo que quedaba afuera.
+
+- **`herramientas/importar_kb.py`** (nuevo): todo el flujo con que se migró el ERP para las TRN pedidas (gx2yaml, fórmulas,
+  paneles, reglas e inicio, acciones del WorkWith y lo que llaman: procedimientos, impresiones, Data Providers, web panels, hasta
+  el final; subtipos y clases). No pisa procedimientos, web panels ni impresiones que la aplicación ya tiene.
+- **El Designer lo corre con Python adentro** (Pyodide 0.27.7, en un Worker; anda sin internet y abriendo el HTML como archivo):
+  importar y 👁 Ver dan exactamente lo mismo que la herramienta de Python. Pyodide va en `optimist-python.js` (18 MB, **tiene
+  que estar al lado de `OPTIMIST-Designer.html`**); las herramientas, adentro del HTML (`armar.py`).
+- **Informe obligatorio** al terminar (Copiar / Guardar), también en `trn/_gx/_informe_importacion.txt` y `.json`: eventos no
+  migrados, permisos de WorkWithPlus que el motor todavía no aplica (por modo y por campo), reglas sin traducir, tipos no
+  soportados, los `REVISAR` de los procedimientos traídos y los objetos que faltan en el export.
+- **⚠ N en la lista** del importador: lo que ya se sabe que no se migra (antes de importar) o lo que quedó (después).
+- **Franja amarilla en el Designer** ("⚠ No hace todo lo de GeneXus: N sin migrar") en las TRN con el bloque `# ---- SIN MIGRAR`
+  que el importador deja al final del YAML; clic: la lista. Se conserva al guardar desde el Designer.
+- Carpeta de la aplicación: hace falta la del proyecto (o `src/main/resources`), no solo la `trn`.
+- `gx2proc.py`: saca del código las credenciales del `&SMTP` (van al `optimist.cfg`, `mail.*`) y avisa que hay que configurarlo;
+  ignora las reglas de salida de reportes. `gx2yaml.py`: `Default(X, Today())` no hace falta (la fecha ya arranca en hoy).
+- Regla nueva en el `CLAUDE.md`: una herramienta de Python que migre algo de la KB va también al importador, en la misma versión.
+- Probado con Factory (Incidentes, Versiones, Sistemas): el mismo resultado en Python y en el Designer (Chromium, como archivo y
+  por http); el bloque SIN MIGRAR sobrevive a guardar desde el Designer.
+
 ## E4d — Mails, archivos de texto y WWPContext (29/10/2026)
 
 - **Mails**: el `&SMTP` de los procedimientos toma servidor, puerto, usuario, clave y remitente del `optimist.cfg` (`mail.*`,

@@ -649,6 +649,8 @@ def analizar_reglas(reglas):
         if m:
             r['default'][m.group(1)] = '&' + m.group(2)   # V30: valor del contexto de sesión
             continue
+        if re.fullmatch(r'(?i)default\(\s*\w+\s*,\s*(?:&today|today\(\s*\)|servertoday\(\s*\))\s*\)', xs):
+            continue   # E4e: una fecha sin default ya arranca en hoy en el alta (motor V65)
         m = re.fullmatch(r'(?i)default\(\s*(\w+)\s*,\s*(.+)\)', xs)
         if m:
             v = literal(m.group(2))

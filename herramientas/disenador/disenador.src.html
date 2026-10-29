@@ -322,6 +322,10 @@ button.rojo:disabled { opacity: .4; }
 #procImp .barra div { height: 100%; background: var(--acento); width: 0; transition: width .15s; }
 #bandaPrevia { background: #a35a00; color: #fff; padding: 4px 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
 #bandaPrevia button { background: #fff; color: #a35a00; border-color: #fff; }
+#bandaSinMigrar { background: #ffd54a; color: #4a3400; padding: 4px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #c99a00; }
+.sinmig { color: #a35a00; font-weight: 700; cursor: help; white-space: nowrap; }
+.sinmig.ok { color: #1f7a3b; font-weight: 400; }
+#informeImp pre { background: #f6f8fa; border: 1px solid var(--borde, #d0d7de); border-radius: 6px; padding: 10px; max-height: 55vh; overflow: auto; white-space: pre-wrap; font-size: 12px; margin: 0; }
 #ayuda { position: fixed; inset: 0; z-index: 90; background: #0f2a3399; display: flex; align-items: center; justify-content: center; }
 #ayuda .ven { background: #fff; width: min(1200px, 96vw); height: min(860px, 94vh); border-radius: 10px; box-shadow: 0 12px 40px #0006; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
 #ayuda .cab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #0f2a33; color: #fff; }
@@ -1545,6 +1549,7 @@ function pintarBarra() {
   $('#estado').innerHTML = '';
   if (X) $('#estado').append((Q ? 'Consulta ' : R ? 'Impresión ' : P ? 'Panel ' : '') + X.nombre + (X.vistaPrevia && X === A ? ' (vista previa, no se graba)' : X.handle ? '' : ' (se descarga al guardar)'), sucio() ? h('span', { class: 'sucio' }, ' · cambios sin guardar') : ' · guardado');
   if (typeof bandaPreviaImp === 'function') bandaPreviaImp();   // E2
+  if (typeof bandaSinMigrar === 'function') bandaSinMigrar();   // E4e
 }
 
 // ---------- árbol
@@ -4711,7 +4716,6 @@ const IMP = { kb: null, archivo: '', lista: [], destino: null, control: { trns: 
 const CONTROL_IMP = '_importacion.json';
 
 function abrirImportador() {
-  if (!IMP.destino && dir && /^trn$/i.test(dir.name)) { IMP.destino = dir; leerDestinoImp().then(pintarImportador); }
   $('#imp').classList.add('abierto');
   pintarImportador();
 }
@@ -4729,7 +4733,7 @@ async function elegirArchivoGx() {
   await leerArchivoGx(f);
 }
 async function leerArchivoGx(f) {
-  IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImportador();
+  IMP.avance = 0; IMP.error = ''; IMP.kb = null; IMP.pre = null; IMP.errorPy = ''; IMP.pyKb = null; IMP.lista = []; IMP.marcadas.clear(); IMP.archivo = f.name; pintarImportador();
   await procesandoImp('Leyendo la KB', 'Leyendo ' + f.name + '…', 0);
   try {
     let ult = 0;
@@ -4738,6 +4742,7 @@ async function leerArchivoGx(f) {
     await procesandoImp('Leyendo la KB', 'Armando la lista de transacciones…', 1);
     IMP.kb = kb;
     IMP.lista = GXI.listarTrns(kb);
+    kbEnPython(f);   // E4e: en segundo plano (el importador completo y el preinforme corren en Python)
     if (!IMP.lista.length) IMP.error = 'En ese archivo no hay transacciones. Exportá la KB (o las TRN que quieras) con sus atributos, dominios y la instancia de WorkWithPlus.';
   } catch (e) { IMP.error = 'No se pudo leer ' + f.name + ': ' + e.message; }
   procesandoImp(null);
@@ -4746,28 +4751,31 @@ async function leerArchivoGx(f) {
 }
 $('#inGx').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (f) await leerArchivoGx(f); });
 
-/** La carpeta trn de la aplicación: la del proyecto (src/main/resources/trn), una carpeta trn adentro, o la misma si se llama trn. */
+/** E4e: la carpeta de la aplicación (la del proyecto o su src/main/resources). Hace falta la de la aplicación y no solo la trn:
+ * el importador también trae los procedimientos, web panels e impresiones que usan las TRN (proc/, wbp/, impresiones/). */
 async function elegirDestinoImp() {
   if (!window.showDirectoryPicker) { aviso('Este navegador no permite elegir carpetas: usá Chrome o Edge.', true); return; }
   let d;
   try { d = await showDirectoryPicker({ id: 'optimist-imp', mode: 'readwrite' }); }
   catch (e) { if (!e || e.name !== 'AbortError') aviso('No se pudo usar esa carpeta: ' + ((e && e.message) || e) + '. Elegí otra (por ejemplo, la de la aplicación al lado de engine).', true); return; }
-  let trn = null;
-  if (/^trn$/i.test(d.name)) trn = d;
-  if (!trn) {
-    try { let x = d; for (const p of ['src', 'main', 'resources', 'trn']) x = await x.getDirectoryHandle(p); trn = x; } catch {}
+  if (/^trn$/i.test(d.name)) {
+    await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'Elegiste la carpeta ', h('code', null, 'trn'), '. Elegí la carpeta de la ', h('b', null, 'aplicación'),
+      ' (la que tiene ', h('code', null, 'src'), ', al lado de engine): además de las TRN, el importador trae los procedimientos, web panels e impresiones que usan, y van en otras carpetas.')],
+      botones: [{ texto: 'Aceptar', clase: 'primario', valor: true }] });
+    return;
   }
-  if (!trn) { try { trn = await d.getDirectoryHandle('trn'); } catch {} }
+  let dr = d;   // src/main/resources si es un proyecto
+  try { let x = d; for (const p of ['src', 'main', 'resources']) x = await x.getDirectoryHandle(p); dr = x; } catch {}
+  let trn = null;
+  try { trn = await dr.getDirectoryHandle('trn'); } catch {}
   if (!trn) {
-    // un proyecto con src/main/resources: la carpeta trn va ahí (donde la lee el motor)
-    let dr = d;
-    try { let x = d; for (const p of ['src', 'main', 'resources']) x = await x.getDirectoryHandle(p); dr = x; } catch {}
     const ok = await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'En "', h('b', null, d.name + (dr !== d ? '/src/main/resources' : '')), '" no hay una carpeta ', h('code', null, 'trn'), '. ¿La creo ahí para las transacciones importadas?')],
                                   botones: [{ texto: 'Crear la carpeta trn', clase: 'primario', valor: true }, { texto: 'Cancelar', valor: false }] });
     if (!ok) return;
     try { trn = await dr.getDirectoryHandle('trn', { create: true }); } catch (e) { aviso('No se pudo crear la carpeta trn: ' + e.message, true); return; }
   }
   IMP.destino = trn;
+  IMP.recursos = dr;
   IMP.destinoPadre = d.name;
   await procesandoImp('Carpeta de la aplicación', 'Leyendo las TRN que ya hay en ' + d.name + '…', 0.5);
   try { await leerDestinoImp(); } finally { procesandoImp(null); }
@@ -4796,6 +4804,21 @@ const TEXTO_EST = { nueva: 'nueva', migrada: 'ya migrada', modificada: 'cambió 
 function visiblesImp() {
   const f = IMP.filtro.trim().toLowerCase();
   return IMP.lista.filter(t => (IMP.verWwp || !t.base) && (!f || t.nombre.toLowerCase().includes(f) || (t.desc || '').toLowerCase().includes(f)));
+}
+/** E4e: ⚠ con lo que no se migra. Importada: lo que dio la importación (trn/_importacion.json). Si no: lo que ya se sabe de la KB. */
+function celdaSinMigrarImp(t, est) {
+  if (t.problema) return '';
+  const c = IMP.control.trns[t.nombre];
+  if (est !== 'nueva' && c && c.sinMigrar != null) {
+    const items = c.pendientes || [];
+    return c.sinMigrar ? h('span', { class: 'sinmig', title: 'Cuando se importó quedaron sin migrar:\n- ' + items.join('\n- ') + '\n(detalle: trn/_gx/_informe_importacion.txt)' }, '⚠ ' + c.sinMigrar)
+                       : h('span', { class: 'sinmig ok', title: 'Cuando se importó quedó completa' }, '✓');
+  }
+  if (IMP.errorPy) return h('span', { class: 'sinmig', title: IMP.errorPy }, '?');
+  if (!IMP.pre) return h('span', { class: 'sinmig ok', title: 'Analizando la KB…' }, '…');
+  const items = IMP.pre[t.nombre] || [];
+  return items.length ? h('span', { class: 'sinmig', title: 'Ya se sabe que esto no se migra (al importar puede aparecer algo más; sale todo en el informe):\n- ' + items.join('\n- ') }, '⚠ ' + items.length)
+                      : h('span', { class: 'sinmig ok', title: 'Por lo que se ve en la KB, no queda nada sin migrar (lo confirma el informe al importar)' }, '✓');
 }
 function pintarAvanceImp() { const b = $('#imp .barraAvance div'); if (b) b.style.width = Math.round((IMP.avance || 0) * 100) + '%'; }
 
@@ -4853,9 +4876,160 @@ function pintarTablaImp() {
       h('td', null, t.tabla),
       h('td', { class: 'num' }, t.niveles),
       h('td', null, h('span', { class: 'est ' + est, title: est === 'modificada' ? 'Se importó y después cambió en GeneXus: reimportala para traer los cambios (pisa lo que se haya tocado a mano).' : est === 'error' ? t.problema : '' }, TEXTO_EST[est])),
+      h('td', null, celdaSinMigrarImp(t, est)),
       h('td', null, t.problema ? '' : h('button', { class: 'chico', title: 'Ver el formulario y el WorkWith sin grabar nada', onclick: e => { e.stopPropagation(); vistaPreviaImp(t.nombre); } }, '👁 Ver'))));
   }
-  caja.append(h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'TRN'), h('th', null, 'Descripción'), h('th', null, 'Tabla'), h('th', { class: 'num' }, 'Niveles'), h('th', null, 'Estado'), h('th', null, ''))), tb));
+  caja.append(h('table', null, h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'TRN'), h('th', null, 'Descripción'), h('th', null, 'Tabla'), h('th', { class: 'num' }, 'Niveles'), h('th', null, 'Estado'), h('th', null, 'Sin migrar'), h('th', null, ''))), tb));
+}
+
+// ------------------------------------------------------------------ E4e: el importador completo, en Python (Pyodide)
+// Regla del importador (CLAUDE.md del motor): hace TODO lo del flujo de Python con que se migró el ERP, y lo que no se pudo
+// migrar sale SIEMPRE en el informe. Por eso no se reescribe en JavaScript: las mismas herramientas (importar_kb.py y las
+// que usa) corren adentro del Designer con Pyodide, en un Worker (la pantalla no se congela). Pyodide viene embebido en
+// optimist-python.js (al lado de este archivo; armar_python.py) y las herramientas, en HERRAMIENTAS_PY (armar.py).
+const HERRAMIENTAS_PY = /*HERRAMIENTAS_PY*/null;
+const PY = { worker: null, listo: null, pedidos: new Map(), sec: 0 };
+const TRABAJADOR_PY = `
+let py = null, xml = null, nkb = 0;
+const b64 = s => { const bin = atob(s); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+self.onmessage = async ev => {
+  const m = ev.data;
+  const fin = r => postMessage({ id: m.id, tipo: 'fin', r });
+  try {
+    if (m.tipo === 'iniciar') {
+      const D = m.pyo, _fetch = self.fetch;
+      self.fetch = async (url, o) => { const u = String(url); const k = Object.keys(D).find(n => u.endsWith('/' + n));
+        if (k) return new Response(b64(D[k]), { headers: { 'Content-Type': k.endsWith('.wasm') ? 'application/wasm' : 'application/octet-stream' } });
+        return _fetch(url, o); };
+      for (const s of ['pyodide.asm.js', 'pyodide.js']) importScripts(URL.createObjectURL(new Blob([b64(D[s])], { type: 'text/javascript' })));
+      py = await loadPyodide({ indexURL: 'https://optimist.local/pyodide/' });
+      py.FS.writeFile('/herr.zip', b64(m.herr));
+      py.runPython("import sys, zipfile\\nzipfile.ZipFile('/herr.zip').extractall('/herr')\\nsys.path[:0] = ['/herr', '/herr/pyyaml']\\nimport importar_kb as ik");
+      fin(py.runPython('sys.version.split()[0]'));
+    } else if (m.tipo === 'kb') {
+      if (nkb) { try { py.FS.unmount('/kbsrc' + nkb); } catch (e) {} py.runPython("import shutil\\nshutil.rmtree('/kb" + nkb + "', ignore_errors=True)"); }
+      nkb++;
+      const src = '/kbsrc' + nkb;
+      py.FS.mkdirTree(src);
+      py.FS.mount(py.FS.filesystems.WORKERFS, { files: [m.archivo] }, src);
+      py.globals.set('_ruta', src + '/' + m.archivo.name);
+      py.globals.set('_trabajo', '/kb' + nkb);
+      xml = py.runPython('_xml = ik.preparar_kb(_ruta, _trabajo)\\n_xml');
+      fin(JSON.parse(py.runPython('import json\\njson.dumps(ik.preinforme(_xml), ensure_ascii=False)')));
+    } else if (m.tipo === 'importar') {
+      if (!xml) throw new Error('falta leer la KB');
+      py.runPython("import shutil, os\\nshutil.rmtree('/app', ignore_errors=True)\\nos.makedirs('/app/trn', exist_ok=True)");
+      for (const [rel, datos] of m.archivos) { const r = '/app/' + rel; py.FS.mkdirTree(r.slice(0, r.lastIndexOf('/'))); py.FS.writeFile(r, datos); }
+      py.globals.set('_trns', JSON.stringify(m.trns));
+      py.globals.set('_avisar', (t, f) => postMessage({ id: m.id, tipo: 'avance', texto: t, fraccion: f }));
+      const r = JSON.parse(py.runPython("ik.importar_designer(_xml, '/app', json.loads(_trns), _avisar)"));
+      r.archivos = {};
+      for (const rel of r.nuevos.concat(r.cambiados)) r.archivos[rel] = py.FS.readFile('/app/' + rel);
+      fin(r);
+    }
+  } catch (e) { postMessage({ id: m.id, tipo: 'error', error: String((e && e.message) || e) }); }
+};`;
+function cargarScript(src) {
+  return new Promise((ok, mal) => { const s = document.createElement('script'); s.src = src; s.onload = ok;
+    s.onerror = () => { s.remove(); mal(new Error('falta el archivo ' + src + ' al lado de OPTIMIST-Designer.html (viene con el motor, en herramientas/disenador)')); }; document.head.append(s); });
+}
+function pedirPy(tipo, datos, avance) {
+  return new Promise((ok, mal) => { const id = ++PY.sec; PY.pedidos.set(id, { ok, mal, avance }); PY.worker.postMessage(Object.assign({ id, tipo }, datos)); });
+}
+/** El Python del Designer (se carga una vez, la primera vez que hace falta). */
+function python() {
+  if (!PY.listo) PY.listo = (async () => {
+    if (!HERRAMIENTAS_PY) throw new Error('este Designer se armó sin las herramientas de Python (armar.py)');
+    if (!window.__PYO) await cargarScript('optimist-python.js');
+    const w = new Worker(URL.createObjectURL(new Blob([TRABAJADOR_PY], { type: 'text/javascript' })));
+    w.onmessage = ev => {
+      const m = ev.data, p = PY.pedidos.get(m.id); if (!p) return;
+      if (m.tipo === 'avance') { if (p.avance) p.avance(m.texto, m.fraccion); return; }
+      PY.pedidos.delete(m.id);
+      if (m.tipo === 'error') { console.error('Python:', m.error); p.mal(new Error(m.error)); } else p.ok(m.r);
+    };
+    w.onerror = e => { const err = new Error((e && e.message) || 'el Python del Designer se detuvo'); for (const p of PY.pedidos.values()) p.mal(err); PY.pedidos.clear(); };
+    PY.worker = w;
+    const d = window.__PYO; delete window.__PYO;
+    await pedirPy('iniciar', { pyo: d, herr: HERRAMIENTAS_PY });
+  })().catch(e => { if (PY.worker) PY.worker.terminate(); PY.worker = null; PY.listo = null; throw e; });
+  return PY.listo;
+}
+/** La última línea de un error de Python (el detalle completo queda en la consola, F12). */
+function errorPy(e) { const l = String((e && e.message) || e).trim().split('\n').filter(x => x.trim()); return l[l.length - 1] || 'error'; }
+
+/** E4e: la KB, también en Python. Devuelve el preinforme {trn: [lo que ya se sabe que no se migra]} para la lista. */
+function kbEnPython(f) {
+  const p = IMP.pyKb = (async () => { await python(); return pedirPy('kb', { archivo: f }); })();
+  p.then(pre => { if (IMP.pyKb !== p) return; IMP.pre = pre || {}; pintarTablaImp(); },
+         e => { if (IMP.pyKb !== p) return; IMP.errorPy = 'No se pudo preparar el importador: ' + errorPy(e); pintarTablaImp(); });
+  return p;
+}
+
+/** Los archivos de la aplicación que el importador necesita ver: dominios, subtipos, clases, las TRN (menos las que se van a
+ * importar: se arman de nuevo), proc/ y wbp/ (para no traer de nuevo lo que ya está). [[ruta, bytes]] */
+async function leerAppImp(excepto) {
+  const r = [], ex = new Set(excepto.map(n => 'trn/' + n.toLowerCase() + '.yaml'));
+  const archivo = async (dh, nombre, rel) => { try { const fh = await dh.getFileHandle(nombre); r.push([rel, new Uint8Array(await (await fh.getFile()).arrayBuffer())]); } catch {} };
+  if (!IMP.recursos) return r;
+  for (const n of ['dominios.yaml', 'subtipos.yaml', 'clases_gx.yaml']) await archivo(IMP.recursos, n, n);
+  for (const sub of ['trn', 'proc', 'wbp']) {
+    let dh; try { dh = await IMP.recursos.getDirectoryHandle(sub); } catch { continue; }
+    for await (const [nombre, hd] of dh.entries()) {
+      if (hd.kind !== 'file') continue;
+      if (sub === 'trn' && (!/\.ya?ml$/i.test(nombre) || ex.has('trn/' + nombre.replace(/\.yml$/i, '.yaml').toLowerCase()))) continue;
+      r.push([sub + '/' + nombre, new Uint8Array(await (await hd.getFile()).arrayBuffer())]);
+    }
+  }
+  return r;
+}
+async function carpetaImp(raiz, partes, crear) { let d = raiz; for (const p of partes) d = await d.getDirectoryHandle(p, { create: !!crear }); return d; }
+async function bytesSiHay(dh, nombre) { try { return new Uint8Array(await (await (await dh.getFileHandle(nombre)).getFile()).arrayBuffer()); } catch { return null; } }
+function mismosBytes(a, b) { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; }
+
+/** E4e: el informe de la importación. Se muestra SIEMPRE al terminar (no se puede no ver). */
+async function informeImp(texto, total) {
+  const guardarTxt = async () => {
+    try {
+      if (window.showSaveFilePicker) {
+        const fh = await showSaveFilePicker({ suggestedName: 'informe_importacion.txt', types: [{ description: 'Texto', accept: { 'text/plain': ['.txt'] } }] });
+        const w = await fh.createWritable(); await w.write(texto); await w.close(); aviso('Informe guardado');
+      } else { const a = h('a', { href: URL.createObjectURL(new Blob([texto], { type: 'text/plain' })), download: 'informe_importacion.txt' }); a.click(); }
+    } catch (e) { if (!e || e.name !== 'AbortError') aviso('No se pudo guardar: ' + e.message, true); }
+  };
+  for (;;) {
+    const r = await dialogoImp({ titulo: total ? '⚠ Importación terminada: ' + total + ' cosa' + (total > 1 ? 's' : '') + ' sin migrar o para revisar' : 'Importación terminada: se migró todo',
+      peligro: !!total, cuerpo: [h('div', { id: 'informeImp' },
+        total ? h('p', null, h('b', null, 'La aplicación todavía NO hace todo lo que hacía GeneXus.'), ' Esto es lo que falta. Queda también en ',
+          h('code', null, 'trn/_gx/_informe_importacion.txt'), ', al final de cada TRN (y en el Designer, en la franja amarilla) y en ', h('code', null, 'trn/_gx/<TRN>.gx.txt'),
+          ' con el código de GeneXus, para pasárselo a la IA.') : '',
+        h('pre', null, texto))],
+      botones: [{ texto: '📋 Copiar', valor: 'copiar' }, { texto: '💾 Guardar…', valor: 'guardar' }, { texto: 'Entendido', clase: 'primario', valor: 'ok' }] });
+    if (r === 'copiar') { try { await navigator.clipboard.writeText(texto); aviso('Informe copiado'); } catch { aviso('No se pudo copiar', true); } }
+    else if (r === 'guardar') await guardarTxt();
+    else return;
+  }
+}
+
+/** E4e: lo que GeneXus tenía y la TRN abierta todavía no hace (el bloque "SIN MIGRAR" que deja el importador al final del YAML). */
+const SIN_MIGRAR = '# ---------------------------------------------------------------- SIN MIGRAR';
+function sinMigrarDe(texto) {
+  const i = (texto || '').indexOf(SIN_MIGRAR); if (i < 0) return [];
+  return texto.slice(i).split('\n').filter(l => /^#\s+- /.test(l)).map(l => l.replace(/^#\s+- /, '').trim());
+}
+function bandaSinMigrar() {
+  const b = $('#bandaSinMigrar');
+  const items = A && !P && !R && !Q ? sinMigrarDe(A.texto) : [];
+  if (!items.length) { if (b) b.remove(); return; }
+  if (b && b.dataset.n === String(items.length) && b.dataset.trn === A.nombre) return;
+  if (b) b.remove();
+  $('#estado').before(h('span', { id: 'bandaSinMigrar', 'data-n': items.length, 'data-trn': A.nombre, title: 'Ver qué falta',
+    onclick: () => dialogoImp({ titulo: '⚠ ' + A.nombre.replace(/\.ya?ml$/i, '') + ': lo que GeneXus tenía y esta TRN todavía no hace', cuerpo: [
+      h('ul', null, items.map(x => h('li', null, x))),
+      h('p', { style: 'color:var(--suave)' }, 'Está al final del YAML, en el bloque "SIN MIGRAR" (borralo cuando esté resuelto). El código de GeneXus de cada cosa está en ',
+        h('code', null, 'trn/_gx/' + A.nombre.replace(/\.ya?ml$/i, '') + '.gx.txt'), ', listo para pasarle a la IA con la guía.')],
+      botones: [{ texto: 'Cerrar', clase: 'primario', valor: true }] }) },
+    '⚠ No hace todo lo de GeneXus: ' + items.length + ' sin migrar'));
 }
 
 /** Diálogo propio (no confirm): {titulo, cuerpo: [nodos], botones: [{texto, clase, valor, deshabilitado}], peligro} -> valor */
@@ -4871,10 +5045,17 @@ function dialogoImp(o) {
   });
 }
 
-/** Vista previa: la TRN convertida se abre en el diseñador SIN grabar; "Volver al importador" deja todo como estaba. */
-function vistaPreviaImp(nombre) {
+/** Vista previa: la TRN convertida se abre en el diseñador SIN grabar; "Volver al importador" deja todo como estaba.
+ * E4e: la convierte el mismo importador de Python (lo que se ve es exactamente lo que se va a importar). */
+async function vistaPreviaImp(nombre) {
   let res;
-  try { res = GXI.generar(IMP.kb, nombre); } catch (e) { aviso('No se pudo convertir ' + nombre + ': ' + e.message, true); return; }
+  try {
+    const r = await correrImportadorPy([nombre], 'Vista previa');
+    const y = r.archivos['trn/' + nombre + '.yaml'];
+    if (!y) throw new Error((r.informe.errores || {})[nombre] || 'no se pudo convertir');
+    res = { yaml: new TextDecoder().decode(y) };
+  } catch (e) { procesandoImp(null); aviso('No se pudo convertir ' + nombre + ': ' + errorPy(e), true); return; }
+  procesandoImp(null);
   if (!IMP.previa) {
     const guardar = id => { const f = document.createDocumentFragment(); while ($(id).firstChild) f.append($(id).firstChild); return f; };
     IMP.previa = { A, P, R, Q, sel, vista, solapaAct, nodos: { arbol: guardar('#arbol'), centro: guardar('#centro'), props: guardar('#props') } };
@@ -4929,10 +5110,20 @@ async function escribirImp(dirH, nombre, texto) {
   const fh = await dirH.getFileHandle(nombre, { create: true });
   const w = await fh.createWritable(); await w.write(texto); await w.close();
 }
+/** E4e: corre el importador de Python con la copia de la aplicación (sin grabar nada en la carpeta real). */
+async function correrImportadorPy(trns, titulo) {
+  await procesandoImp(titulo, 'Preparando el importador (la primera vez tarda unos segundos)…', 0.01);
+  await python();
+  await procesandoImp(titulo, 'Leyendo la KB…', 0.02);
+  await IMP.pyKb;
+  await procesandoImp(titulo, 'Leyendo la aplicación…', 0.03);
+  const archivos = await leerAppImp(trns);
+  return pedirPy('importar', { archivos, trns }, (t, f) => procesandoImp(titulo, t, f || 0));
+}
 /** Importa las TRN pedidas a la carpeta destino. Devuelve true si importó. */
 async function importarImp(nombres) {
   if (!IMP.destino) { aviso('Elegí primero la carpeta de la aplicación', true); abrirImportador(); return false; }
-  if (!await permisoEscritura(IMP.destino)) { aviso('El navegador no dio permiso para grabar en ' + IMP.destino.name, true); return false; }
+  if (!await permisoEscritura(IMP.recursos || IMP.destino)) { aviso('El navegador no dio permiso para grabar en ' + (IMP.recursos || IMP.destino).name, true); return false; }
   await leerDestinoImp();
   const porNombre = new Map(IMP.lista.map(t => [t.nombre, t]));
   let pedidas = nombres.filter(n => porNombre.has(n) && !porNombre.get(n).problema);
@@ -4942,7 +5133,7 @@ async function importarImp(nombres) {
   const convertirTodas = async () => {
     try {
       for (let i = 0; i < pedidas.length; i++) {
-        if (!conv.has(pedidas[i])) await procesandoImp('Convirtiendo', 'Convirtiendo ' + pedidas[i] + ' (' + (i + 1) + ' de ' + pedidas.length + ')…', i / pedidas.length);
+        if (!conv.has(pedidas[i])) await procesandoImp('Revisando', 'Revisando qué usa ' + pedidas[i] + ' (' + (i + 1) + ' de ' + pedidas.length + ')…', i / pedidas.length);
         convertir(pedidas[i]);
       }
       return true;
@@ -4990,30 +5181,42 @@ async function importarImp(nombres) {
       alArmar: bots => { bots[0].id = 'impPisar'; } });
     if (!ok) return false;
   }
-  // 3) grabar: el YAML (con .bak del anterior), lo no traducido para la IA y el control
-  let gx = null;
-  try { gx = await IMP.destino.getDirectoryHandle('_gx', { create: true }); } catch {}
-  const hechas = [], conPendientes = [], errores = [];
-  const ahora = new Date().toISOString().slice(0, 19);
-  for (let i = 0; i < pedidas.length; i++) {
-    const n = pedidas[i];
-    await procesandoImp('Importando', 'Importando ' + n + ' (' + (i + 1) + ' de ' + pedidas.length + ')…', i / pedidas.length);
+  // 3) E4e: el importador completo (Python) con una copia de la aplicación; después se graba lo nuevo o cambiado
+  if (!IMP.recursos) { aviso('Elegí arriba la Carpeta de la aplicación (la que tiene src).', true); return false; }
+  let r;
+  try { r = await correrImportadorPy(pedidas, 'Importando'); }
+  catch (e) { procesandoImp(null); aviso('No se pudo importar: ' + errorPy(e), true); return false; }
+  const errores = Object.entries(r.informe.errores || {}).map(([n, e]) => n + ': ' + e);
+  const hechas = pedidas.filter(n => !(n in (r.informe.errores || {})));
+  const noPisados = [], grabados = [];
+  const rutas = Object.keys(r.archivos).sort();
+  for (let i = 0; i < rutas.length; i++) {
+    const rel = rutas[i], datos = r.archivos[rel];
+    if (/(^|\/)_nuevos\.txt$/.test(rel)) continue;
+    await procesandoImp('Grabando', 'Grabando ' + rel + '…', i / rutas.length);
     try {
-      const res = convertir(n);
-      const nombreArch = IMP.existentes.get(n.toLowerCase()) || n + '.yaml';
-      if (IMP.existentes.has(n.toLowerCase())) {
-        const viejo = await (await (await IMP.destino.getFileHandle(nombreArch)).getFile()).text();
-        await escribirImp(IMP.destino, nombreArch + '.bak', viejo);
+      const partes = rel.split('/'); let nombre = partes.pop();
+      const trnImportada = partes.length === 1 && partes[0] === 'trn' && hechas.find(n => n.toLowerCase() + '.yaml' === nombre.toLowerCase());
+      const dh = await carpetaImp(IMP.recursos, partes, true);
+      if (trnImportada) {
+        nombre = IMP.existentes.get(trnImportada.toLowerCase()) || nombre;
+        const viejo = await bytesSiHay(dh, nombre);
+        if (viejo) await escribirImp(dh, nombre + '.bak', viejo);
+      } else if (!(partes[0] === 'trn' && partes[1] === '_gx')) {
+        // lo que la aplicación ya tiene (procedimientos, web panels, impresiones…) no se pisa: puede tener retoques a mano
+        const viejo = await bytesSiHay(dh, nombre);
+        if (viejo) { if (!mismosBytes(viejo, datos)) noPisados.push(rel); continue; }
       }
-      await escribirImp(IMP.destino, nombreArch, res.yaml);
-      if (gx) await escribirImp(gx, n + '.gx.txt', GXI.textoParaIa(IMP.kb, n, res));
-      const t = porNombre.get(n);
-      IMP.control.trns[n] = { checksum: t.checksum, cambioEnGeneXus: t.fecha, importada: ahora };
-      hechas.push(n);
-      if (res.pendientes.length || res.noSoportados.length || /Event\s/i.test((IMP.kb.objetivos[n] || {}).eventos || '')) conPendientes.push(n);
-    } catch (e) { errores.push(n + ': ' + e.message); }
+      await escribirImp(dh, nombre, datos);
+      grabados.push(rel);
+    } catch (e) { errores.push(rel + ': ' + e.message); }
   }
-  await procesandoImp('Importando', 'Grabando el control de la importación…', 1);
+  await procesandoImp('Grabando', 'Grabando el control de la importación…', 1);
+  const ahora = new Date().toISOString().slice(0, 19);
+  for (const n of hechas) {
+    const t = porNombre.get(n), items = (r.informe.trns || {})[n] || [];
+    IMP.control.trns[n] = { checksum: t.checksum, cambioEnGeneXus: t.fecha, importada: ahora, sinMigrar: items.length, pendientes: items };
+  }
   IMP.control.kb = IMP.kb.nombre; IMP.control.exportVersion = IMP.kb.version; IMP.control.archivo = IMP.archivo; IMP.control.ultimaImportacion = ahora;
   try { await escribirImp(IMP.destino, CONTROL_IMP, JSON.stringify(IMP.control, null, 2) + '\n'); } catch (e) { errores.push(CONTROL_IMP + ': ' + e.message); }
   for (const n of hechas) IMP.marcadas.delete(n);
@@ -5024,13 +5227,19 @@ async function importarImp(nombres) {
   try {
     if (!dir || (dir.isSameEntry && await dir.isSameEntry(IMP.destino))) { await usarCarpeta(IMP.destino); guardarCarpeta(IMP.destino); }
   } catch {}
-  await dialogoImp({ titulo: errores.length ? 'Importación con errores' : 'Importación terminada', peligro: !!errores.length, cuerpo: [
-    h('p', null, h('b', null, hechas.length + ' TRN importada' + (hechas.length !== 1 ? 's' : '')), ' en ', h('code', null, IMP.destino.name), hechas.length ? ': ' + hechas.join(', ') : ''),
-    conPendientes.length ? h('p', null, 'Con reglas o eventos que el importador no tradujo (' + conPendientes.length + '): están en ', h('code', null, IMP.destino.name + '/_gx/<TRN>.gx.txt'),
-      ', listos para pasarle a tu IA junto con la guía de los YAML.') : '',
-    errores.length ? h('ul', { style: 'color:var(--peligro)' }, errores.map(e => h('li', null, e))) : ''],
-    botones: [{ texto: 'Aceptar', clase: 'primario', valor: true }] });
+  // el informe: SIEMPRE (regla del importador)
+  let texto = r.texto, total = sumaInformeImp(r.informe);
+  texto = hechas.length + ' TRN importada' + (hechas.length !== 1 ? 's' : '') + (hechas.length ? ': ' + hechas.join(', ') : '') + '\n'
+    + 'Archivos grabados en la aplicación: ' + grabados.length + (grabados.length ? '\n' + grabados.map(x => '  ' + x).join('\n') : '') + '\n\n' + texto;
+  if (noPisados.length) texto += '\nYa estaban en la aplicación y NO se pisaron (pueden tener retoques a mano; si querés la versión nueva de GeneXus, borralos y volvé a importar):\n'
+    + noPisados.map(x => '  - ' + x).join('\n') + '\n';
+  if (errores.length) { total += errores.length; texto += '\nERRORES al grabar:\n' + errores.map(x => '  - ' + x).join('\n') + '\n'; }
+  await informeImp(texto, total);
   return hechas.length > 0;
+}
+function sumaInformeImp(inf) {
+  return Object.values(inf.trns || {}).reduce((a, v) => a + v.length, 0) + Object.values(inf.objetos || {}).reduce((a, o) => a + (o.revisar || []).length, 0)
+    + (inf.faltan || []).length + Object.keys(inf.errores || {}).length;
 }
 // ------------------------------------------------------------------ E4 · NUEVA APLICACIÓN
 // La plantilla (engine/plantilla-aplicacion) la mete armar.py: {archivo: contenido} con marcadores {{NOMBRE}}, {{TITULO}}...

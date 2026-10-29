@@ -902,31 +902,48 @@ Programa aparte: se abre con doble clic en **Chrome o Edge** (no necesita instal
 
 Después de guardar, refrescá OPTIMIST para verlo y subí el cambio a GitHub como siempre.
 
-### 11.2 Importar de GeneXus (E2, en el Designer)
+### 11.2 Importar de GeneXus (en el Designer)
 
-Botón **⬇ Importar de GeneXus** de la barra del Designer. Hace lo mismo que `gx2yaml.py` (el mismo resultado, línea por línea),
-pero sin instalar Python y eligiendo las TRN con tildes:
+Botón **⬇ Importar de GeneXus** de la barra del Designer. Corre **todo el flujo con que se migró OPTIMIST ERP** (E4e:
+`herramientas/importar_kb.py`, con Python adentro del navegador; no hay que instalar nada) y eligiendo las TRN con tildes:
 
 1. **Archivo de GeneXus…**: el export de la KB, **XML o XPZ** (Knowledge Manager → Export, con las transacciones, sus atributos,
-   dominios, subtipos y las instancias de WorkWithPlus). Se lee en el navegador, por partes (sirve para KB de cientos de MB).
+   dominios, subtipos, las instancias de WorkWithPlus **y los procedimientos, web panels y Data Providers que usan**).
    Probado con GeneXus 17 + WorkWithPlus; lee también el formato de GeneXus 15.
-2. **Carpeta de la aplicación…**: la del proyecto (usa `src/main/resources/trn`), una carpeta que tenga `trn` adentro, o la
-   misma `trn`. Si no hay `trn`, ofrece crearla.
-3. La lista muestra cada TRN con su **estado**: *nueva*, *ya migrada*, *cambió en GeneXus* (se importó y después la tocaron en
-   GeneXus: lo sabe por el checksum del objeto) o *no se puede* (sin clave, o clave de un tipo que el motor no maneja).
-   Las TRN del patrón WorkWithPlus (seguridad, menú) se ven tildando "Ver también las del patrón".
-4. **👁 Ver**: la TRN convertida se abre en el diseñador **sin grabar nada** (formulario y WorkWith); "Volver al importador" deja
+2. **Carpeta de la aplicación…**: la del proyecto (usa `src/main/resources`) o su `src/main/resources`. No sirve elegir solo la
+   carpeta `trn`: el importador también graba en `proc/`, `wbp/` e `impresiones/`. Si no hay `trn`, ofrece crearla.
+3. La lista muestra cada TRN con su **estado** (*nueva*, *ya migrada*, *cambió en GeneXus* —lo sabe por el checksum del objeto—
+   o *no se puede*: sin clave, o clave de un tipo que el motor no maneja) y la columna **Sin migrar**: **⚠ N** con lo que ya se
+   sabe que no se va a migrar (pasando el mouse se ve qué), o lo que quedó la última vez que se importó. Las TRN del patrón
+   WorkWithPlus (seguridad, menú) se ven tildando "Ver también las del patrón".
+4. **👁 Ver**: la TRN convertida (con el mismo importador) se abre en el diseñador **sin grabar nada**; "Volver al importador" deja
    todo como estaba. Ctrl+S no la graba.
 5. **Importar**: si una TRN tildada usa otra que no está migrada (clave foránea, lupa), avisa y ofrece agregarla. Si alguna ya
    estaba migrada, pide confirmación fuerte (se pierde lo que se haya cambiado a mano) y deja `<TRN>.yaml.bak` del anterior.
+6. Al terminar muestra **siempre el informe** de lo que no se pudo migrar o hay que revisar (con Copiar y Guardar).
 
-Qué deja en la carpeta `trn`:
+Qué hace con cada TRN: la convierte (formulario, WorkWith, lupa, solapas, archivos), completa las fórmulas, arma los paneles,
+traduce las reglas y el evento Start (`reglas:`, `inicio:`), las acciones del WorkWith, y trae **lo que todo eso llama**:
+procedimientos (`proc/*.proc`), impresiones (`impresiones/`), Data Providers y web panels (`wbp/`), y a su vez lo que llaman esos,
+hasta el final. Si la aplicación no tiene `subtipos.yaml` ni `clases_gx.yaml`, los arma de la KB.
+
+**No pisa** procedimientos, web panels ni impresiones que la aplicación ya tiene (pueden tener retoques a mano): si GeneXus los
+tiene distintos, lo dice el informe ("ya estaban y no se pisaron"); para traer la versión nueva, borrarlos y volver a importar.
+
+Qué deja:
 
 | Archivo | Qué es |
 |---|---|
-| `<TRN>.yaml` | La transacción para el motor. |
-| `_gx/<TRN>.gx.txt` | Lo que no se tradujo solo: las reglas pendientes y los eventos completos de GeneXus, con instrucciones para pasárselo a la IA que use cada uno junto con esta guía. El importador no llama a ninguna IA. |
-| `_importacion.json` | Control: KB, versión del export y, por TRN, el checksum de GeneXus y cuándo se importó. |
+| `trn/<TRN>.yaml` | La transacción para el motor. Si quedó algo sin migrar, al final tiene el bloque `# ---- SIN MIGRAR` con la lista; el Designer lo muestra en una franja amarilla (**⚠ No hace todo lo de GeneXus**). Cuando esté resuelto, se borra el bloque. |
+| `trn/_gx/_informe_importacion.txt` (y `.json`) | El informe de la última importación: por TRN y por objeto traído, lo que falta. |
+| `trn/_gx/<TRN>.gx.txt` | Lo que falta de esa TRN y su código original de GeneXus (reglas y eventos completos), con instrucciones para pasárselo a la IA que use cada uno junto con esta guía. El importador no llama a ninguna IA. |
+| `trn/_importacion.json` | Control: KB, versión del export y, por TRN, el checksum de GeneXus, cuándo se importó y cuántas cosas quedaron sin migrar. |
+| `proc/`, `wbp/`, `impresiones/` | Lo que usan las TRN (solo lo que la aplicación no tenía). |
+
+Qué informa (lo que el motor todavía no hace o no se pudo traducir): eventos de la TRN (salvo Start y los del patrón), permisos de
+WorkWithPlus (`SecIsAuthByFunctionalityKey`, por modo y por campo), reglas sin traducir, atributos de tipos que el motor no maneja,
+los `REVISAR` de los procedimientos traídos (ej. "manda mails: configurar el servidor de correo en el optimist.cfg", sección 16.1) y
+los objetos que se llaman pero no vinieron en el export.
 
 En GeneXus 17 las columnas, títulos y orden del WorkWith y las columnas de la lupa (`workwith.prompt`) salen de la instancia de
 WorkWithPlus; los obligatorios de WorkWithPlus (`Error(Format('WWP_RequiredAttribute', …)) if X.IsEmpty()`) salen como

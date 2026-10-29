@@ -8,7 +8,26 @@ aplicación: para OPTIMIST ERP, desde `engine\herramientas`, es `..\..\optimist-
 
 Las pruebas con datos del ERP (`prueba_mariadb`, `prueba_stock`, `prueba_afip`, `barrido`) quedaron en `optimist-erp/herramientas`.
 
+## E4e: el importador completo (`importar_kb.py`), también adentro del Designer
+
+`importar_kb.py` corre TODO el flujo con que se migró el ERP para las TRN pedidas: gx2yaml, parchar_redundantes, parchar_formulas,
+paneles_gx, parchar_reglas, acciones_gx y lo que llaman reglas, inicio, acciones y procedimientos (gx2proc, gx2prn, gx2dp, gx2wbp,
+hasta que no aparece nada nuevo), subtipos y clases. Al final arma el **informe** de lo que no se migró
+(`trn/_gx/_informe_importacion.txt` y `.json`) y deja el bloque `# ---- SIN MIGRAR` al final de cada TRN incompleta.
+
+    python3 importar_kb.py KB.xml --recursos ../../mi-aplicacion/src/main/resources --trns Clientes,Pedidos
+
+El botón **Importar de GeneXus** del Designer corre exactamente esto, con Pyodide (Python dentro del navegador):
+- `disenador/armar.py` mete las herramientas (`*.py`) y PyYAML (`disenador/pyyaml`) en el HTML, en un zip.
+- `disenador/optimist-python.js` trae Pyodide 0.27.7 embebido (sin internet, también abriendo el Designer como archivo). Se arma
+  una vez por versión de Pyodide: `npm pack pyodide@0.27.7`, descomprimir y `python3 disenador/armar_python.py package/`.
+- **Regla**: una herramienta nueva que migre algo de la KB se engancha en `importar_kb.py` (y su informe), en la misma versión.
+
 ## E2: Importador de GeneXus en el Designer (`disenador/importador.js`)
+
+E4e: el importador del Designer ya no convierte con `importador.js` (lo hace `importar_kb.py`); `importador.js` queda para leer la KB,
+listar las TRN (estado, checksum) y avisar las TRN que usan otras no migradas.
+
 
 El mismo convertidor que `gx2yaml.py`, pasado a JavaScript, adentro de OPTIMIST Designer (botón **Importar de GeneXus**; ver la
 guía, sección 11.2). Lee XML o XPZ. **`gx2yaml.py` sigue siendo la referencia**: un cambio de criterio va primero ahí y después en

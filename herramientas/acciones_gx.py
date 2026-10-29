@@ -264,6 +264,9 @@ def insertar(texto, bloque):
             while k < j and lineas[k].startswith('    '):
                 k += 1
             continue
+        if lineas[k].startswith('  # REVISAR: '):   # E4e: los avisos del bloque anterior (se vuelven a calcular)
+            k += 1
+            continue
         nuevo.append(lineas[k])
         k += 1
     while nuevo and not nuevo[-1].strip():
@@ -285,6 +288,7 @@ def main():
     gp_enums = gp.enumerados(kb)
     raiz = os.path.dirname(os.path.abspath(a.trn.rstrip('/\\')))
     global DIR_WBP
+    DIRS_PROC.clear()   # E4e: el Designer corre esto varias veces en el mismo Python
     DIRS_PROC.append(os.path.join(raiz, 'proc'))
     DIRS_PROC.extend(a.procs_extra or [])
     procs = set()

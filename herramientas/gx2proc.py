@@ -185,7 +185,8 @@ def armar(nombre, p, kb, enums, descripcion=None):
         if fin < len(reglas) and reglas[fin:].lstrip().startswith(';'):
             fin = reglas.index(';', fin) + 1
         otras_txt = reglas[:m.start()] + reglas[fin:]
-    otras = [l.strip() for l in otras_txt.splitlines() if l.strip()]
+    # E4e: las reglas de salida de un reporte (Output_file, Report...) no hacen falta: el motor arma el PDF y lo muestra
+    otras = [l.strip() for l in otras_txt.splitlines() if l.strip() and not re.match(r'(?i)^(output_file|report_output|printer|reportpreview|report)\s*\(', l.strip())]
     problemas = []
     if otras:
         problemas.append('reglas que no son Parm: ' + ' | '.join(otras)[:200])
@@ -198,10 +199,25 @@ def armar(nombre, p, kb, enums, descripcion=None):
         if t is None:
             problemas.append(f'&{n}: tipo no soportado ({v["props"].get("idBasedOn") or v["props"].get("ATTCUSTOMTYPE")})')
             t = 'Ext(Desconocido)'
-        elif t.startswith(('Bc(', 'Ext(')) and not t.startswith(('Ext(WebSession', 'Ext(SMTPSession', 'Ext(MailMessage', 'Ext(MailRecipient', 'Ext(ExcelDocument')):   # E4d: los que el intérprete ya ejecuta
+        elif t.startswith('Ext(') and not t.startswith(('Ext(WebSession', 'Ext(SMTPSession', 'Ext(MailMessage', 'Ext(MailRecipient', 'Ext(ExcelDocument')):   # E4d/E4e: los que el intérprete ya ejecuta (también los Bc)
             problemas.append(f'&{n}: {t} (el intérprete todavía no ejecuta sus métodos)')
         vars_.append((n, t))
     fuente = reemplazar_enums(partes.get(P_SOURCE, '') or '', enums).replace('\r\n', '\n').strip('\n')
+    # E4e: los datos del servidor de correo (y su clave) no van en el código: salen del optimist.cfg (mail.*)
+    smtp = [n for n, t in vars_ if t.startswith('Ext(SMTPSession')]
+    if smtp:
+        sacadas = 0
+        lineas = []
+        for l in fuente.split('\n'):
+            if re.match(r'(?i)^\s*&(' + '|'.join(smtp) + r')\s*\.\s*(host|username|password|port|authentication|secure|sender\s*\.\s*(name|address))\s*=', l) \
+                    or re.match(r'(?i)^\s*//.*\b(password|clave|contraseña)\b', l):
+                sacadas += 1
+                continue
+            lineas.append(l)
+        if sacadas:
+            fuente = '// El servidor de correo (servidor, puerto, usuario, clave y remitente) sale del optimist.cfg: mail.host, mail.puerto,\n' \
+                     '// mail.seguro, mail.usuario, mail.clave, mail.remitente.nombre, mail.remitente.direccion (guía 16.1).\n' + '\n'.join(lineas)
+            problemas.append('manda mails: configurar el servidor de correo en el optimist.cfg de cada cliente (mail.host, mail.usuario, mail.clave…)')
     texto = descripcion or f'{p.get("desc") or nombre}. (completar: qué hace, en castellano)'
     ancho = max([len(n) for n, _ in vars_] + [8]) + 2
     out = ['/* Qué hace:']
