@@ -10,6 +10,8 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
   importador usa una corta (Descort, Titulo, Nombre…). En el Designer, propiedades de la transacción: además de escribirlo,
   **"＋ Agregar un campo al encabezado"** elige los campos de una lista.
 - `gx2yaml.py` e `importador.js` siguen dando exactamente el mismo YAML (comparadas las TRN de Factory).
+- Nueva aplicación: cada aplicación con su propia cookie de sesión (`server.servlet.session.cookie.name`), para que dos
+  aplicaciones abiertas en la misma PC (ej. ERP en 18080 y Factory en 18081) no se pisen la sesión.
 
 ## E4a — Ayuda en el Designer (29/10/2026)
 
