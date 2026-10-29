@@ -2,6 +2,16 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4c — Archivos en los detalles (29/10/2026)
+
+- Los archivos (el Blob de GeneXus) también en un **detalle** (`archivos:` dentro del detalle; guía 5.4): en cada renglón,
+  **👁 Ver** (en una ventana si el navegador lo muestra: PDF, imágenes, texto; Excel, Word… se bajan), **⬇ Bajar**, **⬆ Subir**
+  (el nombre y la extensión se completan solos) y **✕ Quitar**. Se graba al Confirmar, en la misma transacción, también en un
+  renglón nuevo con clave numerada. El contenido se lee de la base recién al pedirlo (la lista no se hace más lenta).
+- El importador (y `gx2yaml.py`) arma el `archivos:` de los detalles desde la KB (ej. Incidentes de Factory: IncidentesArchivosFile).
+  Antes quedaba como "tipo no soportado".
+- Probado contra MariaDB: alta con archivo en un renglón numerado, cambio de archivo, quitar y leer.
+
 ## E4b — Importador: solapas de GeneXus 17 y encabezado elegible (29/10/2026)
 
 - **Solapas de GeneXus 17**: el importador (y `gx2yaml.py`) solo veía la primera; ahora arma todas, como en GeneXus (ej. Incidentes

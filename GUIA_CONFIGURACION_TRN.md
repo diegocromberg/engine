@@ -213,6 +213,25 @@ archivos:
 El contenido queda en la columna como lo deja GeneXus, así cualquier otro programa que lea la tabla lo sigue leyendo igual.
 `gx2yaml.py` los arma solo desde la KB.
 
+**En un detalle (E4c)**: el mismo `archivos:`, dentro del detalle (el Blob tampoco va en sus `campos`). En cada renglón aparece una
+columna con **👁 Ver** (en una ventana, si el navegador lo puede mostrar: PDF, imágenes, texto; si no, se baja), **⬇ Bajar**,
+**⬆ Subir** y **✕ Quitar** (en modo ver, solo Ver y Bajar). Lo subido o quitado se graba al Confirmar, en la misma transacción,
+con la clave definitiva del renglón (también la numerada). El contenido no se lee con la lista: recién al pedir Ver o Bajar.
+
+```yaml
+detalles:
+  - nombre: Archivos
+    tabla: IncidentesArchivos
+    numerador: IncidentesLastArchivo
+    campos:
+      - {nombre: IncidentesArchivosId, dominio: Numeric(4), clave: true}
+      - {nombre: IncidentesArchivosDescrip, dominio: Descrip, etiqueta: Descripción}
+      - {nombre: IncidentesArchivosFileName, dominio: VarChar(100), etiqueta: Nombre Archivo, soloLectura: true}
+      - {nombre: IncidentesArchivosFileType, dominio: VarChar(10), etiqueta: Tipo Archivo, soloLectura: true}
+    archivos:
+      - {nombre: IncidentesArchivosFile, etiqueta: Archivo, nombreArchivo: IncidentesArchivosFileName, tipoArchivo: IncidentesArchivosFileType}
+```
+
 **Ocultar un campo: `oculto` vs. `visibleSi`**
 
 | Caso | Cómo se hace |
@@ -1666,6 +1685,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E4c**: archivos (Blob) también en los detalles: Ver, Bajar, Subir y Quitar en cada renglón (5.4).
 - **E4**: botón **❓ Ayuda** (y F1) en el Designer: este documento y el manual del desarrollador, con índice y buscador, abiertos en el tema de lo que se está haciendo.
 - **E4**: usuarios en `seguridad.yaml` y PostIts / mensajes como módulos (24); `visibleSi` con `application.X` del optimist.cfg; Nueva aplicación (25). El ERP necesita `seguridad.yaml` (ya está en su repositorio).
 - **E3**: extensiones de la aplicación (`OptimistExtension`, 23); el contexto de empresa y división pasa a ser de OPTIMIST ERP (9.1). No cambia ningún YAML.

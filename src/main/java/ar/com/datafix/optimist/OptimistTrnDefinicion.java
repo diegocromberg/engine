@@ -204,7 +204,12 @@ public final class OptimistTrnDefinicion {
 
     /** oculto (V27, solo detalles): no se muestra, no se lee ni se graba; sus filas quedan como están. */
     public record Nivel(String nombre, String titulo, String tabla, List<Campo> campos,
-                        List<String> orden, String numerador, List<Referencia> referencias, boolean oculto) {
+                        List<String> orden, String numerador, List<Referencia> referencias, boolean oculto, List<Archivo> archivos) {
+        /** Compatibilidad E4c: nivel sin archivos (los de la cabecera van en Trn.archivos). */
+        public Nivel(String nombre, String titulo, String tabla, List<Campo> campos,
+                     List<String> orden, String numerador, List<Referencia> referencias, boolean oculto) {
+            this(nombre, titulo, tabla, campos, orden, numerador, referencias, oculto, List.of());
+        }
         public List<Campo> claves() { return campos.stream().filter(Campo::clave).toList(); }
         public List<Campo> persistidos() { return campos.stream().filter(Campo::persistido).toList(); }
         public List<Campo> noClaves() { return campos.stream().filter(c -> c.persistido() && !c.clave()).toList(); }
@@ -604,8 +609,11 @@ public final class OptimistTrnDefinicion {
                     (List<Map<String, Object>>) det.get("campos"), lista(det.get("clavePrimaria")),
                     lista(det.get("orden")), opcional(det, "numerador"), det.get("referencias"), dominios,
                     "detalle " + nomDet + ".campos", clases, claseNivel(det, "Detalle", clases, "detalle " + nomDet), codigos);
-            if (bool(det.get("oculto"), false))   // V27: detalle oculto
-                nd = new Nivel(nd.nombre(), nd.titulo(), nd.tabla(), nd.campos(), nd.orden(), nd.numerador(), nd.referencias(), true);
+            // E4c: archivos (Blob) del detalle: en cada renglón, Ver, Bajar, Subir y Quitar
+            List<Archivo> archDet = archivos(det.get("archivos"), nd);
+            if (bool(det.get("oculto"), false) || !archDet.isEmpty())   // V27: detalle oculto
+                nd = new Nivel(nd.nombre(), nd.titulo(), nd.tabla(), nd.campos(), nd.orden(), nd.numerador(), nd.referencias(),
+                        bool(det.get("oculto"), false), archDet);
             // V50x: estiloRenglon: {si: "ArticulosTotalizadorItemizado = true", estilo: {negrita: true}}: estilo de toda la línea según una condición
             // V65c: también una lista, y cada una con 'campos: [...]' para pintar solo esos campos de la línea (ej. COBR: importes de
             // los débitos en verde y negrita, de los créditos en rojo)
@@ -861,7 +869,7 @@ public final class OptimistTrnDefinicion {
         return trn;
     }
 
-    /** V83: archivos: [{nombre: Col, etiqueta: Texto, nombreArchivo: Campo, tipoArchivo: Campo}, ...] */
+    /** V83: archivos: [{nombre: Col, etiqueta: Texto, nombreArchivo: Campo, tipoArchivo: Campo}, ...] (E4c: también en un detalle) */
     @SuppressWarnings("unchecked")
     private static List<Archivo> archivos(Object o, Nivel cabecera) {
         if (o == null) return List.of();

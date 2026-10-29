@@ -896,7 +896,7 @@ function generar(kb, trnNombre, solapasIds) {
   const clavesCab_ = trn.niveles[0].atts.filter(a => a.key).map(a => a.n);
   const fksActuales = new Set();
   const lineas = [], out = l => lineas.push(l);
-  const noSoportados = [], archivosCab = [], omitidos = [];
+  const noSoportados = [], archivosCab = [], omitidos = [], archivosDet = [];   // E4c: archivosDet, los Blob del detalle que se arma
   const nulables = new Set();
   const marcarNulables = lv => { for (const a of lv.atts) if (a.nullable) nulables.add(a.n); lv.niveles.forEach(marcarNulables); };
   marcarNulables(cab);
@@ -907,6 +907,8 @@ function generar(kb, trnNombre, solapasIds) {
     const [dom, txt, en, fuente] = M.tipo(n);
     if (txt == null) {
       if ((fuente.ATTCUSTOMTYPE || '').endsWith('Blob') && ind === 2 && !inferido && !formula) { archivosCab.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
+      // E4c: Blob de un detalle -> 'archivos:' del detalle
+      if ((fuente.ATTCUSTOMTYPE || '').endsWith('Blob') && ind === 6 && !inferido && !formula) { archivosDet.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
       noSoportados.push(n); return;
     }
     const nombreDom = dom || null;
@@ -1055,6 +1057,7 @@ function generar(kb, trnNombre, solapasIds) {
       }
       if (ser.length) out(`    numerador: ${reglas.serial[ser[0]]}`);
       out('    campos:');
+      archivosDet.length = 0;
       const necInf = new Set([...necesarios].filter(c => inf.inferidos.has(c)));
       const [mostrarDet, extraDet] = cerrarCadenas(inf, new Set([...visibles, ...necInf]));
       for (const x of necInf) if (!visibles.has(x)) extraDet.add(x);
@@ -1071,6 +1074,18 @@ function generar(kb, trnNombre, solapasIds) {
       }
       filtrarRefs(inf, mostrarDet);
       referenciasYaml(inf, 4);
+      if (archivosDet.length) {
+        const propiosDet = new Set(lv.atts.map(a => a.n).filter(n => !inf.descartados.includes(n) && !inf.formulas.includes(n)));
+        out('    archivos:');
+        for (const [n, et, pr] of archivosDet) {
+          const partes = [`nombre: ${n}`, `etiqueta: ${q(et)}`];
+          for (const [clave, prop, suf] of [['nombreArchivo', 'AttFileNameAtt', 'FileName'], ['tipoArchivo', 'AttFileTypeAtt', 'FileType']]) {
+            const c = pr[prop] || (n + suf);
+            if (propiosDet.has(c)) partes.push(`${clave}: ${c}`);
+          }
+          out('      - {' + partes.join(', ') + '}');
+        }
+      }
     }
   }
 

@@ -120,6 +120,49 @@ public final class OptimistVisorPdf {
     private static final String ULTIMO_PDF = "optimist.ultimoPdf";
 
     /** V66: baja un archivo (un .xlsx) en el navegador, sin ventana. */
+    /**
+     * E4c: muestra un archivo en una ventana, si el navegador lo puede mostrar (PDF, imágenes, texto); si no (Excel, Word...),
+     * lo baja.
+     */
+    public static void ver(String archivo, byte[] datos) {
+        String ext = archivo.contains(".") ? archivo.substring(archivo.lastIndexOf('.') + 1).toLowerCase() : "";
+        if (ext.equals("pdf")) { abrir(archivo, archivo, datos); return; }
+        String tipo = switch (ext) {
+            case "png" -> "image/png";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "gif" -> "image/gif";
+            case "bmp" -> "image/bmp";
+            case "webp" -> "image/webp";
+            case "txt", "log", "csv", "sql", "json", "xml", "yaml", "yml", "proc", "ini", "cfg" -> "text/plain; charset=UTF-8";
+            default -> null;
+        };
+        if (tipo == null) { bajar(archivo, datos); return; }
+        StreamResource recurso = new StreamResource(archivo, () -> new ByteArrayInputStream(datos));
+        recurso.setContentType(tipo);
+        recurso.setHeader("Content-Disposition", "inline; filename=\"" + archivo.replace("\"", "") + "\"");
+        VaadinSession ses = VaadinSession.getCurrent();
+        if (ses.getAttribute("optimist.verArchivo") instanceof StreamRegistration anterior) anterior.unregister();
+        StreamRegistration reg = ses.getResourceRegistry().registerResource(recurso);
+        ses.setAttribute("optimist.verArchivo", reg);
+        String url = reg.getResourceUri().toString();
+        Dialog d = new Dialog();
+        d.setHeaderTitle(archivo);
+        OptimistVisuals.estilizarDialogo(d);
+        OptimistVisuals.dimensionarFormulario(d, true, null);
+        d.addThemeName("no-padding");
+        OptimistVisuals.botonCerrar(d);
+        IFrame visor = new IFrame(url);
+        visor.setSizeFull();
+        visor.getStyle().set("border", "none").set("display", "block").set("min-height", "calc(100vh - 150px)").set("background", "#fff");
+        d.add(visor);
+        Button descargar = new Button("Descargar", e -> bajar(archivo, datos));
+        Button cerrar = new Button("Cerrar", e -> d.close());
+        cerrar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        OptimistVisuals.pieIzquierda(d, cerrar, descargar);
+        d.addDialogCloseActionListener(e -> d.close());
+        d.open();
+    }
+
     public static void bajar(String archivo, byte[] datos) {
         StreamResource recurso = new StreamResource(archivo, () -> new ByteArrayInputStream(datos));
         recurso.setContentType(archivo.toLowerCase().endsWith(".xlsx")

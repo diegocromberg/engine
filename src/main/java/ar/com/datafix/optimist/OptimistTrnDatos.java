@@ -1222,6 +1222,40 @@ public class OptimistTrnDatos {
     /** V36: mientras se edita un formulario, reglas y fórmulas comparten una conexión y lo ya leído (OptimistLecturas). */
     public OptimistCalculo.Abridor abridor() { return OptimistLecturas.compartido(this::abrir); }
 
+    /**
+     * E4c: en los valores de una línea, el archivo (Blob) del detalle elegido en el formulario: clave ARCHIVO + columna, valor
+     * byte[] (vacío = quitarlo). Se graba en la misma transacción, con la clave definitiva de la línea (también la numerada).
+     */
+    public static final String ARCHIVO = "#archivo:";
+
+    /** E4c: contenido de un archivo (Blob) de una línea de un detalle; null si está vacío. */
+    public byte[] leerArchivoLinea(Trn trn, Nivel det, Map<String, Object> claveCab, Map<String, Object> claveLinea, String columna) throws SQLException {
+        Nivel cab = trn.cabecera();
+        try (Connection c = abrir();
+             PreparedStatement p = c.prepareStatement("SELECT " + col(columna) + " FROM " + det.tabla() + " WHERE "
+                     + igualdades(cab.claves()) + " AND " + igualdades(det.claves()))) {
+            int i = bindClave(p, 1, cab.claves(), claveCab);
+            bindClave(p, i, det.claves(), claveLinea);
+            try (ResultSet r = p.executeQuery()) { return r.next() ? r.getBytes(1) : null; }
+        }
+    }
+
+    /** E4c: graba los archivos elegidos de una línea (los valores ARCHIVO + columna), ya con la clave definitiva de la línea. */
+    private static void grabarArchivosLinea(Connection c, Nivel cab, Nivel det, Map<String, Object> claveCab,
+                                            Map<String, Object> claveLinea, Map<String, Object> valores) throws SQLException {
+        for (Archivo a : det.archivos()) {
+            Object v = valores.get(ARCHIVO + a.nombre());
+            if (!(v instanceof byte[] contenido)) continue;
+            try (PreparedStatement p = c.prepareStatement("UPDATE " + det.tabla() + " SET " + col(a.nombre()) + "=? WHERE "
+                    + igualdades(cab.claves()) + " AND " + igualdades(det.claves()))) {
+                if (contenido.length == 0) p.setNull(1, Types.LONGVARBINARY); else p.setBytes(1, contenido);
+                int i = bindClave(p, 2, cab.claves(), claveCab);
+                bindClave(p, i, det.claves(), claveLinea);
+                p.executeUpdate();
+            }
+        }
+    }
+
     /** V83: contenido de un archivo (Blob) del registro; null si está vacío. */
     public byte[] leerArchivo(Trn trn, Map<String, Object> clave, String columna) throws SQLException {
         Nivel cab = trn.cabecera();
@@ -1438,6 +1472,13 @@ public class OptimistTrnDatos {
                 }
             }
         }
+        // E4c: los archivos elegidos en las líneas existentes (también en un detalle sin otras columnas que actualizar)
+        if (!det.archivos().isEmpty()) {
+            for (Linea l : lineas) {
+                if (l.nueva()) continue;
+                grabarArchivosLinea(c, cab, det, claveCab, l.claveOriginal(), l.valores());
+            }
+        }
         // 3) Insertar nuevas (con numerador si el detalle lo usa).
         List<Campo> cols = new ArrayList<>(cab.claves());
         cols.addAll(det.persistidos());
@@ -1456,6 +1497,7 @@ public class OptimistTrnDatos {
                     if (!esDuplicado(dup)) throw errorIntegridad(dup, det.tabla(), v);   // V65m
                     throw new SQLException("Ya existe la línea " + textoClave(clavesDet, v) + " en " + det.titulo(), dup);
                 }
+                if (!det.archivos().isEmpty()) grabarArchivosLinea(c, cab, det, claveCab, v, v);   // E4c: con la clave ya numerada
             }
         }
         return ultimo;

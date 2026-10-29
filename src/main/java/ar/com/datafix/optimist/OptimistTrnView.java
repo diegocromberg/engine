@@ -1176,6 +1176,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     }
 
     private static boolean sinTocar(FilaDetalle fd) {
+        // E4c: un renglón nuevo con un archivo elegido no está vacío, aunque no se haya escrito nada más
+        if (fd.inferidos().keySet().stream().anyMatch(k -> k.startsWith(OptimistTrnDatos.ARCHIVO))) return false;
         // V65: la clave que numera el motor ('siguiente: true') no cuenta: un renglón con solo su número sigue vacío
         return fd.editores().values().stream().filter(x -> x.campo().editable())
                 .filter(x -> !(x.campo().clave() && fd.original() == null && OptimistTrnDefinicion.siguienteCampo(x.campo())))
@@ -2860,6 +2862,94 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             f.titulosColumna.put(det.nombre() + "." + c.nombre().toLowerCase(Locale.ROOT), s);
             h.add(s);
         }
+        for (OptimistTrnDefinicion.Archivo a : det.archivos()) {   // E4c
+            Span s = new Span(a.etiqueta());
+            s.setWidth(ANCHO_ARCHIVO);
+            s.setMinWidth(ANCHO_ARCHIVO);
+            s.getStyle().set("font-size", "var(--lumo-font-size-s)").set("color", "var(--optimist-texto)").set("opacity", "0.85");
+            h.add(s);
+        }
+        return h;
+    }
+
+    /** E4c: ancho de la columna de un archivo de un detalle (Ver, Bajar, Subir, Quitar). */
+    private static final String ANCHO_ARCHIVO = "170px";
+
+    /**
+     * E4c: el archivo (Blob) de un renglón de un detalle: Ver (en una ventana, si el navegador lo muestra), Bajar, Subir y
+     * Quitar. Lo subido o quitado queda en el renglón (OptimistTrnDatos.ARCHIVO + columna) y se graba al Confirmar; el nombre
+     * y la extensión van a sus campos (nombreArchivo / tipoArchivo). El contenido grabado se lee recién al pedirlo.
+     */
+    @SuppressWarnings("deprecation")
+    private Component celdaArchivo(Form f, Nivel det, FilaDetalle fila, OptimistTrnDefinicion.Archivo a) {
+        String clave = OptimistTrnDatos.ARCHIVO + a.nombre();
+        java.util.function.Supplier<String> nombre = () -> {
+            Map<String, Object> v = fila.valores();
+            String n = a.nombreArchivo() == null || v.get(a.nombreArchivo()) == null ? "" : String.valueOf(v.get(a.nombreArchivo())).trim();
+            String t = a.tipoArchivo() == null || v.get(a.tipoArchivo()) == null ? "" : String.valueOf(v.get(a.tipoArchivo())).trim();
+            return n.isEmpty() ? (t.isEmpty() ? a.nombre() : a.nombre() + "." + t) : t.isEmpty() ? n : n + "." + t;
+        };
+        java.util.function.Supplier<byte[]> contenido = () -> {
+            Object p = fila.inferidos().get(clave);
+            if (p instanceof byte[] b) return b.length == 0 ? null : b;   // elegido (o quitado) y todavía sin grabar
+            if (fila.original() == null || f.actual == null) return null;
+            try { return datos.leerArchivoLinea(trn, det, claveDe(f.actual.cabecera()), fila.original().claveOriginal(), a.nombre()); }
+            catch (SQLException ex) { Notification.show("No se pudo leer el archivo: " + ex.getMessage(), 8000, Notification.Position.MIDDLE); return null; }
+        };
+        Runnable sinArchivo = () -> Notification.show(det.titulo() + ": este renglón no tiene archivo", 4000, Notification.Position.MIDDLE);
+        Button ver = new Button(VaadinIcon.EYE.create(), e -> { byte[] b = contenido.get(); if (b == null) sinArchivo.run(); else OptimistVisorPdf.ver(nombre.get(), b); });
+        ver.getElement().setAttribute("title", "Ver el archivo");
+        Button bajar = new Button(VaadinIcon.DOWNLOAD.create(), e -> { byte[] b = contenido.get(); if (b == null) sinArchivo.run(); else OptimistVisorPdf.bajar(nombre.get(), b); });
+        bajar.getElement().setAttribute("title", "Bajar el archivo");
+        HorizontalLayout h = new HorizontalLayout(ver, bajar);
+        h.setSpacing(false);
+        h.setAlignItems(FlexComponent.Alignment.CENTER);
+        h.getStyle().set("gap", "2px");
+        h.setWidth(ANCHO_ARCHIVO);
+        h.setMinWidth(ANCHO_ARCHIVO);
+        for (Button b : List.of(ver, bajar)) b.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        if (f.soloVer) return h;
+        java.util.function.BiConsumer<String, String> ponerNombre = (n, t) -> {
+            for (String[] par : new String[][]{{a.nombreArchivo(), n}, {a.tipoArchivo(), t}}) {
+                if (par[0] == null) continue;
+                OptimistTrnCampos.Editor ed = fila.editores().get(par[0]);
+                if (ed != null) ed.escribir().accept(par[1]); else fila.inferidos().put(par[0], par[1]);
+            }
+        };
+        com.vaadin.flow.component.upload.receivers.MemoryBuffer buffer = new com.vaadin.flow.component.upload.receivers.MemoryBuffer();
+        com.vaadin.flow.component.upload.Upload up = new com.vaadin.flow.component.upload.Upload(buffer);
+        up.setMaxFiles(1);
+        up.setMaxFileSize(50 * 1024 * 1024);
+        up.setDropAllowed(false);
+        Button subir = new Button(VaadinIcon.UPLOAD.create());
+        subir.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        subir.getElement().setAttribute("title", "Subir un archivo (se graba al Confirmar)");
+        up.setUploadButton(subir);
+        up.getStyle().set("padding", "0").set("border", "none").set("min-width", "0");
+        up.addSucceededListener(e -> {
+            try (java.io.InputStream in = buffer.getInputStream()) {
+                String completo = e.getFileName() == null ? "" : e.getFileName();
+                int p = completo.lastIndexOf('.');
+                byte[] b = in.readAllBytes();
+                fila.inferidos().put(clave, b.length == 0 ? new byte[0] : b);
+                ponerNombre.accept(p > 0 ? completo.substring(0, p) : completo, p > 0 ? completo.substring(p + 1) : "");
+                Notification.show(completo + ": se graba al Confirmar", 3000, Notification.Position.BOTTOM_START);
+                cambioFila(f, det, fila, a.nombreArchivo() != null ? a.nombreArchivo() : null);
+            } catch (java.io.IOException ex) {
+                Notification.show("No se pudo leer el archivo: " + ex.getMessage(), 8000, Notification.Position.MIDDLE);
+            }
+            up.clearFileList();
+        });
+        up.addFileRejectedListener(e -> Notification.show(e.getErrorMessage(), 8000, Notification.Position.MIDDLE));
+        Button quitar = new Button(VaadinIcon.CLOSE_SMALL.create(), e -> {
+            fila.inferidos().put(clave, new byte[0]);
+            ponerNombre.accept("", "");
+            Notification.show("El archivo se quita al Confirmar", 3000, Notification.Position.BOTTOM_START);
+            cambioFila(f, det, fila, a.nombreArchivo() != null ? a.nombreArchivo() : null);
+        });
+        quitar.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);
+        quitar.getElement().setAttribute("title", "Quitar el archivo (se quita al Confirmar)");
+        h.add(up, quitar);
         return h;
     }
 
@@ -2940,6 +3030,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             }
             renglon.add(pieza);
         }
+        for (OptimistTrnDefinicion.Archivo a : det.archivos()) renglon.add(celdaArchivo(f, det, fila, a));   // E4c
         filas.add(fila);
         f.renglonDe.put(fila, renglon);
         if (f.completos.contains(det.nombre().toLowerCase(Locale.ROOT))) estirarRenglon(renglon);   // V38: filas agregadas después

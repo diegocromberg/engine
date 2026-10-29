@@ -968,6 +968,7 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
     out = lineas.append
     no_soportados = []
     archivos_cab = []   # V83: (nombre, etiqueta, propiedades) de los Blob de la cabecera
+    archivos_det = []   # E4c: los Blob del detalle que se está armando
     omitidos = []
 
     nulables = set()
@@ -983,6 +984,10 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
             # V83: Blob de la cabecera -> 'archivos:' (con los campos de nombre y extensión del archivo)
             if (fuente.get('ATTCUSTOMTYPE') or '').endswith('Blob') and ind == 2 and not inferido and not formula:
                 archivos_cab.append((n, etiqueta or M.etiqueta(n), fuente))
+                return
+            # E4c: Blob de un detalle -> 'archivos:' del detalle (Ver, Bajar, Subir y Quitar en cada renglón)
+            if (fuente.get('ATTCUSTOMTYPE') or '').endswith('Blob') and ind == 6 and not inferido and not formula:
+                archivos_det.append((n, etiqueta or M.etiqueta(n), fuente))
                 return
             no_soportados.append(n)
             return
@@ -1167,6 +1172,7 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
             if ser:
                 out(f'    numerador: {reglas["serial"][ser[0]]}')
             out('    campos:')
+            archivos_det.clear()
             nec_inf = {c for c in necesarios if c in inf['inferidos']}
             mostrar_det, extra_det = cerrar_cadenas(inf, visibles | nec_inf)
             extra_det |= nec_inf - visibles
@@ -1190,6 +1196,16 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
             inf['refs'] = {k: [(l, r) for l, r in v if l in mostrar_det] for k, v in inf['refs'].items()}
             inf['refs'] = {k: v for k, v in inf['refs'].items() if v}
             referencias_yaml(inf, 4)
+            if archivos_det:
+                propios_det = {a['n'] for a in lv['atts']} - set(inf['descartados']) - set(inf['formulas'])
+                out('    archivos:')
+                for n, et, pr in archivos_det:
+                    partes = [f'nombre: {n}', f'etiqueta: {q(et)}']
+                    for clave, prop, suf in (('nombreArchivo', 'AttFileNameAtt', 'FileName'), ('tipoArchivo', 'AttFileTypeAtt', 'FileType')):
+                        c = pr.get(prop) or (n + suf)
+                        if c in propios_det:
+                            partes.append(f'{clave}: {c}')
+                    out('      - {' + ', '.join(partes) + '}')
 
     def estirable(n):
         txt = M.tipo(n)[1] or ''
