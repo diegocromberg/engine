@@ -2337,17 +2337,9 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         catch (SQLException ex) { Notification.show("No se pudo leer el archivo: " + ex.getMessage(), 8000, Notification.Position.MIDDLE); return; }
         if (bytes == null || bytes.length == 0) { Notification.show(a.etiqueta() + ": no tiene archivo grabado", 5000, Notification.Position.MIDDLE); return; }
         String archivo = nombre == null || nombre.isBlank() ? a.nombre() : nombre;
-        com.vaadin.flow.server.StreamResource recurso =
-                new com.vaadin.flow.server.StreamResource(archivo, () -> new java.io.ByteArrayInputStream(bytes));
-        recurso.setContentType("application/octet-stream");
-        // se guarda solo la última descarga, para no acumular archivos en la sesión
-        if (ultimoArchivo != null) ultimoArchivo.unregister();
-        ultimoArchivo = com.vaadin.flow.server.VaadinSession.getCurrent().getResourceRegistry().registerResource(recurso);
-        UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
-                ultimoArchivo.getResourceUri().toString(), archivo);
+        OptimistVisorPdf.bajar(archivo, bytes);   // E4c: sin cerrar el formulario
     }
-    private com.vaadin.flow.server.StreamRegistration ultimoArchivo;
+
 
     private OptimistTrnDatos.Enganche enganche0(Form f) {
         if (f.reglas == null) return null;

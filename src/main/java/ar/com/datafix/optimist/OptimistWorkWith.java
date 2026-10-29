@@ -1418,15 +1418,7 @@ public final class OptimistWorkWith {
                         com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
                 return;
             }
-            com.vaadin.flow.server.StreamResource recurso =
-                    new com.vaadin.flow.server.StreamResource(nombre, () -> new java.io.ByteArrayInputStream(bytes));
-            recurso.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            // se guarda solo la última descarga, para no acumular archivos en la sesión
-            if (ultimaDescarga != null) ultimaDescarga.unregister();
-            ultimaDescarga = com.vaadin.flow.server.VaadinSession.getCurrent().getResourceRegistry().registerResource(recurso);
-            com.vaadin.flow.component.UI.getCurrent().getPage().executeJs(
-                    "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
-                    ultimaDescarga.getResourceUri().toString(), nombre);
+            OptimistVisorPdf.bajar(nombre, bytes);   // E4c: con un iframe oculto (no cierra la ventana abierta, ej. una lupa)
             com.vaadin.flow.component.notification.Notification.show("Excel: " + encontrados.size() + " " + sustantivo, 3000,
                     com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
         }

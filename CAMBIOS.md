@@ -11,8 +11,10 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 - El importador (y `gx2yaml.py`) arma el `archivos:` de los detalles desde la KB (ej. Incidentes de Factory: IncidentesArchivosFile).
   Antes quedaba como "tipo no soportado".
 - Probado contra MariaDB: alta con archivo en un renglón numerado, cambio de archivo, quitar y leer.
-- **Bajar un archivo ya no saca de la pantalla** (Diego: al bajar un Excel desde el formulario de un incidente, volvía al WorkWith):
-  la descarga ya no pasa por la navegación de la aplicación. Vale para todas las descargas (archivos, Excel del WorkWith, PDF).
+- **Bajar un archivo ya no cierra el formulario** (Diego: al bajar un Excel desde un incidente, volvía al WorkWith). La descarga
+  se hacía con un clic en un enlace armado al vuelo, y ese clic contaba como "clic afuera" de la ventana del formulario, que se
+  cerraba. Ahora se baja con un marco oculto, sin ningún clic. Vale para todas las descargas: archivos, Excel del WorkWith (también
+  desde una lupa) y el botón Descargar de los PDF.
 
 ## E4b — Importador: solapas de GeneXus 17 y encabezado elegible (29/10/2026)
 

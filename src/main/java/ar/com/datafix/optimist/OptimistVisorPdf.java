@@ -48,8 +48,7 @@ public final class OptimistVisorPdf {
         visor.setSizeFull();
         visor.getStyle().set("border", "none").set("display", "block").set("min-height", "calc(100vh - 150px)");
         d.add(visor);
-        Button descargar = new Button("Descargar", e -> UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();", url, archivo));
+        Button descargar = new Button("Descargar", e -> bajar(archivo, pdf));
         Button cerrar = new Button("Cerrar", e -> d.close());
         cerrar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         OptimistVisuals.pieIzquierda(d, cerrar, descargar);
@@ -173,8 +172,17 @@ public final class OptimistVisorPdf {
         if (ses.getAttribute("optimist.descarga") instanceof StreamRegistration anterior) anterior.unregister();
         StreamRegistration reg = ses.getResourceRegistry().registerResource(recurso);
         ses.setAttribute("optimist.descarga", reg);
+        descargar(reg.getResourceUri().toString());
+    }
+
+    /**
+     * E4c: baja lo que hay en esa dirección (un recurso con Content-Disposition: attachment) con un iframe oculto, sin hacer
+     * clic en nada: el clic de un enlace armado al vuelo es un "clic afuera" para las ventanas abiertas (el formulario de una
+     * TRN se cerraba y volvía al WorkWith al bajar un archivo).
+     */
+    static void descargar(String url) {
         UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
-                reg.getResourceUri().toString(), archivo);
+                "const f=document.createElement('iframe');f.style.display='none';f.src=$0;document.body.appendChild(f);"
+                + "setTimeout(()=>f.remove(),120000);", url);
     }
 }
