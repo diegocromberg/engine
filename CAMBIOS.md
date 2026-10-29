@@ -22,6 +22,8 @@ de Factory al cambiar el estado de un incidente) ni avisaba lo que quedaba afuer
 - **Franja amarilla en el Designer** ("⚠ No hace todo lo de GeneXus: N sin migrar") en las TRN con el bloque `# ---- SIN MIGRAR`
   que el importador deja al final del YAML; clic: la lista. Se conserva al guardar desde el Designer.
 - Carpeta de la aplicación: hace falta la del proyecto (o `src/main/resources`), no solo la `trn`.
+- El importador **recuerda el último archivo de GeneXus y la última carpeta de la aplicación**: al abrirlo los usa solos si el
+  navegador ya dio permiso; si no, un clic en **↻ Factory.xml** / **↻ factory** (el navegador pregunta una vez).
 - `gx2proc.py`: saca del código las credenciales del `&SMTP` (van al `optimist.cfg`, `mail.*`) y avisa que hay que configurarlo;
   ignora las reglas de salida de reportes. `gx2yaml.py`: `Default(X, Today())` no hace falta (la fecha ya arranca en hoy).
 - Regla nueva en el `CLAUDE.md`: una herramienta de Python que migre algo de la KB va también al importador, en la misma versión.

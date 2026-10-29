@@ -4718,6 +4718,28 @@ const CONTROL_IMP = '_importacion.json';
 function abrirImportador() {
   $('#imp').classList.add('abierto');
   pintarImportador();
+  recordadosImp();
+}
+/** E4e: el último archivo de GeneXus y la última carpeta de la aplicación quedan guardados (en el navegador). Al abrir el
+ * importador se usan solos si el navegador ya dio permiso; si no, un clic en "↻ …" los vuelve a abrir (el navegador pregunta). */
+async function recordadosImp() {
+  if (IMP.recordadosLeidos) return;
+  IMP.recordadosLeidos = true;
+  IMP.kbRecordada = await leerGuardado('imp-kb');
+  IMP.appRecordada = await leerGuardado('imp-app');
+  if (IMP.appRecordada && !IMP.destino) {
+    try { if (await IMP.appRecordada.queryPermission({ mode: 'readwrite' }) === 'granted') await usarDestinoImp(IMP.appRecordada); } catch {}
+  }
+  if (IMP.kbRecordada && !IMP.kb && IMP.avance == null) {
+    try { if (await IMP.kbRecordada.queryPermission({ mode: 'read' }) === 'granted') { await leerArchivoGx(await IMP.kbRecordada.getFile()); return; } } catch {}
+  }
+  pintarImportador();
+}
+async function reabrirImp(handle, modo) {
+  try {
+    if (await handle.queryPermission({ mode: modo }) !== 'granted' && await handle.requestPermission({ mode: modo }) !== 'granted') return false;
+    return true;
+  } catch (e) { aviso('No se pudo abrir ' + handle.name + ' (¿lo movieron o borraron?): elegilo de nuevo.', true); return false; }
 }
 function cerrarImportador() { $('#imp').classList.remove('abierto'); }
 
@@ -4727,6 +4749,7 @@ async function elegirArchivoGx() {
     try {
       const [fh] = await showOpenFilePicker({ id: 'optimist-gx', types: [{ description: 'Export de GeneXus (XML o XPZ)', accept: { 'application/octet-stream': ['.xml', '.xpz'] } }] });
       f = await fh.getFile();
+      IMP.kbRecordada = fh; guardarClave('imp-kb', fh);
     } catch (e) { if (e && e.name === 'AbortError') return; }
   }
   if (!f) { $('#inGx').click(); return; }
@@ -4758,6 +4781,9 @@ async function elegirDestinoImp() {
   let d;
   try { d = await showDirectoryPicker({ id: 'optimist-imp', mode: 'readwrite' }); }
   catch (e) { if (!e || e.name !== 'AbortError') aviso('No se pudo usar esa carpeta: ' + ((e && e.message) || e) + '. Elegí otra (por ejemplo, la de la aplicación al lado de engine).', true); return; }
+  await usarDestinoImp(d, true);
+}
+async function usarDestinoImp(d, elegida) {
   if (/^trn$/i.test(d.name)) {
     await dialogoImp({ titulo: 'Carpeta de la aplicación', cuerpo: [h('p', null, 'Elegiste la carpeta ', h('code', null, 'trn'), '. Elegí la carpeta de la ', h('b', null, 'aplicación'),
       ' (la que tiene ', h('code', null, 'src'), ', al lado de engine): además de las TRN, el importador trae los procedimientos, web panels e impresiones que usan, y van en otras carpetas.')],
@@ -4776,6 +4802,7 @@ async function elegirDestinoImp() {
   }
   IMP.destino = trn;
   IMP.recursos = dr;
+  IMP.appRecordada = d; if (elegida) guardarClave('imp-app', d);
   IMP.destinoPadre = d.name;
   await procesandoImp('Carpeta de la aplicación', 'Leyendo las TRN que ya hay en ' + d.name + '…', 0.5);
   try { await leerDestinoImp(); } finally { procesandoImp(null); }
@@ -4848,9 +4875,11 @@ function pintarImportador() {
     h('button', { class: 'sol', style: 'margin-left:auto;background:transparent;color:#fff;border:1px solid #ffffff60', title: 'Ayuda del importador', onclick: () => abrirAyuda('manual', '5.') }, '❓ Ayuda'),
     h('button', { class: 'x', style: 'margin-left:0', title: 'Cerrar', onclick: cerrarImportador }, '✕')));
   ven.append(h('div', { class: 'orig' },
-    h('button', { onclick: elegirArchivoGx, disabled: IMP.avance != null }, '📄 Archivo de GeneXus…'),
+    h('span', { style: 'display:flex;gap:4px' }, h('button', { onclick: elegirArchivoGx, disabled: IMP.avance != null }, '📄 Archivo de GeneXus…'),
+      !kb && IMP.avance == null && IMP.kbRecordada ? h('button', { title: 'Volver a abrir el último', onclick: async () => { if (await reabrirImp(IMP.kbRecordada, 'read')) { try { await leerArchivoGx(await IMP.kbRecordada.getFile()); } catch (e) { aviso('No se pudo abrir ' + IMP.kbRecordada.name + ': elegilo de nuevo.', true); } } } }, '↻ ' + IMP.kbRecordada.name) : ''),
     h('span', { class: 'dato' }, IMP.archivo ? [h('b', null, IMP.archivo), kb ? ' · KB ' + (kb.nombre || '?') + ' · export ' + (kb.version || '?') + ' · ' + propias + ' TRN' + (wwp ? ' (y ' + wwp + ' del patrón WorkWithPlus)' : '') : ''] : 'El export de la KB (XML o XPZ): en GeneXus, Knowledge Manager → Export, con las transacciones y sus instancias de WorkWithPlus.'),
-    h('button', { onclick: elegirDestinoImp }, '📂 Carpeta de la aplicación…'),
+    h('span', { style: 'display:flex;gap:4px' }, h('button', { onclick: elegirDestinoImp }, '📂 Carpeta de la aplicación…'),
+      !IMP.destino && IMP.appRecordada ? h('button', { title: 'Volver a usar la última', onclick: async () => { if (await reabrirImp(IMP.appRecordada, 'readwrite')) { try { await usarDestinoImp(IMP.appRecordada); } catch (e) { aviso('No se pudo usar ' + IMP.appRecordada.name + ': elegila de nuevo.', true); } } } }, '↻ ' + IMP.appRecordada.name) : ''),
     h('span', { class: 'dato' }, IMP.destino ? [h('b', null, (IMP.destinoPadre && IMP.destino.name !== IMP.destinoPadre ? IMP.destinoPadre + ' / ' : '') + IMP.destino.name), ' · ' + IMP.existentes.size + ' TRN ya hay'] : 'La carpeta del proyecto (ej. factory), no la trn: también se graban procedimientos, web panels e impresiones.')));
   const herr = h('div', { class: 'herr' });
   if (IMP.avance != null) herr.append('Leyendo la KB… ', h('div', { class: 'barraAvance' }, h('div')));

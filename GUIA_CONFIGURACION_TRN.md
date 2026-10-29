@@ -912,6 +912,7 @@ Botón **⬇ Importar de GeneXus** de la barra del Designer. Corre **todo el flu
    Probado con GeneXus 17 + WorkWithPlus; lee también el formato de GeneXus 15.
 2. **Carpeta de la aplicación…**: la del proyecto (usa `src/main/resources`) o su `src/main/resources`. No sirve elegir solo la
    carpeta `trn`: el importador también graba en `proc/`, `wbp/` e `impresiones/`. Si no hay `trn`, ofrece crearla.
+   El archivo y la carpeta quedan recordados: la próxima vez se usan solos (o con un clic en **↻ …** si el navegador pide permiso).
 3. La lista muestra cada TRN con su **estado** (*nueva*, *ya migrada*, *cambió en GeneXus* —lo sabe por el checksum del objeto—
    o *no se puede*: sin clave, o clave de un tipo que el motor no maneja) y la columna **Sin migrar**: **⚠ N** con lo que ya se
    sabe que no se va a migrar, o lo que quedó la última vez que se importó. Clic en el ⚠: qué es; **⚠ Ver lo que no se migra**:
