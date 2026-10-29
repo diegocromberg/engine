@@ -47,6 +47,7 @@
 
 ## Reglas de diseño (son del motor: valen para toda aplicación)
 - TRN: botones siempre a la izquierda. Web panels: contenido y botones centrados.
+- **Botones de las barras (V85)**: todos con su fondo, como Excel, PDF y Apariencia (también PostIt y Σ); nada de botones "terciarios" sin fondo en una barra.
 - **Un único criterio visual para todo el sistema**: web panels como las TRN: literal a la izquierda y campo a la derecha, todos los renglones en una sola tabla encolumnada (literales de una columna uno debajo del otro, campos también), cada campo en su columna sin invadir la siguiente, el formulario contra su margen izquierdo y centrado en la pantalla (V66o–V66r). Todo respeta la Apariencia (densidades, colores, letra). Las consultas mantienen sus parámetros y datos de arriba como barra (como los filtros del WW).
 - **Secciones en los web panels (Diego, 25/10/2026)**: los campos agrupados por tema con títulos de sección (`{seccion: Título}`), como el Listado de Stock (Tipo de Listado, Artículos, Filtro por Modelos, Otras Opciones, Fechas...). Todos los web panels ya están así (V73g); los nuevos se hacen igual.
 - **Lo que se acuerda para todos los programas se aplica en TODOS** (los que ya están y los que se hagan), sin que Diego lo vuelva a pedir. Se anota en esta lista.
