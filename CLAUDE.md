@@ -41,6 +41,10 @@
   guía 11.2). `gx2yaml.py` es la REFERENCIA: todo cambio de criterio va primero ahí, después en `importador.js`, y las salidas se
   comparan (idénticas). Probado con GeneXus 17 + WWP (Factory). Falta validar con XML reales de GX15 (la KB del ERP), GX16/18 y
   Evolution, y el adaptador de K2BTools (cuando haya un XPZ que lo use).
+- **Regla del importador (Diego, 29/10/2026)**: el importador del Designer hace TODO lo que hace el flujo de Python con que se
+  migró el ERP (gx2yaml + parchar_formulas + parchar_reglas + los procedimientos que llaman reglas, inicio y eventos, gx2proc), y
+  NADA de la KB queda sin migrar sin que el usuario lo vea: informe obligatorio al importar, marca ⚠ en la lista y franja en el
+  Designer. Una herramienta nueva de Python que migre algo de la KB va también al importador, en la misma versión.
 - Versión de prueba (pendiente, con el licenciamiento): 15 días y hasta 10 TRN en el proyecto; lo hecho en prueba corre con cartel.
 - Licencia: clave por PC (huella de la PC → archivo de licencia firmado con clave privada de DATAFIX).
 
