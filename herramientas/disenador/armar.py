@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Arma OPTIMIST-Designer.html (un solo archivo, funciona sin internet) a partir de disenador.src.html,
 la librería yaml (github.com/eemeli/yaml, licencia ISC) empaquetada en yaml.bundle.js y el importador de GeneXus
-(importador.js, E2) y la plantilla de "Nueva aplicación" (../../plantilla-aplicacion, E4)."""
+(importador.js, E2) la plantilla de "Nueva aplicación" (../../plantilla-aplicacion, E4) y la ayuda: el manual y la guía del motor
+(con marked, github.com/markedjs/marked, licencia MIT, en marked.umd.js)."""
 import json, pathlib, re
 aca = pathlib.Path(__file__).parent
 src = (aca / 'disenador.src.html').read_text(encoding='utf-8')
@@ -16,5 +17,10 @@ plantilla = {p.relative_to(raiz / 'plantilla-aplicacion').as_posix(): p.read_tex
 version = re.search(r'<artifactId>optimist-engine</artifactId>\s*<version>([^<]+)</version>', (raiz / 'pom.xml').read_text(encoding='utf-8')).group(1)
 src = src.replace('/*PLANTILLA*/null', json.dumps(plantilla, ensure_ascii=False).replace('</', '<\\/'), 1)
 src = src.replace("/*VERSION_MOTOR*/''", json.dumps(version), 1)
+# E4: la ayuda (los .md del motor) y marked para mostrarlos
+mk = (aca / 'marked.umd.js').read_text(encoding='utf-8').replace('</script', '<\\/script')
+src = src.replace('/*MARKED*/', '/* marked 15.0.12 (c) MarkedJS, MIT */\n' + mk, 1)
+docs = {'manual': (raiz / 'MANUAL_DESARROLLADOR.md').read_text(encoding='utf-8'), 'guia': (raiz / 'GUIA_CONFIGURACION_TRN.md').read_text(encoding='utf-8')}
+src = src.replace('/*DOCS*/null', json.dumps(docs, ensure_ascii=False).replace('</', '<\\/'), 1)
 (aca / 'OPTIMIST-Designer.html').write_text(src, encoding='utf-8')
 print('OPTIMIST-Designer.html listo')

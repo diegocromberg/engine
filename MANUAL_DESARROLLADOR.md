@@ -2,6 +2,7 @@
 
 Versión del manual: **E4** (29/10/2026). Se actualiza con cada versión del motor (ver `CAMBIOS.md`).
 El detalle de cada YAML está en `GUIA_CONFIGURACION_TRN.md` (la "guía"); este manual es el camino de punta a punta.
+Los dos se leen desde el Designer con **❓ Ayuda** (o F1), que abre en el tema de lo que se está haciendo.
 
 ---
 

@@ -2,6 +2,14 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4a — Ayuda en el Designer (29/10/2026)
+
+- Botón **❓ Ayuda** (y F1) en OPTIMIST Designer: el manual del desarrollador y la guía de los YAML en una ventana con índice y
+  buscador (sin tildes ni mayúsculas; Enter, la siguiente). Abre en el tema de lo que se está haciendo: TRN (pantalla o WorkWith),
+  web panel, impresión, consulta, importador ("❓ Ayuda" en su ventana) o Nueva aplicación.
+- Funciona sin internet: `armar.py` mete los dos `.md` adentro del Designer (con marked, licencia MIT, para mostrarlos), así es
+  siempre la documentación de esa versión del motor.
+
 ## E4 — El motor como producto: librería, sin tablas propias, Nueva aplicación (29/10/2026)
 
 - **El motor es una librería** (`optimist-engine.jar`): `mvn install` en `engine` y las aplicaciones lo usan como dependencia

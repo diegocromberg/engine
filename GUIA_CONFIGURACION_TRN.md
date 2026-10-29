@@ -1,6 +1,6 @@
 # OPTIMIST Engine — Guía de configuración de TRN (YAML)
 
-**Versión del motor: V52** · Esta guía se actualiza con cada versión. Reemplaza a `TRN_YAML.md`.
+**Versión del motor: E4** · Esta guía se actualiza con cada versión (el paso a paso está en `MANUAL_DESARROLLADOR.md`).
 
 > **Desde la separación de OPTIMIST Engine (28/10/2026):** esta guía vive en el repositorio `engine`, junto con el motor,
 > el Designer y las herramientas. Donde dice `herramientas/...` es `engine/herramientas/...`; donde dice `src/main/resources/...`
@@ -1666,6 +1666,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E4**: botón **❓ Ayuda** (y F1) en el Designer: este documento y el manual del desarrollador, con índice y buscador, abiertos en el tema de lo que se está haciendo.
 - **E4**: usuarios en `seguridad.yaml` y PostIts / mensajes como módulos (24); `visibleSi` con `application.X` del optimist.cfg; Nueva aplicación (25). El ERP necesita `seguridad.yaml` (ya está en su repositorio).
 - **E3**: extensiones de la aplicación (`OptimistExtension`, 23); el contexto de empresa y división pasa a ser de OPTIMIST ERP (9.1). No cambia ningún YAML.
 - **V82i**: PostIts de la pantalla (botón PostIt a la derecha de los botones de cada pantalla: WorkWith, consultas, web panels; en las TRN, el del registro también va a la derecha de los botones; la principal no lleva); cada usuario ve solo los suyos. Tamaño inicial de todos los PostIts: 380 x 320. No cambia ningún YAML.

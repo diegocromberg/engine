@@ -322,6 +322,31 @@ button.rojo:disabled { opacity: .4; }
 #procImp .barra div { height: 100%; background: var(--acento); width: 0; transition: width .15s; }
 #bandaPrevia { background: #a35a00; color: #fff; padding: 4px 10px; border-radius: 8px; display: flex; gap: 10px; align-items: center; }
 #bandaPrevia button { background: #fff; color: #a35a00; border-color: #fff; }
+#ayuda { position: fixed; inset: 0; z-index: 90; background: #0f2a3399; display: flex; align-items: center; justify-content: center; }
+#ayuda .ven { background: #fff; width: min(1200px, 96vw); height: min(860px, 94vh); border-radius: 10px; box-shadow: 0 12px 40px #0006; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+#ayuda .cab { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #0f2a33; color: #fff; }
+#ayuda .cab .sol { background: transparent; color: #cfe3ea; border: 1px solid #ffffff40; }
+#ayuda .cab .sol.act { background: #fff; color: #0f2a33; }
+#ayuda .cab input { margin-left: 12px; width: 260px; }
+#ayuda .cab .cuenta { font-size: 12px; opacity: .8; }
+#ayuda .cab .x { margin-left: auto; background: transparent; color: #fff; border: 0; font-size: 18px; line-height: 1; padding: 2px 8px; }
+#ayuda .cab .x:hover { background: var(--peligro); }
+#ayuda .cuerpoA { display: grid; grid-template-columns: 290px 1fr; min-height: 0; }
+#ayuda .indice { overflow: auto; border-right: 1px solid var(--borde); padding: 8px 0; font-size: 13px; }
+#ayuda .indice a { display: block; padding: 3px 12px; color: var(--texto); text-decoration: none; cursor: pointer; }
+#ayuda .indice a.n3 { padding-left: 26px; font-size: 12px; color: var(--suave); }
+#ayuda .indice a:hover, #ayuda .indice a.act { background: #e8f2f6; }
+#ayuda .doc { overflow: auto; padding: 10px 28px 40px; font-size: 14px; line-height: 1.5; }
+#ayuda .doc table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+#ayuda .doc th, #ayuda .doc td { border: 1px solid var(--borde); padding: 3px 7px; vertical-align: top; }
+#ayuda .doc th { background: #f0f5f7; }
+#ayuda .doc pre { background: #f4f7f8; border: 1px solid var(--borde); padding: 8px 10px; overflow: auto; font-size: 12.5px; }
+#ayuda .doc code { background: #f4f7f8; padding: 0 3px; border-radius: 3px; font-size: 12.5px; }
+#ayuda .doc pre code { background: none; padding: 0; }
+#ayuda .doc h1 { font-size: 22px; } #ayuda .doc h2 { font-size: 18px; border-bottom: 1px solid var(--borde); padding-bottom: 3px; margin-top: 26px; } #ayuda .doc h3 { font-size: 15px; }
+#ayuda .doc mark { background: #ffe58a; } #ayuda .doc mark.actual { background: #ff9d2e; }
+#ayuda .doc .destacado { animation: destacarA 2s ease-out; }
+@keyframes destacarA { from { background: #ffe58a; } to { background: transparent; } }
 </style>
 </head>
 <body>
@@ -337,6 +362,7 @@ button.rojo:disabled { opacity: .4; }
   <button id="bGuardar" class="primario" disabled title="Ctrl+S">💾 Guardar</button>
   <button id="bClases" title="Crear o cambiar clases (estilos con nombre) y ver cómo quedan">🎨 Clases</button>
   <span class="orden"><button id="bVoz" title="Dictale al diseñador: «poné AlmacenesDescrip en negrita»">🎤</button><input id="orden" type="text" placeholder="Decime qué hacer… (ej: poné AlmacenesDescrip en negrita)"></span>
+  <button id="bAyuda" title="Manual del desarrollador y guía de los YAML (abre en el tema de lo que estás haciendo)">❓ Ayuda</button>
   <span class="estado" id="estado"></span>
 </div>
 <div id="cuerpo">
@@ -352,6 +378,7 @@ button.rojo:disabled { opacity: .4; }
 
 <script>/*YAML_LIB*/</script>
 <script>/*IMPORTADOR*/</script>
+<script>/*MARKED*/</script>
 <script>
 "use strict";
 /* ============================================================================================
@@ -4767,7 +4794,8 @@ function pintarImportador() {
   const propias = IMP.lista.filter(t => !t.base).length, wwp = IMP.lista.length - propias;
   const ven = h('div', { class: 'ven' });
   ven.append(h('div', { class: 'cab' }, h('b', null, '⬇ Importar de GeneXus'), h('span', { style: 'opacity:.7' }, 'OPTIMIST Engine'),
-    h('button', { class: 'x', title: 'Cerrar', onclick: cerrarImportador }, '✕')));
+    h('button', { class: 'sol', style: 'margin-left:auto;background:transparent;color:#fff;border:1px solid #ffffff60', title: 'Ayuda del importador', onclick: () => abrirAyuda('manual', '5.') }, '❓ Ayuda'),
+    h('button', { class: 'x', style: 'margin-left:0', title: 'Cerrar', onclick: cerrarImportador }, '✕')));
   ven.append(h('div', { class: 'orig' },
     h('button', { onclick: elegirArchivoGx, disabled: IMP.avance != null }, '📄 Archivo de GeneXus…'),
     h('span', { class: 'dato' }, IMP.archivo ? [h('b', null, IMP.archivo), kb ? ' · KB ' + (kb.nombre || '?') + ' · export ' + (kb.version || '?') + ' · ' + propias + ' TRN' + (wwp ? ' (y ' + wwp + ' del patrón WorkWithPlus)' : '') : ''] : 'El export de la KB (XML o XPZ): en GeneXus, Knowledge Manager → Export, con las transacciones y sus instancias de WorkWithPlus.'),
@@ -5029,7 +5057,8 @@ async function nuevaAplicacion() {
     h('option', { value: 'wwp' }, 'SecUser de WorkWithPlus (texto plano)'), h('option', { value: 'otra' }, 'Otra tabla…'));
   const cuerpo = [
     h('p', { style: 'margin:0 0 10px' }, 'Arma la carpeta de una aplicación de OPTIMIST Engine lista para arrancar e importar las TRN de GeneXus. ',
-      'Después vas a elegir dónde crearla (por ejemplo, la carpeta donde está ', h('code', null, 'engine'), ').'),
+      'Después vas a elegir dónde crearla (por ejemplo, la carpeta donde está ', h('code', null, 'engine'), '). ',
+      h('a', { href: '#', onclick: e => { e.preventDefault(); abrirAyuda('manual', '4.'); } }, '❓ Ayuda')),
     h('div', { style: 'display:grid;grid-template-columns:150px 1fr;gap:6px 10px' },
       ...campo('Carpeta', 'nombre', 'También el nombre del WAR (ej. factory → factory.war)'),
       ...campo('Título', 'titulo', 'El nombre que muestra la pantalla'),
@@ -5079,6 +5108,104 @@ async function nuevaAplicacion() {
   }
 }
 $('#bNueva').addEventListener('click', nuevaAplicacion);
+// ------------------------------------------------------------------ E4 · AYUDA (manual del desarrollador y guía de los YAML)
+// armar.py mete los .md del motor (MANUAL_DESARROLLADOR.md y GUIA_CONFIGURACION_TRN.md): funciona sin internet y es siempre la
+// documentación de esta versión. Se abre en el tema de lo que se está haciendo.
+const DOCS_AYUDA = /*DOCS*/null;
+const AYUDA = { doc: null, html: {}, marcas: [], actual: -1 };
+function temaAyuda() {
+  if ($('#imp.abierto')) return ['manual', '5.'];
+  if (Q) return ['guia', '21.'];
+  if (R) return ['guia', '20.'];
+  if (P) return ['guia', '19.'];
+  if (A) return vista === 'ww' ? ['guia', '9.'] : ['guia', '8.'];
+  return ['manual', null];
+}
+function abrirAyuda(doc, seccion) {
+  if (!DOCS_AYUDA || !window.marked) { aviso('Este Designer se armó sin la ayuda (armar.py).', true); return; }
+  if (!doc) [doc, seccion] = temaAyuda();
+  let d = $('#ayuda');
+  if (!d) {
+    const buscar = h('input', { type: 'search', placeholder: 'Buscar…', oninput: e => buscarAyuda(e.target.value),
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); irMarcaAyuda(e.shiftKey ? -1 : 1); } } });
+    d = h('div', { id: 'ayuda', onkeydown: e => { if (e.key === 'Escape') cerrarAyuda(); } },
+      h('div', { class: 'ven' },
+        h('div', { class: 'cab' }, h('b', null, '❓ Ayuda'),
+          h('button', { class: 'sol', 'data-doc': 'manual', onclick: () => mostrarDocAyuda('manual') }, 'Manual del desarrollador'),
+          h('button', { class: 'sol', 'data-doc': 'guia', onclick: () => mostrarDocAyuda('guia') }, 'Guía de los YAML'),
+          buscar, h('span', { class: 'cuenta' }),
+          h('button', { class: 'x', title: 'Cerrar (Esc)', onclick: cerrarAyuda }, '✕')),
+        h('div', { class: 'cuerpoA' }, h('div', { class: 'indice' }), h('div', { class: 'doc' }))));
+    document.body.append(d);
+  }
+  d.style.display = 'flex';
+  mostrarDocAyuda(doc, seccion);
+  d.querySelector('.cab input').focus();
+}
+function cerrarAyuda() { const d = $('#ayuda'); if (d) d.style.display = 'none'; }
+function mostrarDocAyuda(doc, seccion) {
+  const d = $('#ayuda'); if (!d) return;
+  d.querySelectorAll('.cab .sol').forEach(b => b.classList.toggle('act', b.dataset.doc === doc));
+  const cont = d.querySelector('.doc'), ind = d.querySelector('.indice');
+  if (AYUDA.doc !== doc) {
+    AYUDA.doc = doc;
+    if (!AYUDA.html[doc]) AYUDA.html[doc] = marked.parse(DOCS_AYUDA[doc] || '');
+    cont.innerHTML = AYUDA.html[doc];
+    cont.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+    ind.innerHTML = '';
+    cont.querySelectorAll('h2, h3').forEach((t, i) => {
+      t.id = 'ay-' + i;
+      ind.append(h('a', { class: 'n' + t.tagName[1], onclick: () => irTituloAyuda(t) }, t.textContent));
+    });
+    AYUDA.marcas = []; AYUDA.actual = -1;
+    cont.scrollTop = 0;
+    const inp = d.querySelector('.cab input');
+    if (seccion) { inp.value = ''; d.querySelector('.cab .cuenta').textContent = ''; } else if (inp.value) buscarAyuda(inp.value);
+  }
+  if (seccion) {
+    const t = [...cont.querySelectorAll('h2, h3')].find(x => x.textContent.trim().startsWith(seccion));
+    if (t) irTituloAyuda(t);
+  }
+}
+function irTituloAyuda(t) {
+  const d = $('#ayuda'), cont = d.querySelector('.doc');
+  cont.scrollTop = t.offsetTop - cont.offsetTop - 6;
+  t.classList.remove('destacado'); void t.offsetWidth; t.classList.add('destacado');
+  d.querySelectorAll('.indice a').forEach(a => a.classList.toggle('act', a.textContent === t.textContent));
+}
+function buscarAyuda(q) {
+  const d = $('#ayuda'), cont = d.querySelector('.doc'), cuenta = d.querySelector('.cab .cuenta');
+  cont.querySelectorAll('mark').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
+  cont.normalize();
+  AYUDA.marcas = []; AYUDA.actual = -1;
+  q = (q || '').trim();
+  if (q.length < 2) { cuenta.textContent = ''; return; }
+  const sinTilde = x => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const buscada = sinTilde(q);
+  const w = document.createTreeWalker(cont, NodeFilter.SHOW_TEXT);
+  const nodos = []; while (w.nextNode()) nodos.push(w.currentNode);
+  for (const n of nodos) {
+    const t = sinTilde(n.textContent); let i = t.indexOf(buscada), resto = n;
+    let corrido = 0;
+    while (i >= 0 && AYUDA.marcas.length < 1000) {
+      const antes = resto.splitText(i - corrido); const despues = antes.splitText(q.length);
+      const m = h('mark', null, antes.textContent); antes.replaceWith(m); AYUDA.marcas.push(m);
+      resto = despues; corrido = i + q.length; i = t.indexOf(buscada, corrido);
+    }
+  }
+  cuenta.textContent = AYUDA.marcas.length ? AYUDA.marcas.length + ' (Enter: siguiente)' : 'no está';
+  if (AYUDA.marcas.length) irMarcaAyuda(1);
+}
+function irMarcaAyuda(paso) {
+  const ms = AYUDA.marcas; if (!ms.length) return;
+  if (AYUDA.actual >= 0) ms[AYUDA.actual].classList.remove('actual');
+  AYUDA.actual = (AYUDA.actual + paso + ms.length) % ms.length;
+  const m = ms[AYUDA.actual]; m.classList.add('actual');
+  m.scrollIntoView({ block: 'center' });
+  $('#ayuda .cab .cuenta').textContent = (AYUDA.actual + 1) + ' de ' + ms.length + ' (Enter: siguiente)';
+}
+$('#bAyuda').addEventListener('click', () => abrirAyuda());
+document.addEventListener('keydown', e => { if (e.key === 'F1') { e.preventDefault(); abrirAyuda(); } });
 $('#bImportar').addEventListener('click', abrirImportador);
 
 $('#centro').append(h('div', { id: 'bienvenida' },
