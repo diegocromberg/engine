@@ -1167,9 +1167,11 @@ function generar(kb, trnNombre, solapasIds) {
     } else out(`  ${d}: ${q(txt)}`);
   }
 
-  out('');
-  out('# ---------------------------------------------------------------- PENDIENTE');
-  out('# Reglas de GeneXus que el motor todavía no interpreta (van a la clase de reglas Java o a una próxima versión):');
+  if (reglas.pendientes.length || noSoportados.length || omitidos.length) {   // E4e: el bloque solo si hay algo
+    out('');
+    out('# ---------------------------------------------------------------- PENDIENTE');
+    out('# Reglas de GeneXus que el motor todavía no interpreta (van a la clase de reglas Java o a una próxima versión):');
+  }
   for (const p of reglas.pendientes) out('#   ' + [...p].slice(0, 230).join(''));
   if (noSoportados.length) out('# Atributos con tipos no soportados todavía (Blob/Image/GUID...): ' + noSoportados.join(', '));
   if (omitidos.length) out('# Omitidos (en GeneXus son fórmulas o llegan por otra tabla que este nivel no referencia): ' + omitidos.join(', '));

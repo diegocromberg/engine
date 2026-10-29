@@ -21,6 +21,9 @@ de Factory al cambiar el estado de un incidente) ni avisaba lo que quedaba afuer
   Clic en el ⚠: la lista de esa TRN; botón **⚠ Ver lo que no se migra**: la de las tildadas (o todas), con Copiar.
 - **Franja amarilla en el Designer** ("⚠ No hace todo lo de GeneXus: N sin migrar") en las TRN con el bloque `# ---- SIN MIGRAR`
   que el importador deja al final del YAML; clic: la lista. Se conserva al guardar desde el Designer.
+- El informe lista también **lo que la aplicación ya tenía y usan las TRN** ("ya estaba en la aplicación, no se tocó"), con lo
+  que tenga para revisar y el recordatorio del `optimist.cfg` si manda mails; y sigue lo que esos llaman.
+- El bloque `# ---- PENDIENTE` de la TRN solo sale si hay algo (antes quedaba el encabezado vacío).
 - Carpeta de la aplicación: hace falta la del proyecto (o `src/main/resources`), no solo la `trn`.
 - El importador **recuerda el último archivo de GeneXus y la última carpeta de la aplicación**: al abrirlo los usa solos si el
   navegador ya dio permiso; si no, un clic en **↻ Factory.xml** / **↻ factory** (el navegador pregunta una vez).

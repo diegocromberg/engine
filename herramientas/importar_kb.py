@@ -155,8 +155,11 @@ def importar(xml, recursos, trns, avisar=None):
         tienen = {f[:-5].lower() for d in (d_proc, d_wbp) if os.path.isdir(d) for f in os.listdir(d) if f.endswith(('.proc', '.yaml'))}
         pedir = {}
         textos = [(n, open(os.path.join(d_trn, n + '.yaml'), encoding='utf-8').read()) for n in hechas]
+        # lo nuevo y también lo que ya estaba y se usa (E4e: para seguir lo que llama e informarlo)
+        usados = {k.lower() for k in usos}
         textos += [(f[:-5], open(os.path.join(d, f), encoding='utf-8').read()) for d in (d_proc, d_wbp) if os.path.isdir(d)
-                   for f in os.listdir(d) if f.endswith(('.proc', '.yaml')) and f[:-5] in nuevos]
+                   for f in os.listdir(d) if f.endswith(('.proc', '.yaml')) and (f[:-5] in nuevos or f[:-5].lower() in usados)]
+        cuantos = len(usos)
         for quien, t in textos:
             nombres = llamados(t) | {m.group(1) for m in re.finditer(r'(?:\bproc|\bpanel):\s*([A-Za-z_]\w*)', t)}
             for x in nombres:
@@ -175,7 +178,7 @@ def importar(xml, recursos, trns, avisar=None):
                     pedir[real] = 'data provider'
                 elif tipo == T_WBP and not real.lower().startswith('ww'):
                     pedir[real] = 'web panel'
-        if not pedir:
+        if not pedir and len(usos) == cuantos:
             break
         for real, tipo in sorted(pedir.items()):
             avisar(f'{tipo.capitalize()} {real}…', min(0.92, 0.6 + 0.05 * vuelta))
@@ -292,6 +295,21 @@ def armar_informe(recursos, kb, hechas, errores, nuevos, objetos, usos=None):
         txt = open(ruta, encoding='utf-8').read() if os.path.exists(ruta) else ''
         inf['objetos'][real] = {'tipo': tipo, 'revisar': revisar_de(txt) if txt else ['no se pudo traducir'],
                                 'usan': sorted(usos.get(real, []))}
+    # E4e: lo que la aplicación ya tenía y usan las TRN: también va al informe (con lo que tenga para revisar)
+    for x in sorted(usos):
+        if x in nuevos or x in inf['objetos']:
+            continue
+        for sub, ext, tipo in (('proc', '.proc', 'procedimiento'), ('wbp', '.yaml', 'web panel')):
+            ruta = os.path.join(recursos, sub, x + ext)
+            if os.path.exists(ruta):
+                txt = open(ruta, encoding='utf-8').read()
+                if tipo == 'procedimiento' and os.path.exists(os.path.join(recursos, 'impresiones', x + '.yaml')):
+                    tipo = 'impresión'
+                o = {'tipo': tipo, 'revisar': revisar_de(txt), 'usan': sorted(usos[x]), 'yaEstaba': True}
+                if re.search(r'(?i)SMTPSession|&SMTP\b', txt):
+                    o['nota'] = 'manda mails: el servidor de correo de cada cliente va en su optimist.cfg (mail.host, mail.usuario, mail.clave…)'
+                inf['objetos'][x] = o
+                break
     for x, quien in sorted(usos.items()):
         if x not in objetos and x.lower() not in {k.lower() for k in objetos}:
             inf['faltan'].append({'nombre': x, 'usan': sorted(quien)})
@@ -342,11 +360,14 @@ def texto_informe(inf):
     for n, items in inf['trns'].items():
         l += ['', f'TRN {n}: ' + ('completa' if not items else f'{len(items)} pendiente' + ('s' if len(items) > 1 else ''))] + [f'  - {x}' for x in items]
     if inf['objetos']:
-        l += ['', 'Objetos que se trajeron porque los usan las TRN:']
+        l += ['', 'Objetos que usan las TRN (los nuevos se trajeron de GeneXus):']
         for n, o in inf['objetos'].items():
             l.append(f'  {o["tipo"]} {n}' + (f' (lo usa {", ".join(o["usan"])})' if o['usan'] else '')
+                     + (' — ya estaba en la aplicación, no se tocó' if o.get('yaEstaba') else '')
                      + ('' if not o['revisar'] else f': {len(o["revisar"])} para revisar'))
             l += [f'      - {x}' for x in o['revisar']]
+            if o.get('nota'):
+                l.append(f'      · {o["nota"]}')
     if inf['faltan']:
         l += ['', 'Llamados a objetos que no están en el export de la KB (exportalos también y volvé a importar):']
         l += [f'  - {x["nombre"]} (lo usa {", ".join(x["usan"])})' for x in inf['faltan']]

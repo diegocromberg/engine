@@ -1327,10 +1327,11 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
         else:
             out(f'  {d}: {q(txt)}')
 
-    # ---------------- pendientes
-    out('')
-    out('# ---------------------------------------------------------------- PENDIENTE')
-    out('# Reglas de GeneXus que el motor todavía no interpreta (van a la clase de reglas Java o a una próxima versión):')
+    # ---------------- pendientes (E4e: el bloque solo si hay algo)
+    if reglas['pendientes'] or no_soportados or omitidos:
+        out('')
+        out('# ---------------------------------------------------------------- PENDIENTE')
+        out('# Reglas de GeneXus que el motor todavía no interpreta (van a la clase de reglas Java o a una próxima versión):')
     for p in reglas['pendientes']:
         out('#   ' + p[:230])
     if no_soportados:
