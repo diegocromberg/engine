@@ -62,6 +62,9 @@ public final class OptimistVisuals {
 
     public static void estilizarDialogo(Dialog dialogo, Properties cfg) {
         dialogo.addThemeName("optimist-dialog");
+        // E4g (Diego, 29/10/2026): todas las ventanas (lupas, web panels, formularios, PDF…) se pueden mover: se arrastran
+        // desde el título (o un espacio libre, si no tienen título), como cualquier ventana de Windows
+        dialogo.setDraggable(true);
         // V34: densidad de los formularios (Apariencia): la toma el overlay del diálogo por su tema
         String densidad = cfg == null ? "Normal" : cfg.getProperty("densidadFormulario", "Normal");
         if ("Supercompacta".equals(densidad)) dialogo.addThemeName("optimist-form-supercompacta");   // V36

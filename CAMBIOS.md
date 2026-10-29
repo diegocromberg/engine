@@ -2,6 +2,12 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4g — Las ventanas se pueden mover (29/10/2026)
+
+- Diego: los web panels en ventana y las lupas quedaban fijos. **Todas las ventanas** (lupas, web panels, formularios de las TRN,
+  PDF, calculadora, ayuda…) se mueven arrastrando el título (el cursor lo indica) o un espacio libre si no tienen título.
+- **Hay que hacer `mvn install` en `engine`** y reiniciar las aplicaciones.
+
 ## E4f — Combo en el filtro de las descripciones de referencias (29/10/2026)
 
 - Diego: en Factory el filtro de Estado de Incidentes era "contiene" y en GeneXus se elegía de una lista. La columna que muestra la

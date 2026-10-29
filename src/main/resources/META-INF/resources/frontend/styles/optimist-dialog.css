@@ -18,6 +18,9 @@
   font-size: var(--optimist-letra, 15px);
 }
 
+/* E4g: las ventanas se mueven arrastrando el título */
+:host([theme~="optimist-dialog"]) [part="header"] { cursor: move; }
+
 /* V69: los PostIts (notas de colores pegadas a un registro): fondo de color, letra oscura, compactos */
 :host([theme~="optimist-postit"]) {
   --lumo-body-text-color: #222;
