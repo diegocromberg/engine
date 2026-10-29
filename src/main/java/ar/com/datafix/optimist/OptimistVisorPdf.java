@@ -49,7 +49,7 @@ public final class OptimistVisorPdf {
         visor.getStyle().set("border", "none").set("display", "block").set("min-height", "calc(100vh - 150px)");
         d.add(visor);
         Button descargar = new Button("Descargar", e -> UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;document.body.appendChild(a);a.click();a.remove();", url, archivo));
+                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();", url, archivo));
         Button cerrar = new Button("Cerrar", e -> d.close());
         cerrar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         OptimistVisuals.pieIzquierda(d, cerrar, descargar);
@@ -174,7 +174,7 @@ public final class OptimistVisorPdf {
         StreamRegistration reg = ses.getResourceRegistry().registerResource(recurso);
         ses.setAttribute("optimist.descarga", reg);
         UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;document.body.appendChild(a);a.click();a.remove();",
+                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
                 reg.getResourceUri().toString(), archivo);
     }
 }

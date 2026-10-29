@@ -2344,7 +2344,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         if (ultimoArchivo != null) ultimoArchivo.unregister();
         ultimoArchivo = com.vaadin.flow.server.VaadinSession.getCurrent().getResourceRegistry().registerResource(recurso);
         UI.getCurrent().getPage().executeJs(
-                "const a=document.createElement('a');a.href=$0;a.download=$1;document.body.appendChild(a);a.click();a.remove();",
+                "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
                 ultimoArchivo.getResourceUri().toString(), archivo);
     }
     private com.vaadin.flow.server.StreamRegistration ultimoArchivo;

@@ -1425,7 +1425,7 @@ public final class OptimistWorkWith {
             if (ultimaDescarga != null) ultimaDescarga.unregister();
             ultimaDescarga = com.vaadin.flow.server.VaadinSession.getCurrent().getResourceRegistry().registerResource(recurso);
             com.vaadin.flow.component.UI.getCurrent().getPage().executeJs(
-                    "const a=document.createElement('a');a.href=$0;a.download=$1;document.body.appendChild(a);a.click();a.remove();",
+                    "const a=document.createElement('a');a.href=$0;a.download=$1;a.setAttribute('router-ignore','');document.body.appendChild(a);a.dispatchEvent(new MouseEvent('click',{bubbles:false,cancelable:true}));a.remove();",
                     ultimaDescarga.getResourceUri().toString(), nombre);
             com.vaadin.flow.component.notification.Notification.show("Excel: " + encontrados.size() + " " + sustantivo, 3000,
                     com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START);
