@@ -2,6 +2,20 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E4h — Teclado en los formularios: cursor en el primer campo y Enter como TAB (31/10/2026)
+
+- Diego: al abrir **cualquier TRN o web panel** el cursor queda en el **primer campo editable** (alta y modificación de las TRN;
+  web panels en ventana o como página, después de su Start). En Visualizar no. Si mientras se arma se abrió una lupa o la
+  calculadora, o el usuario ya está en un campo, no le saca el foco.
+- **Enter pasa al campo siguiente**, como TAB, salteando los de solo lectura, deshabilitados y ocultos (otras solapas); en una
+  grilla de renglones va al de la derecha y después al renglón de abajo. En el último campo no hace nada.
+- **Enter nunca confirma ni toca un botón** (Confirmar, Procesar, Cancelar...): siempre con el mouse.
+- Excepciones: texto de varios renglones (Enter = renglón nuevo), combo o fecha con la lista abierta (elige), lupas (Enter
+  elige), calculadora, PostIts y confirmaciones (como siempre).
+- Nueva clase `OptimistTeclado` (un script en el navegador); la usan `OptimistTrnView` y `OptimistPanelView`. Vale para todas las
+  aplicaciones; no hay nada que configurar en los YAML.
+- **Hay que hacer `mvn install` en `engine`** y reiniciar las aplicaciones.
+
 ## E4g — Las ventanas se pueden mover (29/10/2026)
 
 - Diego: los web panels en ventana y las lupas quedaban fijos. **Todas las ventanas** (lupas, web panels, formularios de las TRN,

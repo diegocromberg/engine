@@ -1264,6 +1264,7 @@ Cómo funciona:
 - Un error que no es un `Msg` (un procedimiento que falta, un dato mal) corta el evento y **deshace lo grabado**: un Confirmar a medias no deja registros creados.
 - `&X.EnumerationDescription()` se escribe `EnumTexto.Udp(&X, "1=Activo;2=Inactivo")` (el generador lo hace solo).
 - Todos los eventos se revisan al abrir el panel: un error de escritura se ve enseguida, con el renglón.
+- **E4h — teclado (TRN y web panels, sin configurar nada)**: al abrir un formulario (alta o modificación de una TRN, un web panel en ventana o como página, después de su Start) el cursor queda en el **primer campo editable**; en Visualizar no. **Enter pasa al campo siguiente**, como TAB (en una grilla de renglones, al de la derecha y después al renglón de abajo), salteando los de solo lectura, los deshabilitados y los ocultos; en el último no hace nada. **Enter nunca confirma ni toca un botón**: Confirmar / Procesar van con el mouse. Excepciones: en un texto de varios renglones Enter es un renglón nuevo; en un combo o una fecha con la lista abierta, elige; las lupas, la calculadora y las confirmaciones siguen como siempre (`OptimistTeclado`).
 - (V65) Si un evento llama a un procedimiento que genera un PDF (una impresión con `Output_file`), el PDF se abre en la misma ventana al terminar el evento y el panel queda abierto. Ej.: Libro IVA Ventas (`WPIvaVentas`).
 - (V66t) Si el procedimiento no imprimió nada (ej. el botón **Excel** de un listado que también tiene PDF), no se abre un PDF en blanco.
 
@@ -1719,6 +1720,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E4h**: teclado en los formularios (sección 19): cursor en el primer campo editable al abrir; Enter pasa al campo siguiente; Enter nunca confirma ni toca un botón.
 - **E4d**: mails con los datos del servidor en el optimist.cfg, archivos de texto (DFW), `&WWPContext.UserId` / `UserName` (16.1).
 - **E4c**: archivos (Blob) también en los detalles: Ver, Bajar, Subir y Quitar en cada renglón (5.4).
 - **E4**: botón **❓ Ayuda** (y F1) en el Designer: este documento y el manual del desarrollador, con índice y buscador, abiertos en el tema de lo que se está haciendo.

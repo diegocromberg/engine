@@ -129,6 +129,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         }
         centro.getStyle().set("padding", "var(--lumo-space-l)");
         OptimistShell.montar(this, centro, p.titulo);
+        OptimistTeclado.pagina(centro, true);   // V89: Enter como TAB y el cursor en el primer campo editable
     }
 
     /** Abre el panel como ventana (ej. el alta desde el WorkWith). alAbrir: lo que pide el panel al terminar (abrir una TRN). */
@@ -173,6 +174,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         OptimistVisuals.pieCentrado(d, pant.botones.getChildren().toArray(Component[]::new));
         d.open();
         pant.iniciar();
+        OptimistTeclado.ventana(d, true);   // V89: Enter como TAB y el cursor en el primer campo editable (después del Start)
     }
 
     // ------------------------------------------------------------------ lectura del YAML

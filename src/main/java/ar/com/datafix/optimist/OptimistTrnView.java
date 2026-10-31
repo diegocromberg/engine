@@ -1460,6 +1460,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         if (!f.nuevo && actual != null && !"postits".equalsIgnoreCase(trn.cabecera().tabla()))
             OptimistPostIts.enFormulario(db, dialogo, trn.nombre(), clave(actual.cabecera()));
         dialogo.open();
+        OptimistTeclado.ventana(dialogo, !soloVer);   // V89: Enter como TAB y el cursor en el primer campo editable
     }
 
     /**
