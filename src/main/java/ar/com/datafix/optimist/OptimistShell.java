@@ -549,7 +549,7 @@ public final class OptimistShell {
      * si llegó desde otra pantalla: la clave es del programa, como en WorkWithPlus).
      */
     static boolean sinClave(VerticalLayout vista, String clave, String que) {
-        if (OptimistPermisos.puede(clave)) return false;
+        if (OptimistPermisos.puedeEntrar(clave)) return false;   // E5b: con entrada: menu, pasa (lo decide el menú)
         Span aviso = new Span("No tenés permiso para entrar a " + que + ".");
         aviso.getStyle().set("padding", "28px").set("color", "#ff8585");
         montar(vista, aviso, "Sin permiso");

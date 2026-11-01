@@ -167,10 +167,20 @@ public final class OptimistMenu {
                 permitidas.add(ruta);
                 return new Item(titulo, ruta);
             }
+            // E5b: el padre también tiene que estar en MenuSecUser (PXToolsMenuDataDP filtra cada nivel por SecUserId): si no, sus hijos tampoco
+            if (!permitidos.contains(n.id())) { marcarRutas(n, camino); return null; }
             String sub = camino.isEmpty() ? normal(titulo) : camino + "/" + normal(titulo);
             List<Object> lista = new ArrayList<>();
             for (Nodo h : hs) { Object o = armar(h, sub); if (o != null) lista.add(o); }
             return lista.isEmpty() ? null : new Carpeta(titulo, lista);
+        }
+
+        /** Las rutas de lo que cuelga de un padre no permitido se anotan igual, para que "permitida(ruta)" las controle. */
+        void marcarRutas(Nodo n, String camino) {
+            List<Nodo> hs = hijos.get(n.id());
+            if (hs == null || hs.isEmpty()) { String r = ruta(n, camino); if (r != null) rutas.add(r); return; }
+            String sub = camino.isEmpty() ? normal(n.titulo().isEmpty() ? n.id() : n.titulo()) : camino + "/" + normal(n.titulo().isEmpty() ? n.id() : n.titulo());
+            for (Nodo h : hs) if (vistos.add(h.id())) marcarRutas(h, sub);
         }
 
         /** MenuURL -> ruta del motor: "wwpais.aspx" -> trn/pais, "prsaltawbp" -> wbp/prsaltawbp. Si no, por título en menu.yaml. */

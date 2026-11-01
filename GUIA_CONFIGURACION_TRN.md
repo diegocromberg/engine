@@ -1722,6 +1722,7 @@ permisos:
   tipo: wwp                       # wwp: seguridad avanzada de WorkWithPlus | extension: la aplicación (OptimistExtension.permisos)
   rolAdministrador: Administrator # el rol que tiene todo
   administradores: [Administrator]  # (opcional) usuarios que siempre tienen todo, aunque les falte el rol (para no quedar afuera)
+  entrada: clave                  # (E5b) clave: entrar pide WW<Trn> / el nombre del panel o consulta | menu: lo decide el menú del usuario
   claves:                         # (opcional) funcionalidades propias, además de las de cada TRN, web panel y consulta
     VerRentabilidad: Ver la rentabilidad
 ```
@@ -1763,6 +1764,13 @@ En un web panel: `botones: [{titulo: Procesar, evento: Procesar, permiso: VerRen
   después de agregar o importar TRN, web panels o funcionalidades.**
 
 `SecIsAuthByFunctionalityKey('Clave')` funciona en las reglas y en los procedimientos (reemplaza al de la KB).
+
+**`entrada: menu`** (E5b): para las KB que, como OPTIMIST ERP, no piden la clave del programa para entrar sino que el menú del
+usuario (la tabla `Menu` + `MenuSecUser` que carga la aplicación en `alIniciarSesion`; V48e, sección 10) decide qué puede abrir. Entrar a una TRN, un web panel o una consulta (desde
+el menú, escribiendo la dirección o como ventana desde otra pantalla) no pide clave; `WW<Trn>` queda para los hipervínculos y lo que
+la pregunte, y `_Insert` / `_Update` / `_Delete`, `_Attribute`, `permiso:` y las claves propias siguen igual. Con `entrada: clave`
+(por defecto), la clave del programa, como la seguridad avanzada de WorkWithPlus. En el menú de la base, un nodo padre que el usuario
+no tiene en `MenuSecUser` apaga todo lo de abajo (como `PXToolsMenuDataDP` / `SmoothNavMenuDataDP` de WorkWithPlus).
 
 ## 25. Nueva aplicación (OPTIMIST Designer, E4)
 

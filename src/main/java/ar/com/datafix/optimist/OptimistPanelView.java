@@ -144,7 +144,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
      */
     public static void abrirDialogo(String nombre, OptimistDatabase db, List<Object> parametros,
                                     Consumer<OptimistPanel.Abrir> alAbrir, Runnable alCerrar) {
-        if (!OptimistPermisos.puede(nombre)) {   // E5a
+        if (!OptimistPermisos.puedeEntrar(nombre)) {   // E5a / E5b
             Notification.show("No tenés permiso para " + nombre + ".", 6000, Notification.Position.MIDDLE);
             return;
         }

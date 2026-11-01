@@ -2,6 +2,24 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E5b — Permisos en el ERP: la entrada la decide el menú (01/11/2026)
+
+Al prender `permisos:` en OPTIMIST ERP (GeneXus 15 + WorkWithPlus) se vio, con la KB a la vista, que OPTIMIST no pide la clave
+`WW<Trn>` para entrar a un WorkWith: entrar lo decide el menú (`MenuSecUser`, que `GrabarMenuSecUserByRole` rearma desde los roles);
+`WW<Trn>` la preguntan *otros* programas para habilitar el hipervínculo a esa TRN. Y `PXToolsMenuDataDP` filtra **cada nivel** del
+menú por el usuario: un padre que el usuario no tiene apaga todo lo de abajo.
+
+- **`permisos.entrada: menu`** (guía 24.3): con `tipo: wwp`, entrar a una TRN, un web panel o una consulta (desde el menú, por
+  dirección o como ventana) no pide clave: lo controla el menú del usuario, como antes (V48e). Las claves `WW<Trn>`,
+  `WW<Trn>_Insert/_Update/_Delete`, `<Campo>_Attribute`, `permiso:` y las propias siguen valiendo para botones, acciones,
+  hipervínculos y `SecIsAuthByFunctionalityKey`. `entrada: clave` (por defecto) es lo de la E5a (la clave del programa, como
+  WorkWithPlus). `OptimistPermisos.puedeEntrar`.
+- **Menú de la base**: un nodo padre también tiene que estar en `MenuSecUser` para que se vean sus hijos (antes el motor miraba solo
+  las hojas). Las rutas de lo que cuelga de un padre apagado se siguen controlando al entrar por dirección.
+- Claves de "Actualizar permisos": confirmado contra `SecGetAdvancedSecurityWWPFunctionalities` de la KB del ERP que el motor usa los
+  mismos tipos y padres que WorkWithPlus (`WW<Trn>` Object sin padre; `_Insert/_Update/_Delete` Mode y las acciones Action debajo
+  de `WW<Trn>`; `<Campo>_Attribute` Attribute debajo de `WW<Trn>`). Las claves que ya están en la base no se tocan.
+
 ## E5a — Permisos y panel de Seguridad (01/11/2026)
 
 Diego: "el manejo de permisos que hoy no lo tenemos y que es vital para las trn y los ww"; que más adelante se puedan agregar

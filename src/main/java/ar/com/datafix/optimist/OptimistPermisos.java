@@ -30,7 +30,8 @@ public final class OptimistPermisos {
 
     /** La configuración (permisos: de seguridad.yaml). null = sin permisos (todos pueden todo). */
     /** administradores: usuarios (SecUserName) que siempre son administradores, aunque no tengan el rol (para no quedar afuera). */
-    public record Config(String tipo, String rolAdministrador, Map<String, String> claves, Set<String> administradores) {}
+    /** entrada: clave (WW&lt;Trn&gt; / nombre del panel o consulta para entrar) | menu (E5b: entrar lo decide el menú del usuario, como OPTIMIST). */
+    public record Config(String tipo, String rolAdministrador, Map<String, String> claves, Set<String> administradores, String entrada) {}
 
     private static volatile Optional<Config> CONFIG;
 
@@ -58,7 +59,9 @@ public final class OptimistPermisos {
                 if (mm.get("administradores") instanceof List<?> la) {
                     for (Object o : la) if (o != null) admins.add(String.valueOf(o).trim().toLowerCase(Locale.ROOT));
                 } else if (mm.get("administradores") != null) admins.add(String.valueOf(mm.get("administradores")).trim().toLowerCase(Locale.ROOT));
-                r = new Config(tipo, String.valueOf(mm.getOrDefault("rolAdministrador", "Administrator")).trim(), Map.copyOf(claves), Set.copyOf(admins));
+                String entrada = String.valueOf(mm.getOrDefault("entrada", "clave")).trim().toLowerCase(Locale.ROOT);
+                if (!entrada.matches("clave|menu")) throw new IllegalStateException("seguridad.yaml: permisos.entrada '" + entrada + "' no válido (clave o menu)");
+                r = new Config(tipo, String.valueOf(mm.getOrDefault("rolAdministrador", "Administrator")).trim(), Map.copyOf(claves), Set.copyOf(admins), entrada);
             } else if (p != null && !Boolean.FALSE.equals(p)) throw new IllegalStateException("seguridad.yaml: 'permisos:' tiene que tener tipo, rolAdministrador…");
         } catch (IllegalStateException e) { throw e; }
         catch (Exception e) { throw new IllegalStateException("seguridad.yaml: " + e.getMessage(), e); }
@@ -123,6 +126,16 @@ public final class OptimistPermisos {
         return s != null && s.contains(clave.trim().toLowerCase(Locale.ROOT));
     }
 
+    /**
+     * E5b: con `entrada: menu` entrar a una TRN, un web panel o una consulta lo decide el menú del usuario (MenuSecUser,
+     * OptimistMenu.permitida), como en OPTIMIST: la clave WW&lt;Trn&gt; / el nombre del panel queda para los hipervínculos y las
+     * acciones que la pregunten. Con `entrada: clave` (por defecto), la clave del programa, como WorkWithPlus.
+     */
+    public static boolean entradaPorMenu() { Config c = config(); return c != null && c.entrada().equals("menu"); }
+
+    /** Entrar a un programa: su clave, salvo que la entrada la decida el menú. */
+    public static boolean puedeEntrar(String clave) { return entradaPorMenu() || puede(clave); }
+
     /** Si el usuario tiene el rol administrador (entra siempre al panel de Seguridad, aunque falten las claves). */
     public static boolean esAdministrador() {
         if (config() == null) return true;
@@ -137,6 +150,7 @@ public final class OptimistPermisos {
     /** Una ruta del menú (trn/x, wbp/x, cns/x, seguridad). Las demás pantallas no tienen clave. */
     public static boolean puedeRuta(String ruta) {
         if (ruta == null || config() == null) return true;
+        if (entradaPorMenu() && !ruta.replaceAll("^/+", "").toLowerCase(Locale.ROOT).startsWith("seguridad")) return true;   // E5b: lo decide el menú
         String r = ruta.replaceAll("^/+", "");
         int i = r.indexOf('/');
         String tipo = i < 0 ? r : r.substring(0, i), nombre = i < 0 ? "" : r.substring(i + 1);
