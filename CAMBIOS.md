@@ -2,6 +2,17 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E5c — `color:` en las acciones y versión 0.5.0 (01/11/2026)
+
+Diego: el motor da por cada TRN Insert, Update, Delete y View y los mecanismos genéricos; todo lo demás es de cada aplicación, y nada
+del ERP (nombres, colores, reglas) entra al motor. Y preocupación por tener que bajar el motor a cada rato: reglas en `CLAUDE.md`
+(compatibilidad hacia atrás, versiones numeradas, cadencia para los clientes).
+
+- **`color:`** en las acciones del renglón y los botones del WorkWith, de las vistas y de las consultas: el color del ícono
+  (`"#1e7fd8"`, `"30,100,180"` o `red`, como los colores de V45). Sin él, el color por defecto del ícono (la tabla de V56d, que ya no
+  nombra funciones del ERP). El Designer lo deja como está.
+- Versión del motor **0.5.0** (antes 0.1.0-SNAPSHOT); el ERP y la plantilla del Designer la declaran en su `pom.xml`.
+
 ## E5b — Permisos en el ERP: la entrada la decide el menú (01/11/2026)
 
 Al prender `permisos:` en OPTIMIST ERP (GeneXus 15 + WorkWithPlus) se vio, con la KB a la vista, que OPTIMIST no pide la clave

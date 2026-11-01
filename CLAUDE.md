@@ -48,6 +48,20 @@
 - Versión de prueba (pendiente, con el licenciamiento): 15 días y hasta 10 TRN en el proyecto; lo hecho en prueba corre con cartel.
 - Licencia: clave por PC (huella de la PC → archivo de licencia firmado con clave privada de DATAFIX).
 
+## Reglas del producto (Diego, 01/11/2026)
+- **Lo que el motor da por cada TRN es Insert, Update, Delete y View** (claves `WW<Trn>_Insert/_Update/_Delete` y `WW<Trn>`), más los
+  mecanismos genéricos: `acciones:` del renglón, `botones:`, `permiso:`, `color:`, consultas, web panels, procedimientos. Toda
+  funcionalidad propia de una aplicación (autorizar, cancelar, ver facturación, despacho…) va en los YAML y procedimientos de ESA
+  aplicación. **Nunca un nombre, un color, una tabla ni una regla del ERP en el motor**: si el motor necesita algo para un caso del
+  ERP, se agrega como opción genérica del YAML (que otro desarrollador también pueda usar) o como método de `OptimistExtension`.
+- **Compatibilidad hacia atrás, sin excepciones**: un YAML escrito para la versión N corre igual en la N+1. Toda clave nueva es
+  opcional y su valor por defecto es lo que el motor hacía antes. Si un comportamiento tiene que cambiar, va como opción nueva.
+- **Versiones numeradas**: el `pom.xml` del motor lleva la versión (0.5.0 con la E5b; una por cada E), y cada aplicación declara en su
+  `pom.xml` la versión del motor que usa (`optimist.engine.version`; la plantilla del Designer pone la del motor con que se armó).
+  Al bajar un motor nuevo se le dice a Diego el número.
+- **Cadencia**: mientras se migra el ERP, el motor cambia cuando hace falta (es desarrollo). Para los clientes del motor, una versión
+  cada uno o dos meses, con changelog, manual y Designer de esa versión; nunca un motor para un caso puntual.
+
 ## Cómo se compila
 - Maven, Java 25. **E4: el motor es una librería** (`optimist-engine.jar`): `mvn install` en `engine` y las aplicaciones lo usan como
   dependencia (`optimist.engine.version` en su pom). Después de bajar el motor, Diego tiene que hacer `mvn install` en `engine`.

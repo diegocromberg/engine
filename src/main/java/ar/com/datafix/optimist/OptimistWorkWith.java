@@ -371,8 +371,11 @@ public final class OptimistWorkWith {
     }
 
     /** V41: una acción del menú del renglón: ícono, texto y qué hace. (Las de cada TRN se suman a la lista.) */
-    public record Accion(VaadinIcon icono, String texto, Runnable hacer, String porQueNo) {
-        public Accion(VaadinIcon icono, String texto, Runnable hacer) { this(icono, texto, hacer, null); }
+    public record Accion(VaadinIcon icono, String texto, Runnable hacer, String porQueNo, String color) {
+        public Accion(VaadinIcon icono, String texto, Runnable hacer) { this(icono, texto, hacer, null, null); }
+        public Accion(VaadinIcon icono, String texto, Runnable hacer, String porQueNo) { this(icono, texto, hacer, porQueNo, null); }
+        /** E5c: `color:` de la acción en el YAML; sin él, el color por defecto del ícono. */
+        public String colorFinal() { return color == null || color.isBlank() ? colorAccion(icono) : color.trim(); }
         /** V65o: no corresponde a este renglón pero se muestra en gris, con el motivo (como las acciones deshabilitadas de GeneXus). */
         public boolean enGris() { return hacer == null && porQueNo != null; }
     }
@@ -443,7 +446,7 @@ public final class OptimistWorkWith {
             icono.addClassName("optimist-accion-icono");
             icono.setSize("18px");
             icono.getStyle().set("padding", "0").set("min-width", "18px").set("min-height", "18px")
-                    .set("color", a.enGris() ? "var(--lumo-disabled-text-color, #9aa0a6)" : colorAccion(a.icono()));
+                    .set("color", a.enGris() ? "var(--lumo-disabled-text-color, #9aa0a6)" : a.colorFinal());
             if (a.enGris()) icono.getStyle().set("opacity", "0.45");
             Button b = new Button(icono, e -> { if (a.enGris()) avisarPorQueNo(a); else a.hacer().run(); });
             b.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE, ButtonVariant.LUMO_ICON);
@@ -459,7 +462,10 @@ public final class OptimistWorkWith {
         return fila;
     }
 
-    /** V56d: el color de cada acción en el renglón (como los íconos de WorkWithPlus): cada tipo de acción, el suyo. */
+    /**
+     * V56d: el color por defecto de cada ícono de acción (como los íconos de WorkWithPlus). Es solo un valor por defecto por
+     * ícono: la aplicación pone el suyo con `color:` en la acción del YAML (E5c). El motor no sabe qué hace cada acción.
+     */
     static String colorAccion(VaadinIcon icono) {
         if (icono == null) return "#0f9d8a";
         return switch (icono) {
@@ -482,8 +488,8 @@ public final class OptimistWorkWith {
             case CLIPBOARD_CHECK -> "#1e7fd8";              // Revisar despacho: azul
             case BARCODE -> "#4f6b7a";                      // Asignar partidas: gris azulado
             case ROTATE_LEFT, REFRESH -> "#e67e22";         // Reiniciar / Reautorizar: naranja
-            case TRUCK -> "#3f51b5";                        // Ver despacho: índigo
-            case FOLDER_OPEN, FOLDER -> "#1e7fd8";          // Ver facturación / comprobantes relacionados: carpeta azul (E5b)
+            case TRUCK -> "#3f51b5";                        // índigo
+            case FOLDER_OPEN, FOLDER -> "#1e7fd8";          // azul
             default -> {                                    // otro ícono: un color fijo según el ícono
                 String[] p = {"#00897b", "#5e35b1", "#f4511e", "#3949ab", "#6d4c41", "#d81b60", "#43a047", "#fb8c00"};
                 yield p[Math.floorMod(icono.name().hashCode(), p.length)];
@@ -514,7 +520,7 @@ public final class OptimistWorkWith {
     private static void agregar(ContextMenu menu, Accion a) {
         Icon icono = iconoAccion(a.icono()).create();
         icono.addClassName("optimist-accion-icono");
-        icono.getStyle().set("color", colorAccion(a.icono()));   // V56f: el mismo color que en el renglón
+        icono.getStyle().set("color", a.colorFinal());   // V56f: el mismo color que en el renglón
         Span texto = new Span(a.texto());
         HorizontalLayout fila = new HorizontalLayout(icono, texto);
         fila.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER);
@@ -842,7 +848,7 @@ public final class OptimistWorkWith {
             if (l != null) return l;
             l = accionesDeFila != null
                 ? accionesDeFila.apply(item).stream()
-                    .map(a -> a == null || a.hacer() == null ? a : new Accion(a.icono(), a.texto(), () -> { marcar(item); a.hacer().run(); }))
+                    .map(a -> a == null || a.hacer() == null ? a : new Accion(a.icono(), a.texto(), () -> { marcar(item); a.hacer().run(); }, null, a.color()))
                     .toList()
                 : List.of(new Accion(VaadinIcon.PENCIL, "Modificar", () -> { marcar(item); modificar.accept(item); }),
                           new Accion(VaadinIcon.SEARCH, "Visualizar", () -> { marcar(item); visualizar.accept(item); }),

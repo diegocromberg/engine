@@ -74,7 +74,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
      * renglón o de la cabecera, &Variables, constantes) y la condición 'si'. modo: el de la TRN (Display / Update).
      */
     public record AccionCns(String titulo, String icono, String si, String tipo, String objeto, String modo, List<String> parametros,
-                            String confirmar, String permiso) {}   // E5b: permiso: la clave de WorkWithPlus (sin ella no se ve)
+                            String confirmar, String permiso, String color) {}   // E5b permiso: la clave (sin ella no se ve); E5c color:
 
     /** V66l: un dato de la cabecera: tipo texto / numero / fecha; trn + clave = vínculo que la abre en Visualizar; mail = mailto. */
     public record CampoCab(String nombre, String etiqueta, String tipo, String formato, String trn, String clave, boolean mail) {}
@@ -259,7 +259,8 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                     m.get("modo") == null ? null : String.valueOf(m.get("modo")).trim(),
                     m.get("parametros") instanceof List<?> lp ? lp.stream().map(x -> String.valueOf(x).trim()).toList() : List.of(),
                     m.get("confirmar") == null ? null : String.valueOf(m.get("confirmar")),
-                    m.get("permiso") == null ? null : String.valueOf(m.get("permiso")).trim()));
+                    m.get("permiso") == null ? null : String.valueOf(m.get("permiso")).trim(),
+                    OptimistTrnDefinicion.color(m, donde + " '" + titulo + "'")));
         }
         return List.copyOf(r);
     }
@@ -811,8 +812,8 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         for (AccionCns a : def.acciones()) {
             if (!OptimistPermisos.puede(a.permiso())) continue;   // E5b
             boolean ok = cumple(a.si(), f);
-            OptimistWorkWith.Accion ac = ok ? new OptimistWorkWith.Accion(icono(a.icono()), a.titulo(), () -> accion(a, f))
-                    : new OptimistWorkWith.Accion(icono(a.icono()), a.titulo(), null, "No corresponde a este renglón.");
+            OptimistWorkWith.Accion ac = ok ? new OptimistWorkWith.Accion(icono(a.icono()), a.titulo(), () -> accion(a, f), null, a.color())
+                    : new OptimistWorkWith.Accion(icono(a.icono()), a.titulo(), null, "No corresponde a este renglón.", a.color());
             String k = a.titulo().trim().toLowerCase(Locale.ROOT) + "|" + a.icono();
             Integer i = lugar.get(k);
             if (i == null) { lugar.put(k, r.size()); r.add(ac); }

@@ -241,10 +241,14 @@ public final class OptimistTrnDefinicion {
      * icono: nombre de VaadinIcon (CLOCK, BAN, COPY, ENVELOPE...). si: condición (null = siempre). confirmar: pregunta antes.
      */
     public record AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
-                                List<String> parametros, String confirmar, boolean porRenglon, String permiso) {
+                                List<String> parametros, String confirmar, boolean porRenglon, String permiso, String color) {
+        public AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
+                             List<String> parametros, String confirmar, boolean porRenglon, String permiso) {
+            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, porRenglon, permiso, null);
+        }
         public AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
                              List<String> parametros, String confirmar) {
-            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, false, null);
+            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, false, null, null);
         }
         /** E5a: sin permiso (la acción no pide una clave de seguridad). */
         public AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
@@ -1142,7 +1146,7 @@ public final class OptimistTrnDefinicion {
                 // E5a: permiso: la clave de seguridad que hace falta (si el usuario no la tiene, la acción no aparece)
                 String permiso = a.get("permiso") == null ? null : ident(String.valueOf(a.get("permiso")).trim(), donde + ".permiso");
                 rs.add(new AccionRenglon(titulo, opcional(a, "icono"), cond.apply(a.get("si"), donde + ".si"), tipo, obj, modo,
-                        List.copyOf(ps), opcional(a, "confirmar"), porRenglon, permiso));
+                        List.copyOf(ps), opcional(a, "confirmar"), porRenglon, permiso, color(a, donde)));
             }
         } else if (m.get("renglon") != null) throw error("workwith.acciones.renglon debe ser una lista");
         return new Acciones(cond.apply(m.get("modificar"), "workwith.acciones.modificar"), cond.apply(m.get("visualizar"), "workwith.acciones.visualizar"),
@@ -2018,6 +2022,11 @@ public final class OptimistTrnDefinicion {
         }
         return String.valueOf(v).trim();
     }
+    /** E5c: `color:` de una acción o botón (como los colores de V45: "#1e7fd8", "30,100,180" o red); sin él, el del ícono. */
+    static String color(Map<?, ?> a, String donde) {
+        return a.get("color") == null ? null : colorCss(String.valueOf(a.get("color")), donde + ".color");
+    }
+
     private static String opcional(Map<String, Object> m, String k) {
         Object v = m.get(k);
         return v == null || String.valueOf(v).isBlank() ? null : String.valueOf(v).trim();

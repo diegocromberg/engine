@@ -236,7 +236,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 () -> siSigue(ac.borrar(), f, "Eliminar", this::confirmarBorrado)));
         for (OptimistTrnDefinicion.AccionRenglon a : ac.renglon())
             if (posible(a.si()) && OptimistPermisos.puede(a.permiso()))   // E5a
-                r.add(accionOGris(icono(a.icono()), a.titulo(), a.si(), f, () -> accion(a, f)));
+                r.add(conColor(accionOGris(icono(a.icono()), a.titulo(), a.si(), f, () -> accion(a, f)), a.color()));
         // V56g: las acciones con el mismo título y el mismo ícono son UNA acción con variantes según el renglón (ej. en
         // BAIRES4, Modificar abre la TRN o la cabecera según el estado; Autorizar, con o sin motivo): comparten un solo
         // lugar, el de la primera, y en cada renglón va la variante que corresponde.
@@ -335,6 +335,11 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             }
         }
         return variablesDeInstalacion = r;
+    }
+
+    /** E5c: la acción con el `color:` del YAML (sin él, el del ícono). */
+    private static OptimistWorkWith.Accion conColor(OptimistWorkWith.Accion a, String color) {
+        return color == null ? a : new OptimistWorkWith.Accion(a.icono(), a.texto(), a.hacer(), a.porQueNo(), color);
     }
 
     /** V65o: la acción, o en gris con el motivo si no corresponde a este renglón. */
