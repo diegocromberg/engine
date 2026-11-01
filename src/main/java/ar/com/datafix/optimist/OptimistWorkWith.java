@@ -1270,6 +1270,12 @@ public final class OptimistWorkWith {
                 }
                 anterior = e.getValue();
             }
+            // E6: las columnas que no maneja el usuario (ej. las de tildes de una consulta) se quedan donde están, después
+            // de las acciones: setColumnOrder exige TODAS las columnas (si falta una, Vaadin tira error y no se aplica nada:
+            // al refrescar se perdían las columnas elegidas y los anchos)
+            int lugar = orden.indexOf(columnaAcciones) + 1;
+            for (Grid.Column<T> c : grilla.getColumns())
+                if (!orden.contains(c)) orden.add(lugar++, c);
             grilla.setColumnOrder(orden);
         }
 
