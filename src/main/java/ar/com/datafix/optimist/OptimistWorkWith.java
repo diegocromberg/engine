@@ -483,6 +483,7 @@ public final class OptimistWorkWith {
             case BARCODE -> "#4f6b7a";                      // Asignar partidas: gris azulado
             case ROTATE_LEFT, REFRESH -> "#e67e22";         // Reiniciar / Reautorizar: naranja
             case TRUCK -> "#3f51b5";                        // Ver despacho: índigo
+            case FOLDER_OPEN, FOLDER -> "#1e7fd8";          // Ver facturación / comprobantes relacionados: carpeta azul (E5b)
             default -> {                                    // otro ícono: un color fijo según el ícono
                 String[] p = {"#00897b", "#5e35b1", "#f4511e", "#3949ab", "#6d4c41", "#d81b60", "#43a047", "#fb8c00"};
                 yield p[Math.floorMod(icono.name().hashCode(), p.length)];

@@ -210,8 +210,12 @@ public final class OptimistPermisos {
             for (OptimistPanel.Boton b : bs)
                 if (b.permiso() != null) agregar.accept(new Funcionalidad(b.permiso(), x.titulo + ": " + b.titulo(), 2, x.nombre));
         }
-        for (String cn : new TreeSet<>(OptimistConsultaView.nombres()))
-            agregar.accept(new Funcionalidad(OptimistConsultaView.nombreReal(cn), OptimistConsultaView.tituloDe(cn), 4, null));
+        for (String cn : new TreeSet<>(OptimistConsultaView.nombres())) {
+            String real = OptimistConsultaView.nombreReal(cn), tit = OptimistConsultaView.tituloDe(cn);
+            agregar.accept(new Funcionalidad(real, tit, 4, null));
+            for (OptimistConsultaView.AccionCns a : OptimistConsultaView.accionesConPermiso(cn))   // E5b
+                agregar.accept(new Funcionalidad(a.permiso(), tit + ": " + a.titulo(), 2, real));
+        }
         Config c = config();
         if (c != null) c.claves().forEach((k, d) -> agregar.accept(new Funcionalidad(k, d, 2, null)));
         return r;
