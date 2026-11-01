@@ -921,16 +921,22 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         }
         if (!"proc".equals(b.tipo())) throw new IllegalArgumentException("el botón '" + b.titulo() + "' con tilde: tiene que llamar a un proc:");
         List<Map<String, Object>> filas = new ArrayList<>(marcados.values());
-        Runnable correr = () -> {
-            List<String> mensajes = new ArrayList<>();
+        Nivel cabLote = trnConColumnas().cabecera();
+        record Hecho(List<String> mensajes, List<Object[]> dejados, Map<String, byte[]> archivos) {}
+        java.util.function.Function<OptimistProgreso.Avance, Hecho> trabajo = av -> {
+            // los mensajes iguales de varios renglones se juntan en uno ("3 renglones: ...")
+            Map<String, List<String>> porMensaje = new LinkedHashMap<>();
             OptimistContexto ctx = OptimistContexto.actual();
             OptimistProcedimiento.tomarTrnAAbrir();
             OptimistProcedimiento.tomarPdfs();
-            int hechos = 0;
+            OptimistProcedimiento.PROGRESO_MANUAL.set(true);   // el % lo lleva el lote (renglones hechos / total)
+            int hechos = 0, k = 0;
             List<Object[]> dejados = new ArrayList<>();
             Map<String, byte[]> archivos = new LinkedHashMap<>();
             for (Map<String, Object> f : filas) {
-                if (b.si() != null && !cumple(b.si(), f)) { mensajes.add(descripcionFila(f) + ": no corresponde."); continue; }
+                av.avance(k++, filas.size());
+                av.texto(b.titulo() + ": " + descripcionFila(f));
+                if (b.si() != null && !cumple(b.si(), f)) { porMensaje.computeIfAbsent("no corresponde.", x -> new ArrayList<>()).add(descripcionFila(f)); continue; }
                 List<Object> args = new ArrayList<>();
                 for (String p : b.parametros()) args.add(parametro(p, f));
                 if (ctx != null) ctx.poner("MensajeError", "");
@@ -947,10 +953,10 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                         Object v = salida.get(pr.parametros.get(i).nombre().toLowerCase(Locale.ROOT));
                         if (v instanceof String sv && !sv.isBlank()) m.add(sv.strip());
                     }
-                    for (String x : m) mensajes.add(descripcionFila(f) + ": " + x);
-                    marcados.remove(claveFila(trnConColumnas().cabecera(), f));
+                    for (String x : m) porMensaje.computeIfAbsent(x, y -> new ArrayList<>()).add(descripcionFila(f));
+                    marcados.remove(claveFila(cabLote, f));
                 } catch (SQLException | RuntimeException ex) {
-                    mensajes.add(descripcionFila(f) + ": " + ex.getMessage());
+                    porMensaje.computeIfAbsent(String.valueOf(ex.getMessage()), y -> new ArrayList<>()).add(descripcionFila(f));
                 } finally {
                     if (ctx != null) ctx.poner("MensajeError", "");
                     OptimistProcedimiento.tomarTrnAAbrir();
@@ -958,15 +964,17 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                     dejados.addAll(OptimistProcedimiento.tomarPdfs());
                 }
             }
+            av.avance(filas.size(), filas.size());
             if (b.despues() != null && !b.despues().isBlank()) {
+                av.texto(b.titulo() + ": terminando…");
                 try (Connection c = db.openConnection()) {
                     List<String> m = new ArrayList<>();
                     OptimistProcedimientos.ejecutar(b.despues(), new ArrayList<>(), c, m);
                     Object me = ctx == null ? null : ctx.valor("MensajeError");
                     if (me instanceof String sm && !sm.isBlank()) m.add(sm.strip());
-                    mensajes.addAll(m);
+                    for (String x : m) porMensaje.computeIfAbsent(x, y -> new ArrayList<>()).add("");
                 } catch (SQLException | RuntimeException ex) {
-                    mensajes.add(b.despues() + ": " + ex.getMessage());
+                    porMensaje.computeIfAbsent(b.despues() + ": " + ex.getMessage(), y -> new ArrayList<>()).add("");
                 } finally {
                     if (ctx != null) ctx.poner("MensajeError", "");
                     OptimistProcedimiento.tomarTrnAAbrir();
@@ -974,19 +982,33 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                     dejados.addAll(OptimistProcedimiento.tomarPdfs());
                 }
             }
-            String resumen = b.titulo() + ": " + hechos + " de " + filas.size() + " listo" + (filas.size() == 1 ? "" : "s") + ".";
-            mensajes.add(0, resumen);
+            List<String> mensajes = new ArrayList<>();
+            mensajes.add(b.titulo() + ": " + hechos + " de " + filas.size() + " listo" + (filas.size() == 1 ? "" : "s") + ".");
+            for (Map.Entry<String, List<String>> e : porMensaje.entrySet()) {
+                List<String> quienes = e.getValue().stream().filter(x -> !x.isBlank()).toList();
+                String texto = e.getKey().length() > 400 ? e.getKey().substring(0, 400) + "…" : e.getKey();
+                if (quienes.isEmpty()) mensajes.add(texto);
+                else if (quienes.size() == 1) mensajes.add(quienes.get(0) + ": " + texto);
+                else if (quienes.size() == filas.size()) mensajes.add("Todos (" + quienes.size() + "): " + texto);
+                else mensajes.add(quienes.size() + " renglones (" + String.join(", ", quienes.subList(0, Math.min(5, quienes.size()))) + (quienes.size() > 5 ? "…" : "") + "): " + texto);
+            }
+            return new Hecho(mensajes, dejados, archivos);
+        };
+        java.util.function.Consumer<Hecho> alTerminar = h -> {
             refrescar();
             // lo que dejaron: el último PDF se muestra; un archivo que no es PDF se baja
             Object[] pdf = null, otro = null;
-            for (Object[] x : dejados) { if (String.valueOf(x[0]).toLowerCase(Locale.ROOT).endsWith(".pdf")) pdf = x; else otro = x; }
-            if (otro == null && !archivos.isEmpty()) { Map.Entry<String, byte[]> ult = null; for (Map.Entry<String, byte[]> e : archivos.entrySet()) ult = e; otro = new Object[]{OptimistProcedimiento.nombreDescarga(ult.getKey()), ult.getValue()}; }
+            for (Object[] x : h.dejados()) { if (String.valueOf(x[0]).toLowerCase(Locale.ROOT).endsWith(".pdf")) pdf = x; else otro = x; }
+            if (otro == null && !h.archivos().isEmpty()) { Map.Entry<String, byte[]> ult = null; for (Map.Entry<String, byte[]> e : h.archivos().entrySet()) ult = e; otro = new Object[]{OptimistProcedimiento.nombreDescarga(ult.getKey()), ult.getValue()}; }
             if (otro != null) OptimistVisorPdf.bajar(String.valueOf(otro[0]), (byte[]) otro[1]);
             else if (pdf != null) OptimistVisorPdf.abrir(b.titulo(), String.valueOf(pdf[0]), (byte[]) pdf[1]);
-            com.vaadin.flow.component.notification.Notification.show(String.join("\n", mensajes), mensajes.size() > 1 ? 12000 : 4000,
+            com.vaadin.flow.component.notification.Notification.show(String.join("\n", h.mensajes()), h.mensajes().size() > 1 ? 12000 : 4000,
                     pdf != null || otro != null ? com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START
                             : com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
         };
+        Runnable correr = () -> OptimistProgreso.correr("lote-" + def.nombre(), bloqueado -> { pantalla.grilla.setEnabled(!bloqueado); pantalla.barraAcciones.setEnabled(!bloqueado); },
+                false, trabajo, alTerminar, ex -> com.vaadin.flow.component.notification.Notification.show(b.titulo() + ": " + ex.getMessage(), 10000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE));
         String pregunta = (b.confirmar() == null || b.confirmar().isBlank() ? "¿" + b.titulo() + "?" : b.confirmar())
                 + " (" + filas.size() + " " + (filas.size() == 1 ? "renglón" : "renglones") + ")";
         new com.vaadin.flow.component.confirmdialog.ConfirmDialog(b.titulo(), pregunta, "Sí", e -> correr.run(), "No", e -> { }).open();

@@ -20,6 +20,10 @@ Diego: cualquier grilla tipo WW tiene que poder agrandar las columnas, filtrar y
   del pedido en la Facturación Masiva), y la clase del WorkWith (`estilos`).
 - Corregido: en una consulta con columnas de tildes, al refrescar (F5) se perdían las columnas elegidas y los anchos (el orden guardado
   no incluía las columnas de tildes y Vaadin lo rechazaba entero).
+- **E6c**: el lote de una consulta (botones con `tilde:`) corre en segundo plano con la ventanita "Procesando…" y el % de avance
+  (renglones hechos / total, y el texto que informa el procedimiento con `MostrarProgreso`), igual que los web panels: la pantalla
+  no queda congelada. `OptimistProgreso`, la ventanita de V66x hecha reusable. Los mensajes iguales de varios renglones se juntan
+  en uno ("Todos (10): …", "3 renglones (…): …") en vez de repetirse.
 - Versión 0.6.0.
 
 ## E5c — `color:` en las acciones y versión 0.5.0 (01/11/2026)
