@@ -12,6 +12,10 @@ Diego: cualquier grilla tipo WW tiene que poder agrandar las columnas, filtrar y
   El orden por título y el ancho de las columnas ya estaban (V74).
 - Un archivo que deja un evento o un procedimiento y no es un PDF (ZIP, CSV, Excel…) se baja al navegador, con su tipo
   (`OptimistVisorPdf.abrir` / `bajar`). Lo usa la Facturación Masiva del ERP para el ZIP de los comprobantes.
+- **Consultas con tildes y lotes** (guía 21): `tildes:` (columnas de tildes, que se recuerdan entre páginas y filtros, con el tilde del
+  título para la página) y `botones` con `tilde: Columna` + `proc:` (corre por cada tildado) + `despues:` (una vez al final); lo que
+  dejan (PDF / archivo) se muestra o se baja al final. Así una consulta es un WorkWith completo (Excel, PDF, columnas, Apariencia, Σ,
+  PostIt, filtros, orden, páginas) que además procesa los tildados: la Facturación Masiva del ERP (`consultas/WPMultiML.yaml`).
 - Versión 0.6.0.
 
 ## E5c — `color:` en las acciones y versión 0.5.0 (01/11/2026)

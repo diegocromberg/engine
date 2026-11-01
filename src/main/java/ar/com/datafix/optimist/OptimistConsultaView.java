@@ -74,7 +74,15 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
      * renglón o de la cabecera, &Variables, constantes) y la condición 'si'. modo: el de la TRN (Display / Update).
      */
     public record AccionCns(String titulo, String icono, String si, String tipo, String objeto, String modo, List<String> parametros,
-                            String confirmar, String permiso, String color) {}   // E5b permiso: la clave (sin ella no se ve); E5c color:
+                            String confirmar, String permiso, String color, String tilde, String despues) {   // E5b permiso; E5c color; E6 tilde/despues
+        public AccionCns(String titulo, String icono, String si, String tipo, String objeto, String modo, List<String> parametros,
+                         String confirmar, String permiso, String color) {
+            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, permiso, color, null, null);
+        }
+    }
+
+    /** E6: una columna de tildes de la consulta (`tildes:`): el usuario tilda renglones y un botón con `tilde:` los procesa. */
+    public record Tilde(String nombre, String titulo) {}
 
     /** V66l: un dato de la cabecera: tipo texto / numero / fecha; trn + clave = vínculo que la abre en Visualizar; mail = mailto. */
     public record CampoCab(String nombre, String etiqueta, String tipo, String formato, String trn, String clave, boolean mail) {}
@@ -104,7 +112,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                            Map<String, EnlaceCns> enlaces, Subtitulo subtitulo, List<String> ocultas,
                            List<Variable> variables, String condicion, Map<String, List<Regla>> estilos, List<AccionCns> acciones,
                            List<AccionCns> botones, Cabecera cabecera, List<String> orden, Map<String, Boolean> totales,
-                           String totalesMoneda) {
+                           String totalesMoneda, List<Tilde> tildes) {
         /** V75: ¿la columna va con total al pie? 'totales:' / 'sinTotales:' de la consulta; si no, los campos con dominio de importe. */
         boolean totaliza(String col, Campo c) {
             for (Map.Entry<String, Boolean> e : totales.entrySet()) if (e.getKey().equalsIgnoreCase(col)) return e.getValue();
@@ -239,7 +247,20 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                 acciones((List<Object>) y.getOrDefault("botones", List.of()), "botones"), cabecera,
                 ((List<Object>) y.getOrDefault("orden", List.of())).stream().map(x -> String.valueOf(x).trim()).toList(),
                 OptimistTrnDefinicion.ajustesTotales(y.get("totales"), y.get("sinTotales")),
-                y.get("totalesMoneda") == null ? null : String.valueOf(y.get("totalesMoneda")).trim());
+                y.get("totalesMoneda") == null ? null : String.valueOf(y.get("totalesMoneda")).trim(), tildes(y.get("tildes")));
+    }
+
+    /** E6: `tildes: [Generar, Descargar]` o `[{nombre: Generar, titulo: Generar factura}]`. */
+    private static List<Tilde> tildes(Object o) {
+        List<Tilde> r = new ArrayList<>();
+        if (o instanceof List<?> l) for (Object x : l) {
+            if (x instanceof Map<?, ?> m) {
+                String n = String.valueOf(m.get("nombre")).trim();
+                r.add(new Tilde(n, m.get("titulo") == null ? n : String.valueOf(m.get("titulo")).trim()));
+            } else if (x != null) { String n = String.valueOf(x).trim(); r.add(new Tilde(n, n)); }
+        }
+        for (Tilde t : r) if (!t.nombre().matches("[A-Za-z_]\\w*")) throw new IllegalArgumentException("tildes: nombre no válido '" + t.nombre() + "'");
+        return List.copyOf(r);
     }
 
     /** V66l: acciones / botones del YAML: {titulo, icono, si, cns|panel|trn|proc: Nombre, modo, parametros, confirmar}. */
@@ -260,7 +281,9 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
                     m.get("parametros") instanceof List<?> lp ? lp.stream().map(x -> String.valueOf(x).trim()).toList() : List.of(),
                     m.get("confirmar") == null ? null : String.valueOf(m.get("confirmar")),
                     m.get("permiso") == null ? null : String.valueOf(m.get("permiso")).trim(),
-                    OptimistTrnDefinicion.color(m, donde + " '" + titulo + "'")));
+                    OptimistTrnDefinicion.color(m, donde + " '" + titulo + "'"),
+                    m.get("tilde") == null ? null : String.valueOf(m.get("tilde")).trim(),      // E6: corre el proc por cada renglón tildado en esa columna
+                    m.get("despues") == null ? null : String.valueOf(m.get("despues")).trim()));   // E6: y después, este proc una vez (sin parámetros)
         }
         return List.copyOf(r);
     }
@@ -581,6 +604,9 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         refrescarCabecera();
         Trn base = trnConColumnas();
         Nivel cab = base.cabecera();
+        tildados.clear();
+        tildeTodos.clear();
+        for (Tilde t : def.tildes()) columnaTilde(t, cab);   // E6: las columnas de tildes, antes de las de datos
         for (String col : def.columnas()) {
             ColSql cs = colSql(col);
             if (cs != null) columnaSql(cs);
@@ -828,7 +854,150 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         new com.vaadin.flow.component.confirmdialog.ConfirmDialog(a.titulo(), a.confirmar(), "Sí", e -> correr.run(), "No", e -> { }).open();
     }
 
+    // ------------------------------------------------------------------ E6: tildes y botones sobre los tildados
+
+    /** E6: los renglones tildados por columna de tildes (clave del renglón -> renglón, en el orden en que se tildaron). */
+    private final Map<String, LinkedHashMap<String, Map<String, Object>>> tildados = new LinkedHashMap<>();
+    private final Map<String, com.vaadin.flow.component.checkbox.Checkbox> tildeTodos = new LinkedHashMap<>();
+
+    private static String claveFila(Nivel cab, Map<String, Object> f) {
+        StringBuilder k = new StringBuilder();
+        for (Campo c : cab.claves()) k.append(f.get(c.nombre())).append('|');
+        return k.toString();
+    }
+
+    /** E6: una columna de tildes: un tilde por renglón (se recuerda entre páginas y filtros) y el del título tilda la página. */
+    private void columnaTilde(Tilde t, Nivel cab) {
+        LinkedHashMap<String, Map<String, Object>> marcados = tildados.computeIfAbsent(t.nombre(), k -> new LinkedHashMap<>());
+        com.vaadin.flow.component.checkbox.Checkbox todos = new com.vaadin.flow.component.checkbox.Checkbox(t.titulo());
+        todos.getElement().setAttribute("title", "Tildar o destildar todos los de esta página");
+        tildeTodos.put(t.nombre(), todos);
+        Grid.Column<Map<String, Object>> col = pantalla.grilla.addComponentColumn(f -> {
+            com.vaadin.flow.component.checkbox.Checkbox cb = new com.vaadin.flow.component.checkbox.Checkbox();
+            String k = claveFila(cab, f);
+            cb.setValue(marcados.containsKey(k));
+            cb.addValueChangeListener(e -> {
+                if (!e.isFromClient()) return;
+                if (Boolean.TRUE.equals(e.getValue())) marcados.put(k, f); else marcados.remove(k);
+                actualizarTildeTodos(t, cab);
+            });
+            return cb;
+        });
+        col.setHeader(todos).setKey("tilde_" + t.nombre()).setAutoWidth(true).setFlexGrow(0).setTextAlign(ColumnTextAlign.CENTER);
+        todos.addValueChangeListener(e -> {
+            if (!e.isFromClient()) return;
+            boolean v = Boolean.TRUE.equals(e.getValue());
+            for (Map<String, Object> f : pantalla.grilla.getListDataView().getItems().toList()) {
+                String k = claveFila(cab, f);
+                if (v) marcados.put(k, f); else marcados.remove(k);
+            }
+            pantalla.grilla.getDataProvider().refreshAll();
+        });
+    }
+
+    private void actualizarTildeTodos(Tilde t, Nivel cab) {
+        com.vaadin.flow.component.checkbox.Checkbox todos = tildeTodos.get(t.nombre());
+        Map<String, Map<String, Object>> marcados = tildados.get(t.nombre());
+        if (todos == null || marcados == null) return;
+        List<Map<String, Object>> pagina = pantalla.grilla.getListDataView().getItems().toList();
+        boolean v = !pagina.isEmpty() && pagina.stream().allMatch(f -> marcados.containsKey(claveFila(cab, f)));
+        if (!Objects.equals(todos.getValue(), v)) todos.setValue(v);
+    }
+
+    /**
+     * E6: un botón con `tilde: Columna` (y `proc:`): corre el procedimiento por cada renglón tildado en esa columna, con los
+     * parámetros del renglón; después, el `despues:` una vez. Lo que dejen (PDF, archivo) se muestra o se baja al final, los
+     * mensajes van juntos y la lista se actualiza. Los tildes de lo procesado se sacan.
+     */
+    private void lote(AccionCns b) {
+        LinkedHashMap<String, Map<String, Object>> marcados = tildados.get(b.tilde());
+        if (marcados == null || marcados.isEmpty()) {
+            com.vaadin.flow.component.notification.Notification.show("Tildá en \"" + b.tilde() + "\" los renglones para \"" + b.titulo() + "\".", 6000,
+                    com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+            return;
+        }
+        if (!"proc".equals(b.tipo())) throw new IllegalArgumentException("el botón '" + b.titulo() + "' con tilde: tiene que llamar a un proc:");
+        List<Map<String, Object>> filas = new ArrayList<>(marcados.values());
+        Runnable correr = () -> {
+            List<String> mensajes = new ArrayList<>();
+            OptimistContexto ctx = OptimistContexto.actual();
+            OptimistProcedimiento.tomarTrnAAbrir();
+            OptimistProcedimiento.tomarPdfs();
+            int hechos = 0;
+            List<Object[]> dejados = new ArrayList<>();
+            Map<String, byte[]> archivos = new LinkedHashMap<>();
+            for (Map<String, Object> f : filas) {
+                if (b.si() != null && !cumple(b.si(), f)) { mensajes.add(descripcionFila(f) + ": no corresponde."); continue; }
+                List<Object> args = new ArrayList<>();
+                for (String p : b.parametros()) args.add(parametro(p, f));
+                if (ctx != null) ctx.poner("MensajeError", "");
+                try (Connection c = db.openConnection()) {
+                    List<String> m = new ArrayList<>();
+                    Map<String, Object> salida = OptimistProcedimientos.ejecutar(b.objeto(), args, c, m);
+                    hechos++;
+                    Object me = ctx == null ? null : ctx.valor("MensajeError");
+                    if (me instanceof String sm && !sm.isBlank()) m.add(sm.strip());
+                    // lo que el procedimiento devuelve en los parámetros "&Variable" (ej. &MsgError), como en el WorkWith
+                    OptimistProcedimiento pr = OptimistProcedimientos.buscar(b.objeto());
+                    for (int i = 0; pr != null && i < b.parametros().size() && i < pr.parametros.size(); i++) {
+                        if (!b.parametros().get(i).trim().startsWith("&")) continue;
+                        Object v = salida.get(pr.parametros.get(i).nombre().toLowerCase(Locale.ROOT));
+                        if (v instanceof String sv && !sv.isBlank()) m.add(sv.strip());
+                    }
+                    for (String x : m) mensajes.add(descripcionFila(f) + ": " + x);
+                    marcados.remove(claveFila(trnConColumnas().cabecera(), f));
+                } catch (SQLException | RuntimeException ex) {
+                    mensajes.add(descripcionFila(f) + ": " + ex.getMessage());
+                } finally {
+                    if (ctx != null) ctx.poner("MensajeError", "");
+                    OptimistProcedimiento.tomarTrnAAbrir();
+                    archivos.putAll(OptimistProcedimiento.ARCHIVOS.get());
+                    dejados.addAll(OptimistProcedimiento.tomarPdfs());
+                }
+            }
+            if (b.despues() != null && !b.despues().isBlank()) {
+                try (Connection c = db.openConnection()) {
+                    List<String> m = new ArrayList<>();
+                    OptimistProcedimientos.ejecutar(b.despues(), new ArrayList<>(), c, m);
+                    Object me = ctx == null ? null : ctx.valor("MensajeError");
+                    if (me instanceof String sm && !sm.isBlank()) m.add(sm.strip());
+                    mensajes.addAll(m);
+                } catch (SQLException | RuntimeException ex) {
+                    mensajes.add(b.despues() + ": " + ex.getMessage());
+                } finally {
+                    if (ctx != null) ctx.poner("MensajeError", "");
+                    OptimistProcedimiento.tomarTrnAAbrir();
+                    archivos.putAll(OptimistProcedimiento.ARCHIVOS.get());
+                    dejados.addAll(OptimistProcedimiento.tomarPdfs());
+                }
+            }
+            String resumen = b.titulo() + ": " + hechos + " de " + filas.size() + " listo" + (filas.size() == 1 ? "" : "s") + ".";
+            mensajes.add(0, resumen);
+            refrescar();
+            // lo que dejaron: el último PDF se muestra; un archivo que no es PDF se baja
+            Object[] pdf = null, otro = null;
+            for (Object[] x : dejados) { if (String.valueOf(x[0]).toLowerCase(Locale.ROOT).endsWith(".pdf")) pdf = x; else otro = x; }
+            if (otro == null && !archivos.isEmpty()) { Map.Entry<String, byte[]> ult = null; for (Map.Entry<String, byte[]> e : archivos.entrySet()) ult = e; otro = new Object[]{OptimistProcedimiento.nombreDescarga(ult.getKey()), ult.getValue()}; }
+            if (otro != null) OptimistVisorPdf.bajar(String.valueOf(otro[0]), (byte[]) otro[1]);
+            else if (pdf != null) OptimistVisorPdf.abrir(b.titulo(), String.valueOf(pdf[0]), (byte[]) pdf[1]);
+            com.vaadin.flow.component.notification.Notification.show(String.join("\n", mensajes), mensajes.size() > 1 ? 12000 : 4000,
+                    pdf != null || otro != null ? com.vaadin.flow.component.notification.Notification.Position.BOTTOM_START
+                            : com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+        };
+        String pregunta = (b.confirmar() == null || b.confirmar().isBlank() ? "¿" + b.titulo() + "?" : b.confirmar())
+                + " (" + filas.size() + " " + (filas.size() == 1 ? "renglón" : "renglones") + ")";
+        new com.vaadin.flow.component.confirmdialog.ConfirmDialog(b.titulo(), pregunta, "Sí", e -> correr.run(), "No", e -> { }).open();
+    }
+
+    /** E6: cómo se nombra un renglón en los mensajes del lote: la clave de la TRN. */
+    private String descripcionFila(Map<String, Object> f) {
+        StringBuilder k = new StringBuilder();
+        for (Campo c : trnConColumnas().cabecera().claves()) { if (k.length() > 0) k.append(' '); k.append(OptimistTrnCampos.mostrar(c, f.get(c.nombre()))); }
+        return k.toString();
+    }
+
     private void boton(AccionCns b) {
+        if (b.tilde() != null && !b.tilde().isBlank()) { lote(b); return; }   // E6
         if (!cumple(b.si(), null)) {
             com.vaadin.flow.component.notification.Notification.show("Ya no corresponde \"" + b.titulo() + "\".", 6000,
                     com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
