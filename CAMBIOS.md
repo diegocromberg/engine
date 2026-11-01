@@ -13,7 +13,8 @@ permisos de TRN y de funcionalidades nuevas; un panel para la seguridad con un b
 - El motor aplica las claves de WorkWithPlus: `WW<Trn>` (WorkWith y menú), `_Insert` / `_Update` / `_Delete` (+ Nuevo, Modificar
   —sin permiso abre para ver—, Eliminar), `<Campo>_Attribute` (`permisos.campos` en la TRN: campo y columna), el nombre del web panel o
   la consulta, y `permiso:` en acciones y botones del WorkWith y en botones de los web panels. Las carpetas del menú que quedan vacías
-  no se muestran. `SecIsAuthByFunctionalityKey` es nativo (reglas y procedimientos).
+  no se muestran. `SecIsAuthByFunctionalityKey` es nativo (reglas y procedimientos) **solo con `permisos:`**; sin `permisos:` sigue el
+  `.proc` de la aplicación (corregido el mismo día: en el ERP el nativo autorizaba a todos, ej. PEDCancelar, CAMBIOVENDEDOR).
 - **Panel de Seguridad** (`ruta: seguridad`): roles y su árbol de permisos con tildes, roles de cada usuario y **Actualizar
   permisos**: da de alta las claves que falten (TRN, campos, acciones, web panels, consultas, `permisos.claves`) y se las asigna al rol
   administrador. Así, lo que se agregue más adelante se carga solo.

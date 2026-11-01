@@ -150,11 +150,11 @@ public final class OptimistProcedimientos {
             if (!err.isEmpty()) LOG.warn("PDFAddWatermark: {}", err);
             return Map.of();
         });
-        // E5a: SecIsAuthByFunctionalityKey de WorkWithPlus: si el usuario tiene esa clave (OptimistPermisos; sin permisos
-        // configurados, siempre). Reemplaza al procedimiento de la KB si se importó.
+        // E5a: SecIsAuthByFunctionalityKey de WorkWithPlus: si el usuario tiene esa clave (OptimistPermisos). Con 'permisos:' en
+        // seguridad.yaml reemplaza al procedimiento de la aplicación (buscar); sin 'permisos:', manda el .proc de la aplicación si
+        // lo tiene (ej. el ERP), y si no, siempre autorizado.
         OptimistProcedimiento.registrarNativo("SecIsAuthByFunctionalityKey", "in: &SecFunctionalityKey, out: &IsAuthorized",
                 (in, c) -> Map.of("isauthorized", OptimistPermisos.puede(texto(in.get("secfunctionalitykey")))));
-        reemplazar("SecIsAuthByFunctionalityKey");
         // V66x: MostrarProgreso.Call(&Texto): lo que va haciendo un proceso largo, en la ventanita "Procesando…" del web panel
         OptimistProcedimiento.registrarNativo("MostrarProgreso", "in: &Texto", (in, c) -> {
             java.util.function.Consumer<String> f = OptimistProcedimiento.PROGRESO.get();
@@ -505,6 +505,7 @@ public final class OptimistProcedimientos {
     public static OptimistProcedimiento buscar(String nombre) {
         String clave = nombre.toLowerCase(Locale.ROOT);
         if (REEMPLAZOS.contains(clave)) { OptimistProcedimiento n = OptimistProcedimiento.nativo(nombre); if (n != null) return n; }
+        if (clave.equals("secisauthbyfunctionalitykey") && OptimistPermisos.activo()) return OptimistProcedimiento.nativo(nombre);   // E5a
         Resultado r = cargar();
         if (OptimistRecursos.desarrollo()) {
             refrescarSiCambio(clave);
