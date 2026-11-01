@@ -1753,9 +1753,10 @@ En un web panel: `botones: [{titulo: Procesar, evento: Procesar, permiso: VerRen
 
 **Panel de Seguridad** (en el menú: `{titulo: Seguridad, ruta: seguridad}`): entra el rol administrador o quien tenga la clave
 `OptimistSeguridad`. Tiene:
-- **Roles y permisos**: los roles (nuevo, cambiar, eliminar) y, por rol, el árbol de permisos con tildes (TRN → agregar, modificar,
+- **Roles y permisos**: los roles (nuevo, cambiar, **duplicar** con todos sus permisos, eliminar) y, por rol, el árbol de permisos con tildes (TRN → agregar, modificar,
   eliminar, campos, acciones; web panels; consultas; claves propias). Tildar una TRN tilda todo lo que tiene adentro.
-- **Usuarios**: los roles de cada usuario.
+- **Usuarios**: los roles de cada usuario; **Nuevo usuario** (usuario y contraseña, grabada como dice `tipoClave`) y **Duplicar**
+  (un usuario nuevo con los mismos roles). Los demás datos (nombre completo, email…) se cargan en la TRN de usuarios.
 - **Actualizar permisos** (como `SecFunctionalitiesToLoad` + `SecGrantAllAccessToAdminRole` de WorkWithPlus): da de alta en
   `SecFunctionality` las claves que falten (de todas las TRN, campos, acciones, web panels, consultas y `permisos.claves`), con su
   descripción y debajo de su TRN, y se las asigna al rol administrador (si no existe, lo crea). No borra nada. **Hay que tocarlo

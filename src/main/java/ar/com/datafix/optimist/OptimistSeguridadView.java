@@ -112,6 +112,11 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
         grillaRoles.addSelectionListener(e -> elegirRol(e.getFirstSelectedItem().orElse(null)));
         Button nuevo = new Button("Nuevo rol", VaadinIcon.PLUS.create(), e -> editarRol(null));
         Button cambiar = new Button("Cambiar", VaadinIcon.PENCIL.create(), e -> { if (rolActual != null) editarRol(rolActual); });
+        // Diego: duplicar un rol (con todos sus permisos)
+        Button duplicar = new Button("Duplicar", VaadinIcon.COPY.create(), e -> {
+            if (rolActual == null) Notification.show("Elegí el rol a duplicar.", 4000, Notification.Position.MIDDLE);
+            else editarRol(rolActual, true);
+        });
         Button borrar = new Button("Eliminar", VaadinIcon.CLOSE.create(), e -> {
             if (rolActual == null) return;
             if (rolActual.nombre().equalsIgnoreCase(OptimistPermisos.config().rolAdministrador())) {
@@ -121,7 +126,7 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
             Rol r = rolActual;
             confirmar("¿Confirmás eliminar el rol " + r.nombre() + "?", "Se le quitan sus permisos y se lo saca a los usuarios que lo tienen.", () -> eliminarRol(r));
         });
-        VerticalLayout izq = new VerticalLayout(new HorizontalLayout(nuevo, cambiar, borrar), grillaRoles);
+        VerticalLayout izq = new VerticalLayout(new HorizontalLayout(nuevo, cambiar, duplicar, borrar), grillaRoles);
         izq.setPadding(false);
         izq.setWidth(null);
 
@@ -163,8 +168,10 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
         return h;
     }
 
+    private final Grid<Usuario> usuarios = new Grid<>();
+    private final List<Usuario> todosUsuarios = new ArrayList<>();
+
     private Component panelUsuarios() {
-        Grid<Usuario> usuarios = new Grid<>();
         usuarios.addColumn(Usuario::nombre).setHeader("Usuario").setAutoWidth(true);
         usuarios.addThemeVariants(GridVariant.LUMO_COMPACT, GridVariant.LUMO_ROW_STRIPES);
         usuarios.setWidth("380px");
@@ -182,7 +189,7 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
         Button guardar = new Button("Guardar roles");
         guardar.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         guardar.setEnabled(false);
-        List<Usuario> todos = new ArrayList<>();
+        List<Usuario> todos = todosUsuarios;
         try { todos.addAll(leerUsuarios()); } catch (SQLException e) { Notification.show("Usuarios: " + e.getMessage(), 8000, Notification.Position.MIDDLE); }
         usuarios.setItems(todos);
         buscar.addValueChangeListener(e -> {
@@ -212,7 +219,17 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
                 Notification.show("Roles de " + u.nombre() + " guardados.", 3000, Notification.Position.BOTTOM_START);
             } catch (SQLException ex) { Notification.show("No se guardó: " + ex.getMessage(), 10000, Notification.Position.MIDDLE); }
         });
-        VerticalLayout izq = new VerticalLayout(buscar, usuarios);
+        // Diego: alta de un usuario y duplicar un usuario (con sus roles)
+        Button nuevoU = new Button("Nuevo usuario", VaadinIcon.PLUS.create(), e -> altaUsuario(null));
+        Button duplicarU = new Button("Duplicar", VaadinIcon.COPY.create(), e -> {
+            Usuario u = null;
+            for (Usuario x : usuarios.getSelectedItems()) { u = x; break; }
+            if (u == null) Notification.show("Elegí el usuario a duplicar.", 4000, Notification.Position.MIDDLE);
+            else altaUsuario(u);
+        });
+        Span nota = new Span("Los demás datos del usuario (nombre completo, email…) se cargan en su TRN.");
+        nota.getStyle().set("font-size", "var(--lumo-font-size-s)").set("opacity", ".75");
+        VerticalLayout izq = new VerticalLayout(new HorizontalLayout(nuevoU, duplicarU), buscar, usuarios, nota);
         izq.setPadding(false);
         izq.setWidth(null);
         VerticalLayout der = new VerticalLayout(new HorizontalLayout(titulo, guardar), rolesUsuario);
@@ -335,10 +352,13 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
         } catch (SQLException e) { Notification.show("No se guardó: " + e.getMessage(), 10000, Notification.Position.MIDDLE); }
     }
 
-    private void editarRol(Rol r) {
+    private void editarRol(Rol r) { editarRol(r, false); }
+
+    /** Nuevo rol (r null), cambiar el nombre y la descripción, o duplicar r con todos sus permisos. */
+    private void editarRol(Rol r, boolean duplicar) {
         Dialog d = new Dialog();
         OptimistVisuals.estilizarDialogo(d);
-        d.setHeaderTitle(r == null ? "Nuevo rol" : "Rol " + r.nombre());
+        d.setHeaderTitle(r == null ? "Nuevo rol" : duplicar ? "Duplicar el rol " + r.nombre() : "Rol " + r.nombre());
         TextField nombre = new TextField("Nombre");
         nombre.setMaxLength(20);
         nombre.setRequired(true);
@@ -346,15 +366,43 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
         desc.setMaxLength(120);
         desc.setWidth("360px");
         if (r != null) { nombre.setValue(r.nombre()); desc.setValue(r.descripcion() == null ? "" : r.descripcion()); }
-        d.add(new VerticalLayout(nombre, desc));
+        if (duplicar) {
+            String n = "Copia de " + r.nombre();
+            nombre.setValue(n.length() > 20 ? n.substring(0, 20) : n);
+        }
+        VerticalLayout cuerpo = new VerticalLayout(nombre, desc);
+        if (duplicar) cuerpo.add(new Span("El rol nuevo tiene los mismos permisos que " + r.nombre() + "."));
+        d.add(cuerpo);
         Button ok = new Button("Confirmar", e -> {
             String n = nombre.getValue().trim();
             if (n.isEmpty()) { nombre.setInvalid(true); nombre.setErrorMessage("Falta el nombre"); return; }
             try (Connection cn = db.openConnection()) {
-                if (r == null) {
-                    try (PreparedStatement p = cn.prepareStatement("INSERT INTO SecRole (SecRoleName, SecRoleDescription) VALUES (?, ?)")) {
-                        p.setString(1, n); p.setString(2, desc.getValue().trim()); p.executeUpdate();
-                    }
+                if (roles.stream().anyMatch(x -> x.nombre().equalsIgnoreCase(n) && (r == null || duplicar || x.id() != r.id()))) {
+                    nombre.setInvalid(true); nombre.setErrorMessage("Ya hay un rol " + n); return;
+                }
+                if (r == null || duplicar) {
+                    Long nuevo = null;
+                    cn.setAutoCommit(false);
+                    try {
+                        try (PreparedStatement p = cn.prepareStatement("INSERT INTO SecRole (SecRoleName, SecRoleDescription) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                            p.setString(1, n); p.setString(2, desc.getValue().trim()); p.executeUpdate();
+                            try (ResultSet g = p.getGeneratedKeys()) { if (g.next()) nuevo = g.getLong(1); }
+                        }
+                        if (nuevo == null) try (PreparedStatement p = cn.prepareStatement("SELECT SecRoleId FROM SecRole WHERE SecRoleName = ?")) {
+                            p.setString(1, n);
+                            try (ResultSet x = p.executeQuery()) { if (x.next()) nuevo = x.getLong(1); }
+                        }
+                        if (duplicar && nuevo != null) try (PreparedStatement p = cn.prepareStatement("INSERT INTO SecFunctionalityRole (SecFunctionalityId, SecRoleId)"
+                                + " SELECT SecFunctionalityId, ? FROM SecFunctionalityRole WHERE SecRoleId = ?")) {
+                            p.setLong(1, nuevo); p.setLong(2, r.id()); p.executeUpdate();
+                        }
+                        cn.commit();
+                    } catch (SQLException ex) { cn.rollback(); throw ex; }
+                    final Long id = nuevo;
+                    d.close();
+                    leerRoles();
+                    roles.stream().filter(x -> id != null && x.id() == id).findFirst().ifPresent(grillaRoles::select);
+                    return;
                 } else try (PreparedStatement p = cn.prepareStatement("UPDATE SecRole SET SecRoleName = ?, SecRoleDescription = ? WHERE SecRoleId = ?")) {
                     p.setString(1, n); p.setString(2, desc.getValue().trim()); p.setLong(3, r.id()); p.executeUpdate();
                 }
@@ -393,6 +441,93 @@ public class OptimistSeguridadView extends VerticalLayout implements BeforeEnter
             while (x.next()) r.add(new Usuario(x.getObject(1), trim(x.getString(2))));
         }
         return r;
+    }
+
+    /** Alta de un usuario (usuario y clave); con 'origen', un duplicado: el nuevo tiene los mismos roles que ese. */
+    private void altaUsuario(Usuario origen) {
+        Dialog d = new Dialog();
+        OptimistVisuals.estilizarDialogo(d);
+        d.setHeaderTitle(origen == null ? "Nuevo usuario" : "Duplicar el usuario " + origen.nombre());
+        TextField nombre = new TextField("Usuario");
+        nombre.setMaxLength(100);
+        nombre.setRequired(true);
+        com.vaadin.flow.component.textfield.PasswordField clave = new com.vaadin.flow.component.textfield.PasswordField("Contraseña");
+        com.vaadin.flow.component.textfield.PasswordField repetir = new com.vaadin.flow.component.textfield.PasswordField("Repetir la contraseña");
+        VerticalLayout cuerpo = new VerticalLayout(nombre, clave, repetir);
+        if (origen != null) cuerpo.add(new Span("El usuario nuevo tiene los mismos roles que " + origen.nombre() + "."));
+        d.add(cuerpo);
+        Button ok = new Button("Confirmar", e -> {
+            String n = nombre.getValue().trim();
+            if (n.isEmpty()) { nombre.setInvalid(true); nombre.setErrorMessage("Falta el usuario"); return; }
+            if (!clave.getValue().equals(repetir.getValue())) { repetir.setInvalid(true); repetir.setErrorMessage("No coincide con la contraseña"); return; }
+            try {
+                Object id = crearUsuario(n, clave.getValue(), origen);
+                d.close();
+                todosUsuarios.clear();
+                todosUsuarios.addAll(leerUsuarios());
+                usuarios.setItems(todosUsuarios);
+                todosUsuarios.stream().filter(x -> String.valueOf(x.id()).equals(String.valueOf(id))).findFirst().ifPresent(usuarios::select);
+                Notification.show("Usuario " + n + " creado.", 3000, Notification.Position.BOTTOM_START);
+            } catch (SQLException ex) {
+                if (ex.getMessage() != null && ex.getMessage().startsWith("Ya hay")) { nombre.setInvalid(true); nombre.setErrorMessage(ex.getMessage()); }
+                else Notification.show("No se creó: " + ex.getMessage(), 10000, Notification.Position.MIDDLE);
+            }
+        });
+        ok.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        OptimistVisuals.pieIzquierda(d, ok, new Button("Cancelar", e -> d.close()));
+        d.open();
+        nombre.focus();
+    }
+
+    /** Graba el usuario en la tabla de seguridad.yaml (la clave como dice tipoClave) y, si es un duplicado, sus roles. Devuelve su id. */
+    private Object crearUsuario(String nombre, String clave, Usuario origen) throws SQLException {
+        OptimistUsuarios.Config c = OptimistUsuarios.config();
+        String valor = c.tipoClave().equals("texto") ? clave : OptimistUsuarios.hash(c.tipoClave(), clave);
+        try (Connection cn = db.openConnection()) {
+            try (PreparedStatement p = cn.prepareStatement("SELECT COUNT(*) FROM " + c.tabla() + " WHERE " + c.nombre() + " = ?")) {
+                p.setString(1, nombre);
+                try (ResultSet x = p.executeQuery()) { if (x.next() && x.getInt(1) > 0) throw new SQLException("Ya hay un usuario " + nombre); }
+            }
+            cn.setAutoCommit(false);
+            try {
+                Object id = null;
+                // las demás columnas obligatorias sin valor por defecto (GeneXus las crea NOT NULL): vacías, como un alta de GeneXus
+                List<String> cols = new ArrayList<>(List.of(c.nombre(), c.clave()));
+                List<Object> vals = new ArrayList<>(List.of(nombre, valor));
+                try (ResultSet m = cn.getMetaData().getColumns(cn.getCatalog(), null, c.tabla(), null)) {
+                    while (m.next()) {
+                        String col = m.getString("COLUMN_NAME");
+                        if (cols.stream().anyMatch(x -> x.equalsIgnoreCase(col))) continue;
+                        if (!"NO".equals(m.getString("IS_NULLABLE")) || m.getString("COLUMN_DEF") != null || "YES".equals(m.getString("IS_AUTOINCREMENT"))) continue;
+                        Object vacio = switch (m.getInt("DATA_TYPE")) {
+                            case Types.CHAR, Types.VARCHAR, Types.LONGVARCHAR, Types.NCHAR, Types.NVARCHAR, Types.LONGNVARCHAR, Types.CLOB -> "";
+                            case Types.BIT, Types.BOOLEAN -> Boolean.FALSE;
+                            case Types.DATE, Types.TIMESTAMP, Types.TIME -> null;
+                            default -> 0;
+                        };
+                        if (vacio == null) continue;
+                        cols.add(col);
+                        vals.add(vacio);
+                    }
+                }
+                try (PreparedStatement p = cn.prepareStatement("INSERT INTO " + c.tabla() + " (" + String.join(", ", cols) + ") VALUES ("
+                        + String.join(", ", Collections.nCopies(cols.size(), "?")) + ")", Statement.RETURN_GENERATED_KEYS)) {
+                    for (int i = 0; i < vals.size(); i++) p.setObject(i + 1, vals.get(i));
+                    p.executeUpdate();
+                    try (ResultSet g = p.getGeneratedKeys()) { if (g.next()) id = g.getObject(1); }
+                }
+                try (PreparedStatement p = cn.prepareStatement("SELECT " + c.id() + " FROM " + c.tabla() + " WHERE " + c.nombre() + " = ?")) {
+                    p.setString(1, nombre);
+                    try (ResultSet x = p.executeQuery()) { if (x.next()) id = x.getObject(1); }
+                }
+                if (origen != null && id != null) try (PreparedStatement p = cn.prepareStatement(
+                        "INSERT INTO SecUserRole (SecUserId, SecRoleId) SELECT ?, SecRoleId FROM SecUserRole WHERE SecUserId = ?")) {
+                    p.setObject(1, id); p.setObject(2, origen.id()); p.executeUpdate();
+                }
+                cn.commit();
+                return id;
+            } catch (SQLException e) { cn.rollback(); throw e; }
+        }
     }
 
     private Set<Long> rolesDe(Usuario u) throws SQLException {
