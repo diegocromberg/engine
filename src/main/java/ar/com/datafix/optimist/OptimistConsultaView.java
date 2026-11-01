@@ -516,8 +516,11 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
             List<OptimistTrnDefinicion.Valor> vr = datos.valoresReferencia(base.cabecera(), c);
             if (vr != null) pantalla.filtroValores(c.nombre(), vr);
         }
+        // E6b: la insignia (pastilla de color) del campo de la TRN, como en su WorkWith (ej. el Status del pedido)
+        Nivel cabIns = base.cabecera();
         Grid.Column<Map<String, Object>> col = pantalla.columna(c.nombre(), titulo, f -> OptimistTrnCampos.mostrar(c, f.get(c.nombre())),
-                excel, formato, null, null);
+                excel, formato, c.insignia() == null ? null : f -> OptimistTrnCampos.colorInsignia(c, cabIns, f),
+                base.workwith().estilos().get(c.nombre()));
         String ancho = def.anchos().get(c.nombre());
         // V66k3: sin apagar el ancho automático, Vaadin lo recalcula y no respeta el de 'anchos:'
         if (ancho != null) col.setAutoWidth(false).setWidth(ancho).setFlexGrow(OptimistWorkWith.crecimiento(ancho));   // V66l: reparte lo que sobra

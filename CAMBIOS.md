@@ -16,6 +16,8 @@ Diego: cualquier grilla tipo WW tiene que poder agrandar las columnas, filtrar y
   título para la página) y `botones` con `tilde: Columna` + `proc:` (corre por cada tildado) + `despues:` (una vez al final); lo que
   dejan (PDF / archivo) se muestra o se baja al final. Así una consulta es un WorkWith completo (Excel, PDF, columnas, Apariencia, Σ,
   PostIt, filtros, orden, páginas) que además procesa los tildados: la Facturación Masiva del ERP (`consultas/WPMultiML.yaml`).
+- Las consultas muestran la **insignia** (pastilla de color) de los campos que la tienen en su TRN, como el WorkWith (ej. el Status
+  del pedido en la Facturación Masiva), y la clase del WorkWith (`estilos`).
 - Versión 0.6.0.
 
 ## E5c — `color:` en las acciones y versión 0.5.0 (01/11/2026)
