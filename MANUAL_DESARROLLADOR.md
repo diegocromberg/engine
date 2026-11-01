@@ -1,6 +1,6 @@
 # OPTIMIST Engine — Manual del desarrollador
 
-Versión del manual: **E4e** (29/10/2026). Se actualiza con cada versión del motor (ver `CAMBIOS.md`).
+Versión del manual: **E5a** (01/11/2026). Se actualiza con cada versión del motor (ver `CAMBIOS.md`).
 El detalle de cada YAML está en `GUIA_CONFIGURACION_TRN.md` (la "guía"); este manual es el camino de punta a punta.
 Los dos se leen desde el Designer con **❓ Ayuda** (o F1), que abre en el tema de lo que se está haciendo.
 
@@ -124,6 +124,17 @@ usuarios:
 
 En los YAML el usuario conectado es `&SecUserId` / `&SecUserName`. Si la KB usa **GAM** u otro sistema, el ingreso se resuelve con
 una extensión (sección 9).
+
+**Permisos** (guía, 24.3): con la seguridad de WorkWithPlus, agregar en `seguridad.yaml`
+
+```yaml
+permisos:
+  tipo: wwp
+  rolAdministrador: Administrator
+```
+
+y en el menú `{titulo: Seguridad, ruta: seguridad}`. En **Seguridad** se arman los roles y sus permisos y se asignan a los usuarios.
+Después de importar o agregar TRN, web panels o funcionalidades, tocar **Actualizar permisos** ahí.
 
 ## 8. Armar y publicar el WAR
 

@@ -150,6 +150,11 @@ public final class OptimistProcedimientos {
             if (!err.isEmpty()) LOG.warn("PDFAddWatermark: {}", err);
             return Map.of();
         });
+        // E5a: SecIsAuthByFunctionalityKey de WorkWithPlus: si el usuario tiene esa clave (OptimistPermisos; sin permisos
+        // configurados, siempre). Reemplaza al procedimiento de la KB si se importó.
+        OptimistProcedimiento.registrarNativo("SecIsAuthByFunctionalityKey", "in: &SecFunctionalityKey, out: &IsAuthorized",
+                (in, c) -> Map.of("isauthorized", OptimistPermisos.puede(texto(in.get("secfunctionalitykey")))));
+        reemplazar("SecIsAuthByFunctionalityKey");
         // V66x: MostrarProgreso.Call(&Texto): lo que va haciendo un proceso largo, en la ventanita "Procesando…" del web panel
         OptimistProcedimiento.registrarNativo("MostrarProgreso", "in: &Texto", (in, c) -> {
             java.util.function.Consumer<String> f = OptimistProcedimiento.PROGRESO.get();

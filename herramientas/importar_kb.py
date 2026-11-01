@@ -39,7 +39,7 @@ T_PROC = '84a12160-f59b-4ad7-a683-ea4481ac23e9'
 T_WBP = 'c9584656-94b6-4ccd-890f-332d11fc2c25'
 T_DP = '2a9e9aba-d2de-4801-ae7f-5e3819222daf'
 P_LAYOUT = 'c414ed00'
-NATIVOS = {'loadwwpcontext', 'setwwpcontext', 'getwwpcontext'}   # los resuelve el motor
+NATIVOS = {'loadwwpcontext', 'setwwpcontext', 'getwwpcontext', 'secisauthbyfunctionalitykey', 'notauthorized'}   # los resuelve el motor
 SIN_MIGRAR = '# ---------------------------------------------------------------- SIN MIGRAR'
 
 AVISAR = print   # el Designer lo cambia para mostrar el avance
@@ -223,14 +223,38 @@ def eventos_sin_migrar(eventos):
         tipo, nom = m.group(1).capitalize(), g.sin_comentarios(m.group(2)).strip()
         if tipo == 'Event' and re.fullmatch(r'(?i)start', nom):
             continue
+        if re.fullmatch(r"(?i)'?AttributesSecurityCode'?", nom):   # E5a: la seguridad por campo de WorkWithPlus (permisos.campos)
+            continue
         util = [l for l in cuerpo_util(m.group(3)) if not SOLO_PANTALLA.match(l)]
         if util:
             r.append(f'{"Evento" if tipo == "Event" else "Subrutina"} {nom}')
     return r
 
 
+def campos_wwp(eventos):
+    """E5a: los campos con permiso de WorkWithPlus (SecIsAuthByFunctionalityKey('<Campo>_Attribute')): van a permisos.campos."""
+    return list(dict.fromkeys(re.findall(r"SecIsAuthByFunctionalityKey(?:\.Udp)?\(\s*!?'(\w+?)_Attribute'", eventos or '')))
+
+
+def usa_seguridad_wwp(eventos):
+    """E5a: si la TRN usa la seguridad avanzada de WorkWithPlus (el motor la aplica: OptimistPermisos)."""
+    return bool(re.search(r"SecIsAuthByFunctionalityKey", eventos or ''))
+
+
+PERMISOS_RE = re.compile(r'(?m)^permisos:[^\n]*\n(?:[ \t]+[^\n]*\n|[ \t]*\n(?=[ \t]))*')
+
+
+def poner_permisos(texto, campos):
+    """E5a: el bloque 'permisos: {campos: [...]}' de la TRN (lo reemplaza si ya estaba)."""
+    texto = PERMISOS_RE.sub('', texto)
+    if not campos:
+        return texto
+    return texto.rstrip('\n') + '\n\npermisos:   # E5a: estos campos los ve solo quien tiene <Campo>_Attribute (seguridad de WorkWithPlus)\n' \
+        + '  campos: [' + ', '.join(campos) + ']\n'
+
+
 def seguridad_wwp(eventos):
-    """Permisos de WorkWithPlus (SecIsAuthByFunctionalityKey) que el motor todavía no aplica."""
+    """Permisos de WorkWithPlus (SecIsAuthByFunctionalityKey). E5a: el motor ya los aplica; queda para el preinforme viejo."""
     t = eventos or ''
     r = []
     modos = sorted(set(re.findall(r"SecIsAuthByFunctionalityKey(?:\.Udp)?\(\s*!?'WW\w+?_(Insert|Update|Delete)'", t)))
@@ -258,7 +282,7 @@ def revisar_de(texto):
 def armar_informe(recursos, kb, hechas, errores, nuevos, objetos, usos=None):
     usos = usos or {}
     d_trn = os.path.join(recursos, 'trn')
-    inf = {'trns': {}, 'objetos': {}, 'faltan': [], 'errores': errores}
+    inf = {'trns': {}, 'objetos': {}, 'faltan': [], 'errores': errores, 'avisos': []}
     os.makedirs(os.path.join(d_trn, '_gx'), exist_ok=True)
     for n in hechas:
         ruta = os.path.join(d_trn, n + '.yaml')
@@ -267,7 +291,15 @@ def armar_informe(recursos, kb, hechas, errores, nuevos, objetos, usos=None):
         ev = (kb.get('objetivos', {}).get(n) or {}).get('eventos')
         for e in eventos_sin_migrar(ev):
             items.append(f"{e}: no se migró (su código está en _gx/{n}.gx.txt)")
-        items += seguridad_wwp(ev)
+        # E5a: la seguridad de WorkWithPlus la aplica el motor (OptimistPermisos): los campos con permiso van a permisos.campos
+        if usa_seguridad_wwp(ev):
+            inf['usaPermisos'] = True
+        campos, sin = [], []
+        for a in campos_wwp(ev):
+            m = re.search(r'(?im)^\s*-\s*\{\s*nombre:\s*(' + re.escape(a) + r')\s*,', texto)
+            (campos if m else sin).append(m.group(1) if m else a)
+        for a in sin:
+            items.append(f'Permiso de WorkWithPlus del campo {a} ({a}_Attribute): el campo no está en la cabecera de la TRN; no se aplica')
         for r in revisar_de(texto):
             items.append('Revisar: ' + r)
         m = re.search(r'^# Atributos con tipos no soportados todavía[^:]*:\s*(.+)$', texto, re.M)
@@ -284,6 +316,7 @@ def armar_informe(recursos, kb, hechas, errores, nuevos, objetos, usos=None):
         open(os.path.join(d_trn, '_gx', n + '.gx.txt'), 'w', encoding='utf-8').write(texto_para_ia(kb, n, items))
         # el bloque SIN MIGRAR al final del YAML (lo muestra el Designer)
         texto = quitar_sin_migrar(texto)
+        texto = poner_permisos(texto, campos)
         if items:
             texto = texto.rstrip('\n') + '\n\n' + SIN_MIGRAR + '\n' \
                     + '# Lo que GeneXus tenía y esta TRN todavía no hace (detalle: trn/_gx/_informe_importacion.txt):\n' \
@@ -310,6 +343,16 @@ def armar_informe(recursos, kb, hechas, errores, nuevos, objetos, usos=None):
                     o['nota'] = 'manda mails: el servidor de correo de cada cliente va en su optimist.cfg (mail.host, mail.usuario, mail.clave…)'
                 inf['objetos'][x] = o
                 break
+    # E5a: la KB usa la seguridad de WorkWithPlus: la aplicación tiene que tener 'permisos:' en seguridad.yaml
+    if inf.get('usaPermisos'):
+        seg = os.path.join(recursos, 'seguridad.yaml')
+        txt = open(seg, encoding='utf-8').read() if os.path.exists(seg) else ''
+        if not re.search(r'(?m)^permisos:', txt):
+            inf['avisos'].append('La KB usa la seguridad de WorkWithPlus (roles y permisos) y la aplicación todavía no: agregá en '
+                                 'seguridad.yaml "permisos: {tipo: wwp, rolAdministrador: Administrator}" y en el menú '
+                                 '{titulo: Seguridad, ruta: seguridad}; después, en Seguridad, tocá Actualizar permisos (guía 24.3)')
+        else:
+            inf['notas'] = ['Permisos: si se agregaron TRN, campos o acciones, en Seguridad tocá Actualizar permisos (guía 24.3)']
     for x, quien in sorted(usos.items()):
         if x not in objetos and x.lower() not in {k.lower() for k in objetos}:
             inf['faltan'].append({'nombre': x, 'usan': sorted(quien)})
@@ -338,7 +381,7 @@ def preinforme(xml):
     r = {}
     for n, o in (kb.get('objetivos') or {}).items():
         ev = o.get('eventos')
-        items = [f'{e}: no se migra' for e in eventos_sin_migrar(ev)] + seguridad_wwp(ev)
+        items = [f'{e}: no se migra' for e in eventos_sin_migrar(ev)]   # E5a: los permisos de WorkWithPlus ya los aplica el motor
         if items:
             r[n] = items
     return r
@@ -352,9 +395,13 @@ def quitar_sin_migrar(texto):
 def texto_informe(inf):
     l = ['INFORME DE IMPORTACIÓN', '======================', '']
     total = sum(len(v) for v in inf['trns'].values()) + sum(len(o['revisar']) for o in inf['objetos'].values()) \
-        + len(inf['faltan']) + len(inf['errores'])
+        + len(inf['faltan']) + len(inf['errores']) + len(inf.get('avisos', []))
     l.append('Todo lo de GeneXus quedó migrado.' if total == 0 else
-             f'Quedaron {total} cosas sin migrar o para revisar. Hasta resolverlas, la aplicación NO hace todo lo que hacía GeneXus.')
+             (f'Quedó 1 cosa sin migrar o para revisar. Hasta resolverla' if total == 1 else f'Quedaron {total} cosas sin migrar o para revisar. Hasta resolverlas') + ', la aplicación NO hace todo lo que hacía GeneXus.')
+    if inf.get('avisos'):
+        l += ['', 'Para hacer en la aplicación:'] + [f'  - {x}' for x in inf['avisos']]
+    for x in inf.get('notas', []):
+        l += ['', x]
     if inf['errores']:
         l += ['', 'TRN que no se pudieron importar:'] + [f'  - {n}: {e}' for n, e in inf['errores'].items()]
     for n, items in inf['trns'].items():

@@ -5287,7 +5287,7 @@ async function importarImp(nombres) {
 }
 function sumaInformeImp(inf) {
   return Object.values(inf.trns || {}).reduce((a, v) => a + v.length, 0) + Object.values(inf.objetos || {}).reduce((a, o) => a + (o.revisar || []).length, 0)
-    + (inf.faltan || []).length + Object.keys(inf.errores || {}).length;
+    + (inf.faltan || []).length + Object.keys(inf.errores || {}).length + (inf.avisos || []).length;   // E5a: avisos
 }
 // ------------------------------------------------------------------ E4 · NUEVA APLICACIÓN
 // La plantilla (engine/plantilla-aplicacion) la mete armar.py: {archivo: contenido} con marcadores {{NOMBRE}}, {{TITULO}}...

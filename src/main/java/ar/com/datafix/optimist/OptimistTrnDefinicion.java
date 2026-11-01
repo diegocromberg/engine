@@ -241,10 +241,15 @@ public final class OptimistTrnDefinicion {
      * icono: nombre de VaadinIcon (CLOCK, BAN, COPY, ENVELOPE...). si: condición (null = siempre). confirmar: pregunta antes.
      */
     public record AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
-                                List<String> parametros, String confirmar, boolean porRenglon) {
+                                List<String> parametros, String confirmar, boolean porRenglon, String permiso) {
         public AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
                              List<String> parametros, String confirmar) {
-            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, false);
+            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, false, null);
+        }
+        /** E5a: sin permiso (la acción no pide una clave de seguridad). */
+        public AccionRenglon(String titulo, String icono, String si, String tipo, String objeto, String modo,
+                             List<String> parametros, String confirmar, boolean porRenglon) {
+            this(titulo, icono, si, tipo, objeto, modo, parametros, confirmar, porRenglon, null);
         }
     }
 
@@ -846,6 +851,17 @@ public final class OptimistTrnDefinicion {
             tablasPantalla = tablas(y.get("tablas"), cabecera, "tablas");
         }
 
+        // E5a: permisos: {campos: [...]}: los campos que solo ve quien tiene su clave <Campo>_Attribute (WorkWithPlus)
+        Set<String> conPermiso = new LinkedHashSet<>();
+        if (y.get("permisos") instanceof Map<?, ?> pm) {
+            for (Object k : pm.keySet()) if (!"campos".equals(k)) throw error("permisos." + k + " desconocido (campos)");
+            for (String x : lista(pm.get("campos"))) {
+                Campo c = cabecera.campo(x.trim());
+                if (c == null) throw error("permisos.campos: campo inexistente " + x);
+                conPermiso.add(c.nombre().toLowerCase(Locale.ROOT));
+            }
+        } else if (y.get("permisos") != null) throw error("permisos: va {campos: [Campo1, Campo2]}");
+        CAMPOS_PERMISO.put(nombre.toLowerCase(Locale.ROOT), Set.copyOf(conPermiso));
         String ruta = texto(y, "ruta", nombre.toLowerCase(Locale.ROOT));
         if (!ruta.matches("[a-z0-9_-]{1,64}")) throw error("ruta inválida: " + ruta);
         Trn trn = new Trn(nombre, ruta, cabecera.titulo(),
@@ -1123,8 +1139,10 @@ public final class OptimistTrnDefinicion {
                 // V59: porRenglon (solo en workwith.botones): el botón corre para cada renglón tildado de la lista
                 boolean porRenglon = Boolean.TRUE.equals(a.get("porRenglon"));
                 if (porRenglon && !tipo.equals("proc")) throw error(donde + ": porRenglon va con 'proc'");
+                // E5a: permiso: la clave de seguridad que hace falta (si el usuario no la tiene, la acción no aparece)
+                String permiso = a.get("permiso") == null ? null : ident(String.valueOf(a.get("permiso")).trim(), donde + ".permiso");
                 rs.add(new AccionRenglon(titulo, opcional(a, "icono"), cond.apply(a.get("si"), donde + ".si"), tipo, obj, modo,
-                        List.copyOf(ps), opcional(a, "confirmar"), porRenglon));
+                        List.copyOf(ps), opcional(a, "confirmar"), porRenglon, permiso));
             }
         } else if (m.get("renglon") != null) throw error("workwith.acciones.renglon debe ser una lista");
         return new Acciones(cond.apply(m.get("modificar"), "workwith.acciones.modificar"), cond.apply(m.get("visualizar"), "workwith.acciones.visualizar"),
@@ -1655,6 +1673,9 @@ public final class OptimistTrnDefinicion {
     }
 
     private static final Map<String, Enlace> ENLACES = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E5a: los campos de cada TRN (en minúscula) que piden permiso para verse (permisos.campos del YAML). */
+    private static final Map<String, Set<String>> CAMPOS_PERMISO = new java.util.concurrent.ConcurrentHashMap<>();
+    public static Set<String> camposConPermiso(String trn) { return trn == null ? Set.of() : CAMPOS_PERMISO.getOrDefault(trn.toLowerCase(Locale.ROOT), Set.of()); }
     public static Enlace enlace(String tabla, String campo) {
         return ENLACES.get(tabla.toLowerCase(Locale.ROOT) + "." + campo.toLowerCase(Locale.ROOT));
     }

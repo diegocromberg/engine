@@ -7,3 +7,12 @@ usuarios:
   nombre: {{U_NOMBRE}}
   clave: {{U_CLAVE}}
   tipoClave: {{U_TIPO}}
+
+# Permisos (guía, sección 24.3). Sin esto, todos los usuarios pueden todo.
+# Con la seguridad avanzada de WorkWithPlus (tablas SecRole, SecFunctionality, SecFunctionalityRole, SecUserRole):
+# sacá los # de abajo, agregá al menú {titulo: Seguridad, ruta: seguridad} y, en Seguridad, tocá "Actualizar permisos".
+# permisos:
+#   tipo: wwp
+#   rolAdministrador: Administrator
+#   claves:                      # funcionalidades propias, además de las de cada TRN, web panel y consulta
+#     VerRentabilidad: Ver la rentabilidad

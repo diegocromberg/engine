@@ -31,6 +31,9 @@ public final class OptimistContexto implements Serializable {
     Set<String> menuPermitidos;          // MenuId que tiene el usuario en MenuSecUser
     transient Object menuArmado;         // el menú ya armado (OptimistMenu), para no rearmarlo en cada pantalla
     Set<String> menuRutas, menuRutasPermitidas;   // rutas de todo el menú / las del usuario (para no entrar por la URL)
+    // E5a: los permisos del usuario (OptimistPermisos): las claves que tiene (en minúscula) y si es del rol administrador
+    Set<String> permisos;
+    boolean permisosAdmin;
 
     /** Contexto del usuario de esta sesión (null si no inició sesión). */
     public static OptimistContexto actual() {
@@ -99,6 +102,7 @@ public final class OptimistContexto implements Serializable {
         x.valores.put("SecUserId", ingreso.id());
         x.valores.put("SecUserName", ingreso.nombre());
         for (OptimistExtension e : OptimistExtension.todas()) e.alIniciarSesion(cn, usuario, x);
+        OptimistPermisos.alIniciarSesion(cn, x);   // E5a
         return x;
     }
 

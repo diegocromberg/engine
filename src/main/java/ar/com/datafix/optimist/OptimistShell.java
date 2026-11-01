@@ -544,6 +544,18 @@ public final class OptimistShell {
         return true;
     }
 
+    /**
+     * E5a: permisos (OptimistPermisos): si el usuario no tiene la clave, ve el aviso en lugar de la pantalla (siempre, también
+     * si llegó desde otra pantalla: la clave es del programa, como en WorkWithPlus).
+     */
+    static boolean sinClave(VerticalLayout vista, String clave, String que) {
+        if (OptimistPermisos.puede(clave)) return false;
+        Span aviso = new Span("No tenés permiso para entrar a " + que + ".");
+        aviso.getStyle().set("padding", "28px").set("color", "#ff8585");
+        montar(vista, aviso, "Sin permiso");
+        return true;
+    }
+
     /** V24: cada vista avisa su ruta antes de montar el shell, para marcar el ítem del menú. */
     public static void rutaActual(String ruta) {
         ComponentUtil.setData(UI.getCurrent(), "optimist.ruta", ruta == null ? null : ruta.replaceAll("^/+", ""));

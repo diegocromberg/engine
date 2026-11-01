@@ -113,6 +113,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             OptimistShell.montar(this, aviso, "Transacción");
             return;
         }
+        // E5a: permisos: entrar al WorkWith pide WW<Trn> (un registro abierto desde otra pantalla, para verlo, no)
+        if (!formularioEnUrl && OptimistShell.sinClave(this, OptimistPermisos.claveTrn(trn), trn.titulo())) return;
         // V49z: al cerrar un formulario el navegador vuelve a trn/x (atrás) y se pasa otra vez por acá: si es la misma TRN (y su
         // YAML no cambió), la lista queda como estaba (página, filtros, orden, desplazamiento). Antes se rearmaba y volvía a la página 1.
         // V50h: un registro de otra TRN abierto desde OPTIMIST (vínculo, web panel) se muestra ENCIMA de la pantalla que lo llamó:
@@ -138,7 +140,15 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         // V48d: ?ver=<clave> (Visualizar) y ?nuevo (alta), para ir adelante con el navegador
         List<String> ver = qp.get("ver");
         if (ver != null && !ver.isEmpty() && trn.cabecera().claves().size() == 1) abrirPorClave(ver.get(0), true);
-        if (qp.containsKey("nuevo") && trn.workwith().alta() == null) formulario(null, false);
+        if (qp.containsKey("nuevo") && trn.workwith().alta() == null && puedeModo("Insert")) formulario(null, false);
+    }
+
+    /** E5a: si el usuario puede dar de alta (Insert), modificar (Update) o borrar (Delete) en esta TRN (permisos). */
+    private boolean puedeModo(String modo) {
+        if (OptimistPermisos.puede(OptimistPermisos.claveModo(trn, modo))) return true;
+        Notification.show("No tenés permiso para " + switch (modo) { case "Insert" -> "agregar"; case "Update" -> "modificar"; default -> "eliminar"; }
+                + " " + trn.plural().toLowerCase(Locale.ROOT) + ".", 6000, Notification.Position.MIDDLE);
+        return false;
     }
 
     /** V50f: la lista de esta TRN: la ya armada (queda como estaba: página, filtros, orden) o una nueva. La monta. */
@@ -175,6 +185,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
 
     /** "+ Nuevo": el formulario vacío o, con 'workwith.alta', el web panel de alta (ej. PRSAltaWbp) y después el registro creado. */
     private void nuevo() {
+        if (!puedeModo("Insert")) return;   // E5a
         String alta = trn.workwith().alta();
         if (alta == null) { formulario(null, false); return; }
         OptimistPanelView.abrirDialogo(alta, db, ab -> {
@@ -215,13 +226,16 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     private List<OptimistWorkWith.Accion> accionesDe(Map<String, Object> f, OptimistTrnDefinicion.Acciones ac) {
         List<OptimistWorkWith.Accion> r = new ArrayList<>();
         // V65o: la que no corresponde a este renglón va en gris con el motivo (antes no se veía y había que buscar por qué)
-        if (posible(ac.modificar())) r.add(accionOGris(VaadinIcon.PENCIL, "Modificar", ac.modificar(), f,
+        // E5a: sin permiso para modificar o borrar, esas acciones no van
+        boolean modificar = OptimistPermisos.puede(OptimistPermisos.claveModo(trn, "Update"));
+        boolean borrar = OptimistPermisos.puede(OptimistPermisos.claveModo(trn, "Delete"));
+        if (modificar && posible(ac.modificar())) r.add(accionOGris(VaadinIcon.PENCIL, "Modificar", ac.modificar(), f,
                 () -> siSigue(ac.modificar(), f, "Modificar", fresca -> abrir(fresca, false))));
         if (posible(ac.visualizar())) r.add(accionOGris(VaadinIcon.SEARCH, "Visualizar", ac.visualizar(), f, () -> abrir(f, true)));
-        if (posible(ac.borrar())) r.add(accionOGris(VaadinIcon.CLOSE, "Eliminar", ac.borrar(), f,
+        if (borrar && posible(ac.borrar())) r.add(accionOGris(VaadinIcon.CLOSE, "Eliminar", ac.borrar(), f,
                 () -> siSigue(ac.borrar(), f, "Eliminar", this::confirmarBorrado)));
         for (OptimistTrnDefinicion.AccionRenglon a : ac.renglon())
-            if (posible(a.si()))
+            if (posible(a.si()) && OptimistPermisos.puede(a.permiso()))   // E5a
                 r.add(accionOGris(icono(a.icono()), a.titulo(), a.si(), f, () -> accion(a, f)));
         // V56g: las acciones con el mismo título y el mismo ícono son UNA acción con variantes según el renglón (ej. en
         // BAIRES4, Modificar abre la TRN o la cabecera según el estado; Autorizar, con o sin motivo): comparten un solo
@@ -636,6 +650,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             // V84: workwith.columnasSi: la columna va solo si su condición da verdadero (ej. el Saldo según VERCampos)
             String si = trn.workwith().condicionColumna(n);
             if (si != null && !cumple(si, Map.of())) continue;
+            if (OptimistPermisos.campoOculto(trn, n)) continue;   // E5a: campo con permiso que el usuario no tiene
             Campo c = cab.campo(n);
             comboRef = null;
             // V47: clave interna de una tabla con código (ArticulosPK, EntidadesPK): se ve el código (lo trae listar())
@@ -702,12 +717,13 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                         throws Exception { return datos.listarPagina(trn, filtros, orden, desc, desde, cantidad); }
             });
         // V57: sin "+ Nuevo" (workwith.nuevo: false) y los botones de arriba de la lista (workwith.botones)
-        if (!trn.workwith().nuevo()) pantalla.nuevo.setVisible(false);
+        if (!trn.workwith().nuevo() || !OptimistPermisos.puede(OptimistPermisos.claveModo(trn, "Insert"))) pantalla.nuevo.setVisible(false);   // E5a
         int lugar = 1;
         // V59: un botón porRenglon corre para cada renglón tildado: la lista lleva un tilde por renglón
         if (trn.workwith().botones().stream().anyMatch(OptimistTrnDefinicion.AccionRenglon::porRenglon)) pantalla.seleccionMultiple();
         for (OptimistTrnDefinicion.AccionRenglon b : trn.workwith().botones()) {
             if (b.porRenglon() ? !posible(b.si()) : !cumple(b.si(), Map.of())) continue;   // V59: porRenglon: su si es por renglón
+            if (!OptimistPermisos.puede(b.permiso())) continue;   // E5a
             Button bt = new Button(b.titulo(), OptimistWorkWith.iconoAccion(icono(b.icono())).create(), e -> boton(b));
             bt.getElement().setAttribute("title", b.titulo());
             pantalla.barraAcciones.addComponentAtIndex(Math.min(lugar++, pantalla.barraAcciones.getComponentCount()), bt);
@@ -855,6 +871,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     /** Se muestra: no oculto y con su condición visibleSi cumplida. V34: las fórmulas también (solo lectura, en vivo). */
     private boolean visible(Campo c) {
         if (c.oculto()) return false;
+        if (OptimistPermisos.campoOculto(trn, c.nombre())) return false;   // E5a: campo con permiso que el usuario no tiene
         if (c.visibleSi() == null) return true;
         return db.condicion(c.visibleSi());   // E4: application.<Condicion>=true en el optimist.cfg
     }
@@ -1050,6 +1067,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     // ------------------------------------------------------------------ alta / modificación / visualización
 
     private void abrir(Map<String, Object> fila, boolean soloVer) {
+        // E5a: sin permiso para modificar, se abre para verlo (como el Visualizar)
+        if (!soloVer && !OptimistPermisos.puede(OptimistPermisos.claveModo(trn, "Update"))) soloVer = true;
         try { formulario(datos.cargar(trn, claveDe(fila)), soloVer); }
         catch (SQLException ex) { error(ex); }
         catch (RuntimeException ex) {
@@ -3047,6 +3066,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     // ------------------------------------------------------------------ borrar
 
     private void confirmarBorrado(Map<String, Object> fila) {
+        if (!puedeModo("Delete")) return;   // E5a
         ConfirmDialog confirmar = new ConfirmDialog();
         confirmar.setHeader("Borrar " + trn.singular() + " " + clave(fila));
         String detalles = trn.detalles().stream().map(d -> d.titulo().toLowerCase(Locale.ROOT)).reduce((a, b) -> a + ", " + b).orElse("");

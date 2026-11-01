@@ -86,6 +86,12 @@ public interface OptimistExtension {
     default Boolean procesoHabilitado(Connection cn, int numero) { return null; }
 
     /**
+     * E5a: con permisos.tipo: extension (seguridad.yaml), las claves que tiene el usuario que inicia sesión (WWPed, WWPed_Insert,
+     * Campo_Attribute, el nombre de un web panel…; guía 24.3), o null si esta extensión no maneja permisos.
+     */
+    default Set<String> permisos(Connection cn, OptimistContexto ctx) throws SQLException { return null; }
+
+    /**
      * El valor de un parámetro global (variables 'paramGlb: N' de las consultas; tipo "alfa", "numero" o "boolean"), o null
      * si la aplicación no tiene parámetros globales. OPTIMIST ERP: GetParamGlbValorAlfa / Numerico / Boolean.
      */

@@ -2,6 +2,28 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E5a — Permisos y panel de Seguridad (01/11/2026)
+
+Diego: "el manejo de permisos que hoy no lo tenemos y que es vital para las trn y los ww"; que más adelante se puedan agregar
+permisos de TRN y de funcionalidades nuevas; un panel para la seguridad con un botón para actualizar, como el de WorkWithPlus.
+
+- **`permisos:` en `seguridad.yaml`** (guía 24.3): `tipo: wwp` (las tablas de la seguridad avanzada de WorkWithPlus, con la lógica de
+  `SecIsAuthByFunctionalityKey`) o `extension` (la aplicación da las claves del usuario: `OptimistExtension.permisos`); `gam`, más
+  adelante. Sin `permisos:`, todos pueden todo (las aplicaciones que ya andan no cambian; el ERP sigue con sus procesos).
+- El motor aplica las claves de WorkWithPlus: `WW<Trn>` (WorkWith y menú), `_Insert` / `_Update` / `_Delete` (+ Nuevo, Modificar
+  —sin permiso abre para ver—, Eliminar), `<Campo>_Attribute` (`permisos.campos` en la TRN: campo y columna), el nombre del web panel o
+  la consulta, y `permiso:` en acciones y botones del WorkWith y en botones de los web panels. Las carpetas del menú que quedan vacías
+  no se muestran. `SecIsAuthByFunctionalityKey` es nativo (reglas y procedimientos).
+- **Panel de Seguridad** (`ruta: seguridad`): roles y su árbol de permisos con tildes, roles de cada usuario y **Actualizar
+  permisos**: da de alta las claves que falten (TRN, campos, acciones, web panels, consultas, `permisos.claves`) y se las asigna al rol
+  administrador. Así, lo que se agregue más adelante se carga solo.
+- Importador: los campos con permiso de WorkWithPlus van a `permisos.campos`; los permisos ya no figuran como "sin migrar". Si la KB
+  usa la seguridad de WorkWithPlus y la aplicación no tiene `permisos:`, el informe dice qué agregar.
+- Plantilla de aplicación: `seguridad.yaml` con `permisos:` comentado y el ítem de Seguridad en el menú, explicado.
+- Probado contra MariaDB con las TRN de Factory: Actualizar permisos (35 claves nuevas; reusa las que ya estaban, ej. `WWIncidentes`;
+  la segunda vez, nada), un administrador con todo y un usuario con un rol de solo consulta (entra a Incidentes, sin agregar, sin ver
+  Facturar, sin Clientes en el menú).
+
 ## E4h — Teclado en los formularios: cursor en el primer campo y Enter como TAB (31/10/2026)
 
 - Diego: al abrir **cualquier TRN o web panel** el cursor queda en el **primer campo editable** (alta y modificación de las TRN;

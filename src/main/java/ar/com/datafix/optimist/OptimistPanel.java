@@ -52,8 +52,9 @@ public final class OptimistPanel {
      * null = la pregunta de siempre ("¿Confirmás Procesar?"); "" = no pregunta (confirmar: false: buscar, ir a, ver...).
      * Los botones de Cancel nunca preguntan.
      */
-    public record Boton(String titulo, String evento, String confirmar) {
-        public Boton(String titulo, String evento) { this(titulo, evento, null); }
+    public record Boton(String titulo, String evento, String confirmar, String permiso) {
+        public Boton(String titulo, String evento) { this(titulo, evento, null, null); }
+        public Boton(String titulo, String evento, String confirmar) { this(titulo, evento, confirmar, null); }   // E5a: sin permiso
         /** La pregunta antes de correrlo, o null si no pregunta. */
         public String pregunta() {
             if (normalizar(evento).equals("cancel") || "".equals(confirmar)) return null;
@@ -173,8 +174,11 @@ public final class OptimistPanel {
                 Object cf = m.get("confirmar");   // V66z: true / ausente = la pregunta de siempre; false = no pregunta; "texto" = esa pregunta
                 String conf = cf == null || Boolean.TRUE.equals(cf) || "true".equalsIgnoreCase(String.valueOf(cf).trim()) ? null
                         : Boolean.FALSE.equals(cf) || "false".equalsIgnoreCase(String.valueOf(cf).trim()) ? "" : String.valueOf(cf).strip();
+                Object pm = m.get("permiso");   // E5a: la clave de seguridad que hace falta para ver el botón
+                String permiso = pm == null ? null : String.valueOf(pm).trim();
+                if (permiso != null && !permiso.matches("[A-Za-z_][A-Za-z0-9_]{0,99}")) throw error("botón: permiso no válido '" + permiso + "'");
                 bs.add(new Boton(String.valueOf(((Map<String, Object>) m).getOrDefault("titulo", "?")),
-                        String.valueOf(((Map<String, Object>) m).getOrDefault("evento", "Cancel")).replace("'", "").trim(), conf));
+                        String.valueOf(((Map<String, Object>) m).getOrDefault("evento", "Cancel")).replace("'", "").trim(), conf, permiso));
             }
         return bs;
     }

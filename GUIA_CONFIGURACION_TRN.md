@@ -1682,7 +1682,7 @@ Solo YAML: `trn/`, `menu.yaml`, `dominios.yaml`, `seguridad.yaml` (y si hace fal
 el `pom.xml` (usa `optimist-engine` como dependencia) y su `optimist.cfg` (`sistema.nombre`). Lo arma el Designer con
 **✨ Nueva aplicación** (sección 25). El menú sale completo del `menu.yaml`; PostIts y mensajes, apagados.
 
-## 24. Usuarios y módulos opcionales (E4)
+## 24. Usuarios, permisos y módulos opcionales (E4, E5a)
 
 El motor no da por sentada ninguna tabla.
 
@@ -1712,6 +1712,56 @@ usuarios:
 Apagados por defecto. Los prende la aplicación (extensión, `modulos()`); el `optimist.cfg` del cliente manda igual:
 `sistema.postits=true|false`, `sistema.mensajes=true|false`. OPTIMIST ERP los tiene prendidos.
 
+### 24.3 Permisos (E5a)
+
+Quién puede entrar a cada TRN, agregar, modificar, borrar, ver un campo, abrir un web panel o una consulta, o hacer una acción.
+Se configura en `seguridad.yaml`; **sin `permisos:` todos los usuarios pueden todo** (como antes).
+
+```yaml
+permisos:
+  tipo: wwp                       # wwp: seguridad avanzada de WorkWithPlus | extension: la aplicación (OptimistExtension.permisos)
+  rolAdministrador: Administrator # el rol que tiene todo
+  claves:                         # (opcional) funcionalidades propias, además de las de cada TRN, web panel y consulta
+    VerRentabilidad: Ver la rentabilidad
+```
+
+Con `tipo: wwp` el motor usa las tablas de WorkWithPlus (`SecFunctionality`, `SecRole`, `SecFunctionalityRole`, `SecUserRole`) con
+la misma lógica que `SecIsAuthByFunctionalityKey`: la clave tiene que estar en `SecFunctionality` y el usuario tener (por sus roles)
+un rol que la tenga. Si no, **no puede**. Los permisos se leen al iniciar sesión. (`tipo: gam`: más adelante.)
+
+Las claves, las mismas de WorkWithPlus:
+
+| Clave | Qué controla |
+|---|---|
+| `WW<Trn>` (ej. `WWIncidentes`) | entrar al WorkWith; sin ella la TRN no aparece en el menú. Un registro abierto desde otra pantalla para **verlo**, sí. |
+| `WW<Trn>_Insert` / `_Update` / `_Delete` | el **+ Nuevo**, **Modificar** (sin ella el registro se abre para verlo) y **Eliminar** |
+| `<Campo>_Attribute` | el campo en el formulario y su columna en el WorkWith, si la TRN lo declara en `permisos.campos` |
+| el nombre del web panel o de la consulta | entrar (también desde el menú y como ventana) |
+| la de `permiso:` | una acción del renglón o un botón del WorkWith, o un botón de un web panel |
+| las de `permisos.claves` | lo que pregunten las reglas o los procedimientos con `SecIsAuthByFunctionalityKey('Clave')` |
+
+En la TRN, los campos con permiso (el importador los trae de la KB):
+
+```yaml
+permisos:
+  campos: [IncidentesFacturar, IncidentesFacturado]
+```
+
+En una acción o un botón: `- {titulo: Facturar, proc: Facturar, parametros: [PEDId], permiso: PEDFacturar}`.
+En un web panel: `botones: [{titulo: Procesar, evento: Procesar, permiso: VerRentabilidad}]`.
+
+**Panel de Seguridad** (en el menú: `{titulo: Seguridad, ruta: seguridad}`): entra el rol administrador o quien tenga la clave
+`OptimistSeguridad`. Tiene:
+- **Roles y permisos**: los roles (nuevo, cambiar, eliminar) y, por rol, el árbol de permisos con tildes (TRN → agregar, modificar,
+  eliminar, campos, acciones; web panels; consultas; claves propias). Tildar una TRN tilda todo lo que tiene adentro.
+- **Usuarios**: los roles de cada usuario.
+- **Actualizar permisos** (como `SecFunctionalitiesToLoad` + `SecGrantAllAccessToAdminRole` de WorkWithPlus): da de alta en
+  `SecFunctionality` las claves que falten (de todas las TRN, campos, acciones, web panels, consultas y `permisos.claves`), con su
+  descripción y debajo de su TRN, y se las asigna al rol administrador (si no existe, lo crea). No borra nada. **Hay que tocarlo
+  después de agregar o importar TRN, web panels o funcionalidades.**
+
+`SecIsAuthByFunctionalityKey('Clave')` funciona en las reglas y en los procedimientos (reemplaza al de la KB).
+
 ## 25. Nueva aplicación (OPTIMIST Designer, E4)
 
 Botón **✨ Nueva aplicación**: pide carpeta, título, grupo Maven, puerto, base de datos y de dónde salen los usuarios, y arma en la
@@ -1720,6 +1770,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E5a**: permisos (24.3): seguridad de WorkWithPlus aplicada por el motor (TRN, modos, campos, web panels, consultas, acciones) y panel de Seguridad.
 - **E4h**: teclado en los formularios (sección 19): cursor en el primer campo editable al abrir; Enter pasa al campo siguiente; Enter nunca confirma ni toca un botón.
 - **E4d**: mails con los datos del servidor en el optimist.cfg, archivos de texto (DFW), `&WWPContext.UserId` / `UserName` (16.1).
 - **E4c**: archivos (Blob) también en los detalles: Ver, Bajar, Subir y Quitar en cada renglón (5.4).

@@ -33,8 +33,28 @@ public final class OptimistMenu {
      * Se arma una vez por sesión (al iniciar sesión se leen las tablas; acá se guarda el resultado).
      * Si no hay tablas, o el usuario no tiene ninguna fila en MenuSecUser, queda el menu.yaml completo.
      */
-    @SuppressWarnings("unchecked")
     public static List<Carpeta> cargar() {
+        List<Carpeta> m = cargarSinPermisos();
+        return OptimistPermisos.activo() ? conPermiso(m) : m;
+    }
+
+    /** E5a: sin lo que el usuario no puede abrir (permisos: OptimistPermisos); las carpetas que quedan vacías no van. */
+    private static List<Carpeta> conPermiso(List<Carpeta> cs) {
+        List<Carpeta> r = new ArrayList<>();
+        for (Carpeta c : cs) { Carpeta f = conPermiso(c); if (f != null) r.add(f); }
+        return r;
+    }
+    private static Carpeta conPermiso(Carpeta c) {
+        List<Object> hs = new ArrayList<>();
+        for (Object h : c.hijos()) {
+            if (h instanceof Item it) { if (it.pendiente() || OptimistPermisos.puedeRuta(it.ruta())) hs.add(it); }
+            else if (h instanceof Carpeta s) { Carpeta f = conPermiso(s); if (f != null) hs.add(f); }
+        }
+        return hs.isEmpty() ? null : new Carpeta(c.nombre(), hs);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Carpeta> cargarSinPermisos() {
         OptimistContexto ctx = OptimistContexto.actual();
         if (ctx == null || ctx.menuNodos == null || ctx.menuNodos.isEmpty()) return cargarYaml();
         if (ctx.menuPermitidos == null || ctx.menuPermitidos.isEmpty()) {

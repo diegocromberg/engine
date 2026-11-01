@@ -270,6 +270,23 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
     }
 
     /** Los nombres de las consultas que hay (en minúscula), para el menú. */
+    /** E5a: el nombre de la consulta como está su archivo (Diego escribe ExtraWWDetAsientos; la ruta llega en minúscula). */
+    static String nombreReal(String nombre) {
+        try {
+            for (org.springframework.core.io.Resource x : OptimistRecursos.listar("consultas", ".yaml")) {
+                String f = x.getFilename();
+                if (f != null && f.equalsIgnoreCase(nombre + ".yaml")) return f.substring(0, f.length() - 5);
+            }
+        } catch (Exception ignorado) { }
+        return nombre;
+    }
+
+    /** E5a: el título de la consulta (para la lista de permisos), o su nombre. */
+    static String tituloDe(String nombre) {
+        try { Consulta c = cargar(nombre); return c.titulo() == null || c.titulo().isBlank() ? nombreReal(nombre) : c.titulo(); }
+        catch (RuntimeException e) { return nombreReal(nombre); }
+    }
+
     static Set<String> nombres() {
         Set<String> r = new HashSet<>();
         try {
@@ -332,6 +349,7 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         String ruta = "cns/" + nombre.toLowerCase(Locale.ROOT);
         OptimistShell.rutaActual(ruta);
         if (OptimistShell.sinPermiso(this, e, ruta)) return;
+        if (OptimistShell.sinClave(this, nombreReal(nombre), nombre)) return;   // E5a: permisos (la clave es el nombre de la consulta)
         OptimistDatabase.Cliente cl = OptimistDatabase.clienteActual();
         // V66k: lo que recibe de quien la abrió (cns/x?AsientosId=25): otra dirección = otra consulta
         Map<String, List<String>> qp = new java.util.LinkedHashMap<>(e.getLocation().getQueryParameters().getParameters());

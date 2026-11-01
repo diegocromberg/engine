@@ -49,6 +49,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         String nombre = e.getRouteParameters().get("nombre").orElse("");
         OptimistShell.rutaActual("wbp/" + nombre.toLowerCase(Locale.ROOT));
         if (OptimistShell.sinPermiso(this, e, "wbp/" + nombre.toLowerCase(Locale.ROOT))) return;   // V48e
+        if (OptimistShell.sinClave(this, nombre, nombre)) return;   // E5a: permisos (la clave es el nombre del panel)
         OptimistPanel p;
         try { p = cargar(nombre); }
         catch (RuntimeException ex) {
@@ -143,6 +144,10 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
      */
     public static void abrirDialogo(String nombre, OptimistDatabase db, List<Object> parametros,
                                     Consumer<OptimistPanel.Abrir> alAbrir, Runnable alCerrar) {
+        if (!OptimistPermisos.puede(nombre)) {   // E5a
+            Notification.show("No tenés permiso para " + nombre + ".", 6000, Notification.Position.MIDDLE);
+            return;
+        }
         OptimistPanel p;
         try { p = cargar(nombre); }
         catch (RuntimeException ex) {
@@ -178,6 +183,18 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
     }
 
     // ------------------------------------------------------------------ lectura del YAML
+
+    /** E5a: los nombres de los web panels (como están los archivos wbp/*.yaml, sin la extensión). */
+    static List<String> nombresPaneles() {
+        List<String> r = new ArrayList<>();
+        try {
+            for (org.springframework.core.io.Resource x : OptimistRecursos.listar("wbp", ".yaml")) {
+                String f = x.getFilename();
+                if (f != null && f.toLowerCase(Locale.ROOT).endsWith(".yaml")) r.add(f.substring(0, f.length() - 5));
+            }
+        } catch (Exception ignorado) { }
+        return r;
+    }
 
     @SuppressWarnings("unchecked")
     static OptimistPanel cargar(String nombre) {
@@ -309,6 +326,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
                 barraResultado.setAlignItems(FlexComponent.Alignment.CENTER);
                 barraResultado.getStyle().set("flex-wrap", "wrap").set("gap", "var(--lumo-space-m)");
                 for (OptimistPanel.Boton b : p.resultado.botones()) {
+                    if (!OptimistPermisos.puede(b.permiso())) continue;   // E5a
                     Button bt = new Button(b.titulo(), e -> boton(b));
                     bt.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
                     botonesResultado.add(bt);
@@ -474,6 +492,7 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
                 if (!delResultado(g.nombre())) cuerpo.add(gc);   // V76: las del resultado van en su pantalla
             }
             for (OptimistPanel.Boton b : p.botones) {
+                if (!OptimistPermisos.puede(b.permiso())) continue;   // E5a
                 Button bt = new Button(b.titulo(), e -> boton(b));
                 if (!OptimistPanel.normalizar(b.evento()).equals("cancel")) bt.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
                 botones.add(bt);
