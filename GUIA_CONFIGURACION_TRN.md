@@ -1749,7 +1749,8 @@ permisos:
   campos: [IncidentesFacturar, IncidentesFacturado]
 ```
 
-En una acción o un botón: `- {titulo: Facturar, proc: Facturar, parametros: [PEDId], permiso: PEDFacturar}`.
+En una acción o un botón: `- {titulo: Facturar, proc: Facturar, parametros: [PEDId], permiso: PEDFacturar}`. El importador (y
+`herramientas/permisos_gx.py`) lo trae de la clave de cada acción del WorkWithPlus (E5b).
 En un web panel: `botones: [{titulo: Procesar, evento: Procesar, permiso: VerRentabilidad}]`.
 
 **Panel de Seguridad** (en el menú: `{titulo: Seguridad, ruta: seguridad}`): entra el rol administrador o quien tenga la clave

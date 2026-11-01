@@ -7,7 +7,7 @@ navegador, con Pyodide) y también se puede correr a mano:
   python3 importar_kb.py Factory.xml --recursos ../../factory/src/main/resources --trns Incidentes,Clientes
 
 Pasos, para las TRN pedidas:
-  1. la TRN (gx2yaml)                       5. acciones del WorkWith (acciones_gx)
+  1. la TRN (gx2yaml)                       5. acciones del WorkWith (acciones_gx) y sus permisos (permisos_gx)
   2. fórmulas redundantes y las que faltan   6. lo que llaman las acciones, las reglas y el inicio, hasta el final:
      (parchar_redundantes, parchar_formulas)    procedimientos (gx2proc), impresiones (gx2prn), Data Providers (gx2dp)
   3. paneles plegables (paneles_gx)              y web panels (gx2wbp)
@@ -28,6 +28,7 @@ import parchar_redundantes as pr
 import parchar_reglas as prg
 import paneles_gx as pan
 import acciones_gx as acc
+import permisos_gx as perm
 import gx2wbp as gw
 import gx2prn as gprn
 import gx2dp as gdp
@@ -152,6 +153,7 @@ def importar(xml, recursos, trns, avisar=None):
         avisar('Acciones del WorkWith y lo que llaman…' if vuelta == 0 else f'Lo que llaman los procedimientos (vuelta {vuelta + 1})…',
                min(0.9, 0.55 + 0.05 * vuelta))
         correr(acc, [xml, '--trn', d_trn, '--solo', solo])
+        correr(perm, [xml, '--trn', d_trn, '--solo', solo])   # E5b: permiso: de cada acción (SecFuntionKey del WorkWithPlus)
         tienen = {f[:-5].lower() for d in (d_proc, d_wbp) if os.path.isdir(d) for f in os.listdir(d) if f.endswith(('.proc', '.yaml'))}
         pedir = {}
         textos = [(n, open(os.path.join(d_trn, n + '.yaml'), encoding='utf-8').read()) for n in hechas]

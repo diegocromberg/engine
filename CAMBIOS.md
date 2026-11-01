@@ -16,6 +16,10 @@ menú por el usuario: un padre que el usuario no tiene apaga todo lo de abajo.
   WorkWithPlus). `OptimistPermisos.puedeEntrar`.
 - **Menú de la base**: un nodo padre también tiene que estar en `MenuSecUser` para que se vean sus hijos (antes el motor miraba solo
   las hojas). Las rutas de lo que cuelga de un padre apagado se siguen controlando al entrar por dirección.
+- **`herramientas/permisos_gx.py`** (y el importador del Designer, paso 5): la clave de permiso de cada acción del WorkWithPlus
+  (`SecFuntionKey` de cada `userAction`: PEDAutorizar, PEDCancelar, PrintPedido…) pasa a `permiso:` de la acción del YAML. El ERP
+  se había migrado sin esto (acciones_gx no lo traía), así que un usuario sin PEDAutorizar veía Autorizar Pedido. Aparea por título y,
+  si no, por el objeto que llama y sus parámetros constantes; lo que no aparea queda informado.
 - Claves de "Actualizar permisos": confirmado contra `SecGetAdvancedSecurityWWPFunctionalities` de la KB del ERP que el motor usa los
   mismos tipos y padres que WorkWithPlus (`WW<Trn>` Object sin padre; `_Insert/_Update/_Delete` Mode y las acciones Action debajo
   de `WW<Trn>`; `<Campo>_Attribute` Attribute debajo de `WW<Trn>`). Las claves que ya están en la base no se tocan.
