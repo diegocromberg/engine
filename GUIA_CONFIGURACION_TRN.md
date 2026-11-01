@@ -1721,6 +1721,7 @@ Se configura en `seguridad.yaml`; **sin `permisos:` todos los usuarios pueden to
 permisos:
   tipo: wwp                       # wwp: seguridad avanzada de WorkWithPlus | extension: la aplicación (OptimistExtension.permisos)
   rolAdministrador: Administrator # el rol que tiene todo
+  administradores: [Administrator]  # (opcional) usuarios que siempre tienen todo, aunque les falte el rol (para no quedar afuera)
   claves:                         # (opcional) funcionalidades propias, además de las de cada TRN, web panel y consulta
     VerRentabilidad: Ver la rentabilidad
 ```

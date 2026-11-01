@@ -14,5 +14,6 @@ usuarios:
 # permisos:
 #   tipo: wwp
 #   rolAdministrador: Administrator
+#   administradores: [Administrator]   # usuarios que siempre tienen todo (para no quedar afuera)
 #   claves:                      # funcionalidades propias, además de las de cada TRN, web panel y consulta
 #     VerRentabilidad: Ver la rentabilidad

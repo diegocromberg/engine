@@ -19,6 +19,7 @@ permisos de TRN y de funcionalidades nuevas; un panel para la seguridad con un b
   administrador. Así, lo que se agregue más adelante se carga solo.
 - Importador: los campos con permiso de WorkWithPlus van a `permisos.campos`; los permisos ya no figuran como "sin migrar". Si la KB
   usa la seguridad de WorkWithPlus y la aplicación no tiene `permisos:`, el informe dice qué agregar.
+- `administradores: [Usuario]` en `permisos:`: esos usuarios tienen todo aunque les falte el rol (para no quedar afuera de Seguridad).
 - Plantilla de aplicación: `seguridad.yaml` con `permisos:` comentado y el ítem de Seguridad en el menú, explicado.
 - Probado contra MariaDB con las TRN de Factory: Actualizar permisos (35 claves nuevas; reusa las que ya estaban, ej. `WWIncidentes`;
   la segunda vez, nada), un administrador con todo y un usuario con un rol de solo consulta (entra a Incidentes, sin agregar, sin ver

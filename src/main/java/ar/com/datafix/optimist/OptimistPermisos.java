@@ -29,7 +29,8 @@ public final class OptimistPermisos {
     private static final Logger LOG = LoggerFactory.getLogger(OptimistPermisos.class);
 
     /** La configuración (permisos: de seguridad.yaml). null = sin permisos (todos pueden todo). */
-    public record Config(String tipo, String rolAdministrador, Map<String, String> claves) {}
+    /** administradores: usuarios (SecUserName) que siempre son administradores, aunque no tengan el rol (para no quedar afuera). */
+    public record Config(String tipo, String rolAdministrador, Map<String, String> claves, Set<String> administradores) {}
 
     private static volatile Optional<Config> CONFIG;
 
@@ -53,7 +54,11 @@ public final class OptimistPermisos {
                         if (!k.matches("[A-Za-z_][A-Za-z0-9_]{0,99}")) throw new IllegalStateException("seguridad.yaml: permisos.claves: clave no válida '" + k + "'");
                         claves.put(k, e.getValue() == null ? k : String.valueOf(e.getValue()).trim());
                     }
-                r = new Config(tipo, String.valueOf(mm.getOrDefault("rolAdministrador", "Administrator")).trim(), Map.copyOf(claves));
+                Set<String> admins = new HashSet<>();
+                if (mm.get("administradores") instanceof List<?> la) {
+                    for (Object o : la) if (o != null) admins.add(String.valueOf(o).trim().toLowerCase(Locale.ROOT));
+                } else if (mm.get("administradores") != null) admins.add(String.valueOf(mm.get("administradores")).trim().toLowerCase(Locale.ROOT));
+                r = new Config(tipo, String.valueOf(mm.getOrDefault("rolAdministrador", "Administrator")).trim(), Map.copyOf(claves), Set.copyOf(admins));
             } else if (p != null && !Boolean.FALSE.equals(p)) throw new IllegalStateException("seguridad.yaml: 'permisos:' tiene que tener tipo, rolAdministrador…");
         } catch (IllegalStateException e) { throw e; }
         catch (Exception e) { throw new IllegalStateException("seguridad.yaml: " + e.getMessage(), e); }
@@ -98,6 +103,9 @@ public final class OptimistPermisos {
                 try (ResultSet r = p.executeQuery()) { admin = r.next() && r.getInt(1) > 0; }
             }
         }
+        Object nom = ctx.valor("SecUserName");
+        if (nom != null && c.administradores().contains(String.valueOf(nom).trim().toLowerCase(Locale.ROOT))) admin = true;
+        // el administrador tiene todo: el rol (Actualizar permisos le asigna lo nuevo) o la lista 'administradores'
         ctx.permisos = claves;
         ctx.permisosAdmin = admin;
     }
@@ -109,6 +117,8 @@ public final class OptimistPermisos {
         if (clave == null || config() == null) return true;
         OptimistContexto ctx = OptimistContexto.actual();
         if (ctx == null) return false;
+        if (ctx.permisosAdmin && config().administradores().contains(String.valueOf(ctx.valor("SecUserName")).trim().toLowerCase(Locale.ROOT)))
+            return true;   // de la lista 'administradores': todo, aunque su rol no tenga la clave
         Set<String> s = ctx.permisos;
         return s != null && s.contains(clave.trim().toLowerCase(Locale.ROOT));
     }
