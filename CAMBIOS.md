@@ -2,6 +2,18 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6 — Grilla tipo WorkWith en los web panels: filtros y tildes; bajada de archivos (01/11/2026), versión 0.6.0
+
+Diego: cualquier grilla tipo WW tiene que poder agrandar las columnas, filtrar y ordenar por columna (la Facturación Masiva del ERP).
+
+- Grilla `lista: true` de los web panels (guía 19): **filtros por columna** como los del WorkWith (texto, número con operadores,
+  fecha desde-hasta, combo múltiple; `OptimistWorkWith.filtrar`, en memoria) y **columnas de tildes** (una columna `Boolean` sin
+  `soloLectura`): tilde por renglón, que el evento ve en la colección, y un tilde en el título que tilda o destilda los que se ven.
+  El orden por título y el ancho de las columnas ya estaban (V74).
+- Un archivo que deja un evento o un procedimiento y no es un PDF (ZIP, CSV, Excel…) se baja al navegador, con su tipo
+  (`OptimistVisorPdf.abrir` / `bajar`). Lo usa la Facturación Masiva del ERP para el ZIP de los comprobantes.
+- Versión 0.6.0.
+
 ## E5c — `color:` en las acciones y versión 0.5.0 (01/11/2026)
 
 Diego: el motor da por cada TRN Insert, Update, Delete y View y los mecanismos genéricos; todo lo demás es de cada aplicación, y nada

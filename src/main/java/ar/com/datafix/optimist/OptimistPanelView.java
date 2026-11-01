@@ -255,6 +255,10 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         final Map<String, com.vaadin.flow.component.grid.FooterRow> totalesLista = new LinkedHashMap<>();
         // V84i: los totales de las listas, solo para los autorizados (totales.usuarios del optimist.cfg) y si los prendió con Σ
         final Map<String, List<Map<String, Object>>> filasLista = new LinkedHashMap<>();
+        // E6: los filtros por columna de cada lista, lo que queda después de filtrar y el tilde "todos" de cada columna de tildes
+        final Map<String, Map<String, TextField>> filtrosLista = new LinkedHashMap<>();
+        final Map<String, List<Map<String, Object>>> filasFiltradas = new LinkedHashMap<>();
+        final Map<String, Map<String, com.vaadin.flow.component.checkbox.Checkbox>> tildesTodos = new LinkedHashMap<>();
         Boolean totalesPrendidos;
         final List<Button> botonesTotales = new ArrayList<>();
 
@@ -883,20 +887,106 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
             grid.addThemeName("optimist-grid");
             grid.addThemeVariants(com.vaadin.flow.component.grid.GridVariant.LUMO_ROW_STRIPES, com.vaadin.flow.component.grid.GridVariant.LUMO_COMPACT);
             grid.setColumnReorderingAllowed(true);
+            // E6: filtros por columna, como en los WorkWith (texto: contiene; número: con operadores; fecha: desde-hasta; combo:
+            // varias opciones). Se aplican en memoria sobre los renglones que dejó el evento.
+            Map<String, TextField> filtros = new LinkedHashMap<>();
+            filtrosLista.put(g.nombre(), filtros);
+            Runnable alFiltrar = () -> filtrarLista(g);
             for (Campo c : g.columnas().campos()) {
                 if (c.oculto()) continue;
                 boolean num = c.dominio().esNumerico() && !c.dominio().esCombo();
                 OptimistPanel.Enlace en = g.enlaces().get(c.nombre());
                 List<OptimistPanel.Lupa> lps = g.lupasDe(c.nombre());
                 Grid.Column<Map<String, Object>> col;
-                if (en != null || !lps.isEmpty()) col = grid.addComponentColumn(f -> celdaLista(g, c, en, lps, f, num));
+                boolean tilde = c.dominio().tipo() == OptimistTrnDefinicion.Tipo.BOOLEAN && !c.soloLectura();
+                if (tilde) col = grid.addComponentColumn(f -> tildeLista(g, c, f));   // E6: columna de tildes (editable)
+                else if (en != null || !lps.isEmpty()) col = grid.addComponentColumn(f -> celdaLista(g, c, en, lps, f, num));
                 else col = grid.addColumn(f -> textoLista(c, f.get(c.nombre())));
-                col.setHeader(c.etiqueta()).setKey(c.nombre()).setSortable(true).setResizable(true).setAutoWidth(true)
+                col.setKey(c.nombre()).setSortable(true).setResizable(true).setAutoWidth(true)
                         .setComparator((x, y) -> comparar(x.get(c.nombre()), y.get(c.nombre())));
+                if (tilde) {
+                    // E6: el tilde del título tilda o destilda toda la columna (los renglones que se ven)
+                    com.vaadin.flow.component.checkbox.Checkbox todos = new com.vaadin.flow.component.checkbox.Checkbox(c.etiqueta());
+                    todos.getElement().setAttribute("title", "Tildar o destildar todos");
+                    todos.addValueChangeListener(e -> { if (e.isFromClient()) tildarTodos(g, c, Boolean.TRUE.equals(e.getValue())); });
+                    tildesTodos.computeIfAbsent(g.nombre(), k -> new LinkedHashMap<>()).put(c.nombre(), todos);
+                    col.setHeader(todos).setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.CENTER);
+                } else {
+                    TextField filtro = new TextField();
+                    filtro.setPlaceholder("Filtrar...");
+                    filtro.setClearButtonVisible(true);
+                    filtro.setWidthFull();
+                    filtro.setValueChangeMode(com.vaadin.flow.data.value.ValueChangeMode.LAZY);
+                    filtro.addValueChangeListener(e -> alFiltrar.run());
+                    filtros.put(c.nombre(), filtro);
+                    com.vaadin.flow.component.Component control = filtro;
+                    if (num) control = OptimistWorkWith.filtroNumero(filtro);
+                    else if (c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATE || c.dominio().tipo() == OptimistTrnDefinicion.Tipo.DATETIME) control = OptimistWorkWith.filtroFecha(filtro);
+                    else if (c.dominio().esCombo()) control = OptimistWorkWith.filtroMultiple(filtro, c.dominio().valores());
+                    Span titulo = new Span(c.etiqueta());
+                    OptimistWorkWith.marcarFiltrado(titulo, filtro);
+                    VerticalLayout cabecera = new VerticalLayout(titulo, control);
+                    cabecera.setPadding(false);
+                    cabecera.setSpacing(false);
+                    col.setHeader(cabecera);
+                }
                 if (num) col.setTextAlign(com.vaadin.flow.component.grid.ColumnTextAlign.END);
                 cols.put(c.nombre(), col);
             }
             return grid;
+        }
+
+        /** E6: la celda de una columna de tildes: cambia el renglón en el acto (el evento lo ve en la colección). */
+        private Component tildeLista(OptimistPanel.Grilla g, Campo c, Map<String, Object> f) {
+            com.vaadin.flow.component.checkbox.Checkbox cb = new com.vaadin.flow.component.checkbox.Checkbox();
+            Object v = f.get(c.nombre());
+            cb.setValue(v instanceof Boolean b ? b : v != null && (String.valueOf(v).equals("1") || String.valueOf(v).equalsIgnoreCase("true")));
+            cb.addValueChangeListener(e -> { if (e.isFromClient()) { f.put(c.nombre(), Boolean.TRUE.equals(e.getValue())); actualizarTildeTodos(g, c); } });
+            return cb;
+        }
+
+        /** E6: tilda o destilda la columna en todos los renglones que se ven (con filtros, solo los filtrados). */
+        private void tildarTodos(OptimistPanel.Grilla g, Campo c, boolean valor) {
+            Grid<Map<String, Object>> grid = listas.get(g.nombre());
+            if (grid == null) return;
+            List<Map<String, Object>> filas = filasFiltradas.getOrDefault(g.nombre(), filasLista.get(g.nombre()));
+            if (filas == null) return;
+            for (Map<String, Object> f : filas) f.put(c.nombre(), valor);
+            grid.getDataProvider().refreshAll();
+        }
+
+        /** E6: el tilde del título queda tildado solo si todos los renglones que se ven lo están. */
+        private void actualizarTildeTodos(OptimistPanel.Grilla g, Campo c) {
+            Map<String, com.vaadin.flow.component.checkbox.Checkbox> m = tildesTodos.get(g.nombre());
+            com.vaadin.flow.component.checkbox.Checkbox todos = m == null ? null : m.get(c.nombre());
+            if (todos == null) return;
+            List<Map<String, Object>> filas = filasFiltradas.getOrDefault(g.nombre(), filasLista.get(g.nombre()));
+            boolean t = filas != null && !filas.isEmpty() && filas.stream().allMatch(f -> Boolean.TRUE.equals(f.get(c.nombre())));
+            if (!Objects.equals(todos.getValue(), t)) todos.setValue(t);
+        }
+
+        /** E6: aplica los filtros de las columnas (en memoria) y muestra lo que queda. */
+        private void filtrarLista(OptimistPanel.Grilla g) {
+            Grid<Map<String, Object>> grid = listas.get(g.nombre());
+            List<Map<String, Object>> todas = filasLista.get(g.nombre());
+            Map<String, TextField> filtros = filtrosLista.get(g.nombre());
+            if (grid == null || todas == null) return;
+            List<Map<String, Object>> filas = todas;
+            if (filtros != null && filtros.values().stream().anyMatch(t -> t.getValue() != null && !t.getValue().isBlank())) {
+                Map<String, java.util.function.Function<Map<String, Object>, ?>> ext = new HashMap<>(), reales = new HashMap<>();
+                for (Campo c : g.columnas().campos()) {
+                    ext.put(c.nombre(), f -> textoLista(c, f.get(c.nombre())));
+                    reales.put(c.nombre(), f -> f.get(c.nombre()));
+                }
+                filas = OptimistWorkWith.filtrar(todas, filtros, ext, reales);
+            }
+            filasFiltradas.put(g.nombre(), filas);
+            grid.setItems(filas);
+            if (filas.size() <= 15) grid.setAllRowsVisible(true);
+            else if (delResultado(g.nombre())) { grid.setAllRowsVisible(false); grid.setHeight("max(320px, calc(100vh - 290px))"); }
+            else { grid.setAllRowsVisible(false); grid.setHeight("65vh"); }
+            Map<String, com.vaadin.flow.component.checkbox.Checkbox> m = tildesTodos.get(g.nombre());
+            if (m != null) for (Campo c : g.columnas().campos()) if (m.containsKey(c.nombre())) actualizarTildeTodos(g, c);
         }
 
         /** V74 / V84: la celda con vínculo (a una consulta o a un registro de una TRN) y/o con sus lupas al lado del valor. */
@@ -1019,17 +1109,14 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
             List<Map<String, Object>> filas = new ArrayList<>();
             Object v = estado.get(g.nombre());
             if (v instanceof List<?> l) for (Object o : l) if (o instanceof Map<?, ?> m) filas.add((Map<String, Object>) m);
-            grid.setItems(filas);
+            filasLista.put(g.nombre(), filas);
+            filtrarLista(g);   // E6: con los filtros de las columnas que haya; sin filtros, todas
             OptimistGrafico gr = graficos.get(g.nombre());
             if (gr != null && !mismosRenglones(filasGrafico.get(g.nombre()), filas)) {
                 // V84b: lo que dejó el proceso (u otro orden del evento): al gráfico, en el orden en que quedó la lista
                 filasGrafico.put(g.nombre(), filas);
                 ordenarGrafico(g, grid.getSortOrder());
             }
-            if (filas.size() <= 15) grid.setAllRowsVisible(true);
-            else if (delResultado(g.nombre())) { grid.setAllRowsVisible(false); grid.setHeight("max(320px, calc(100vh - 290px))"); }   // V76
-            else { grid.setAllRowsVisible(false); grid.setHeight("65vh"); }
-            filasLista.put(g.nombre(), filas);   // V84i: para pintar los totales si se prenden después
             com.vaadin.flow.component.grid.FooterRow pie = totalesLista.get(g.nombre());
             if (pie == null) return;
             pintarTotales(g, columnasLista.get(g.nombre()), pie, filas);

@@ -24,7 +24,9 @@ public final class OptimistVisorPdf {
 
     public static void abrir(String titulo, String nombreArchivo, byte[] pdf) {
         // V66: lo que armó el procedimiento no es un PDF (el Excel de los Libros de IVA): se baja, como el Excel del WorkWith
-        if (nombreArchivo.toLowerCase().endsWith(".xlsx")) { bajar(nombreArchivo, pdf); return; }
+        // E6: lo que no es un PDF (un Excel, un ZIP, un CSV...) se baja
+        String ext = nombreArchivo.toLowerCase();
+        if (ext.matches(".*\\.(xlsx|xls|zip|csv|txt|xml|json|docx)$")) { bajar(nombreArchivo, pdf); return; }
         String archivo = nombreArchivo.toLowerCase().endsWith(".pdf") ? nombreArchivo : nombreArchivo + ".pdf";
         StreamResource recurso = new StreamResource(archivo, () -> new ByteArrayInputStream(pdf));
         recurso.setContentType("application/pdf");
@@ -164,8 +166,9 @@ public final class OptimistVisorPdf {
 
     public static void bajar(String archivo, byte[] datos) {
         StreamResource recurso = new StreamResource(archivo, () -> new ByteArrayInputStream(datos));
-        recurso.setContentType(archivo.toLowerCase().endsWith(".xlsx")
-                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/octet-stream");
+        String a = archivo.toLowerCase();
+        recurso.setContentType(a.endsWith(".xlsx") ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : a.endsWith(".zip") ? "application/zip" : a.endsWith(".csv") ? "text/csv" : a.endsWith(".pdf") ? "application/pdf" : "application/octet-stream");
         recurso.setHeader("Content-Disposition", "attachment; filename=\"" + archivo.replace("\"", "") + "\"");
         VaadinSession ses = VaadinSession.getCurrent();
         // se guarda solo la última descarga, para no acumular archivos en la sesión (como el Excel del WorkWith)

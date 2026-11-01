@@ -1267,6 +1267,7 @@ Cómo funciona:
 - Todos los eventos se revisan al abrir el panel: un error de escritura se ve enseguida, con el renglón.
 - **E4h — teclado (TRN y web panels, sin configurar nada)**: al abrir un formulario (alta o modificación de una TRN, un web panel en ventana o como página, después de su Start) el cursor queda en el **primer campo editable**; en Visualizar no. **Enter pasa al campo siguiente**, como TAB (en una grilla de renglones, al de la derecha y después al renglón de abajo), salteando los de solo lectura, los deshabilitados y los ocultos; en el último no hace nada. **Enter nunca confirma ni toca un botón**: Confirmar / Procesar van con el mouse. Excepciones: en un texto de varios renglones Enter es un renglón nuevo; en un combo o una fecha con la lista abierta, elige; las lupas, la calculadora y las confirmaciones siguen como siempre (`OptimistTeclado`).
 - (V65) Si un evento llama a un procedimiento que genera un PDF (una impresión con `Output_file`), el PDF se abre en la misma ventana al terminar el evento y el panel queda abierto. Ej.: Libro IVA Ventas (`WPIvaVentas`).
+- (E6) Un archivo que deja el evento y no es un PDF (un ZIP, un CSV, un Excel) se baja, como el Excel de un WorkWith.
 - (V66t) Si el procedimiento no imprimió nada (ej. el botón **Excel** de un listado que también tiene PDF), no se abre un PDF en blanco.
 
 **Procesos largos (V66x)**: el evento de un botón corre en segundo plano; si tarda más de medio segundo aparece la ventanita "Procesando…". Un procedimiento puede ir informando qué hace con `MostrarProgreso.Call("Procesando artículo: " + Trim(&ArticulosId))` (ej. PrcActualizacionCostos, ListarStock). Fuera de un web panel no hace nada.
@@ -1345,6 +1346,11 @@ eventos: |
   - **Al volver** de la consulta (Volver o Atrás del navegador) el web panel sigue como estaba: lo cargado y lo procesado. Vale para todos los web panels abiertos como página. **Necesita el motor V74.**
   - **V84 — enlace a una TRN**: `enlaces: {Col: {trn: CPBC, clave: CPBCId}}`: el valor es un vínculo que abre ese registro de la TRN en modo ver (la columna `clave` del renglón trae su clave); al cerrarlo se vuelve al web panel. Ej. el comprobante en las Estadísticas de Ventas y de Compras.
   - **V84e — también en las grillas fijas** (`fija: true`): una columna de solo lectura con `enlaces: {Col: {trn: CPBC, clave: CPBCId}}` muestra el valor como vínculo (ej. el remito y el pedido en `CPBCWPAltaMultiremito`).
+  - **E6 — como un WorkWith de verdad**: además del orden por título y las columnas que se agrandan, **filtros por columna**
+    (texto: contiene; número: con operadores; fecha: desde-hasta; combo: varias opciones), en memoria sobre lo que dejó el evento,
+    y **columnas de tildes**: una columna `Boolean` sin `soloLectura` se ve como tilde editable, con un tilde en el título que tilda o
+    destilda todos los renglones que se ven (con filtros, solo los filtrados). El evento recibe los tildes en la colección
+    (`For &R in &Pedidos ... if &R.Generar`). Ej. `wbp/WPMultiML.yaml` (Facturación Masiva) del ERP.
   - **V84 — miles en los enteros**: los enteros de una lista van sin punto de miles (son códigos); para una cantidad, el dominio con `miles`: `Cantidad: "Numeric(13) miles"` (1.234).
   - **V84 — lupas en una columna (drill-down)**: `lupas:` abre una ventana con el detalle de ese renglón, que sale de **otra grilla del mismo panel** que el evento llenó junto con la principal (no se vuelve a procesar):
     ```yaml
