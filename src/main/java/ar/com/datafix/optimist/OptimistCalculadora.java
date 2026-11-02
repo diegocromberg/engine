@@ -19,7 +19,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * V71 - Calculadora de los campos numéricos (Diego, 24/10/2026): doble clic en un campo numérico editable (formulario y
+ * V71 - Calculadora de los campos numéricos (Diego, 24/10/2026): clic derecho (E6f; antes doble clic, que ahora queda para
+ * seleccionar el contenido, como en cualquier campo) en un campo numérico editable (formulario y
  * renglones de las TRN, campos de los web panels) abre una calculadora que arranca con el valor del campo.
  * "Copiar" pasa el resultado al campo (redondeado a sus decimales; si no entra, avisa y no copia), cierra la ventana y
  * dispara lo mismo que si el usuario lo hubiera escrito (fórmulas, reglas). "Cerrar", la X (arriba a la derecha) o Esc
@@ -31,15 +32,16 @@ final class OptimistCalculadora {
     private OptimistCalculadora() {}
 
     /**
-     * Engancha el doble clic al control. cambios: las acciones que el motor registró para "el usuario cambió el valor"
+     * Engancha el clic derecho al control (E6f: sin el menú del navegador en ese campo; Ctrl+C / Ctrl+V siguen). cambios: las acciones que el motor registró para "el usuario cambió el valor"
      * (se ejecutan después de copiar, porque escribir el valor desde el servidor no las dispara).
      */
     static void enganchar(Campo c, Component comp, Supplier<Object> leer, Consumer<Object> escribir, List<Runnable> cambios) {
-        comp.getElement().addEventListener("dblclick", e -> {
+        // el menú del navegador no aparece solo si el campo es editable (en uno de solo lectura, el clic derecho es el de siempre)
+        comp.getElement().addEventListener("contextmenu", e -> {
             if (comp instanceof HasValue<?, ?> hv && hv.isReadOnly()) return;
             if (!comp.getElement().isEnabled()) return;
             abrir(c, comp, leer, escribir, cambios);
-        });
+        }).addEventData("(element.readonly || element.hasAttribute('readonly') || element.disabled) ? 0 : event.preventDefault()");
     }
 
     private static void abrir(Campo c, Component comp, Supplier<Object> leer, Consumer<Object> escribir, List<Runnable> cambios) {

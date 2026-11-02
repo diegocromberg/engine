@@ -2,6 +2,14 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6f — La calculadora se abre con el clic derecho (02/11/2026)
+
+- Diego: el doble clic en un campo numérico abría la calculadora y no dejaba seleccionar el contenido, como en cualquier campo.
+  Ahora la calculadora se abre con el **clic derecho** en un campo numérico editable (formulario y renglones de las TRN, web panels);
+  el **doble clic vuelve a seleccionar**. En esos campos el clic derecho ya no muestra el menú del navegador (Copiar, Pegar…):
+  Ctrl+C / Ctrl+V siguen andando. En los campos de solo lectura y en los demás, el clic derecho es el de siempre.
+- Sin cambios en los YAML. **Hay que hacer `mvn install` en `engine`** y reiniciar las aplicaciones.
+
 ## E6e — Impresiones: la picture sin 9 deja el cero en blanco (01/11/2026)
 
 - `formato:` de las impresiones (`OptimistImpresion.formatear`): una picture numérica que no tiene ningún `9` (ej.

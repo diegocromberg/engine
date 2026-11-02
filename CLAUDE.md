@@ -86,7 +86,7 @@
 - **Confirmar (para todo el sistema)**: 1) valida todo; 2) si hay al menos un error, lo muestra y no actualiza NADA; 3) si no hay errores, actualiza todo en un solo commit. (Solo `on AfterComplete` va después del commit, como en GeneXus.)
 - **Ventanas**: la X de cerrar siempre arriba a la derecha, como cualquier ventana de Windows (no preguntar).
 - **Teclado (E4h, Diego, 31/10/2026)**: al abrir una TRN o un web panel, el cursor en el primer campo editable; Enter pasa al campo siguiente como TAB; Enter NUNCA confirma ni toca un botón (confirmar siempre con el mouse). Excepciones: lupa (Enter elige), texto de varios renglones, combo abierto (`OptimistTeclado`).
-- **Calculadora (V71)**: doble clic en un campo numérico editable (TRN, renglones, web panels) abre la calculadora; Copiar pasa el resultado al campo.
+- **Calculadora (V71; E6f, Diego 02/11/2026: clic derecho, el doble clic queda para seleccionar)**: clic derecho en un campo numérico editable (TRN, renglones, web panels) abre la calculadora; Copiar pasa el resultado al campo.
 - **PostIts (V69 / V82i)**: en el registro (los ven todos) y en la pantalla (botón PostIt siempre a la derecha de los botones de la pantalla, también en las TRN; la pantalla principal no lleva; solo los ve el que los pegó). Nuevo: 380 x 320.
 - **Mensajes (V72)**: campanita en la barra con los internos sin leer; no se borran; la Fecha de Visualización es la primera lectura y no cambia nunca.
 - Los PDF se abren en la misma ventana desde donde se ejecuta el proceso, no en pestaña ni ventana aparte.
