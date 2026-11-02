@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6e — Impresiones: la picture sin 9 deja el cero en blanco (01/11/2026)
+
+- `formato:` de las impresiones (`OptimistImpresion.formatear`): una picture numérica que no tiene ningún `9` (ej.
+  `ZZZ,ZZZ,ZZZ.ZZ`) imprime en blanco el valor 0, como GeneXus. Diego: en la factura genérica del ERP salían cuatro "0,00" sin
+  título (las percepciones de Ingresos Brutos en 0) que en OPTIMIST no se ven. Con un `9` en la picture (`ZZ9.99`) el cero se
+  sigue imprimiendo ("0,00"). Sin cambios en los YAML.
+
 ## E6d — Barras de desplazamiento de más en las grillas (01/11/2026)
 
 Diego: una lista con 3 o 4 columnas mostraba barra horizontal; con 20 registros por página aparecía la barra vertical adentro de

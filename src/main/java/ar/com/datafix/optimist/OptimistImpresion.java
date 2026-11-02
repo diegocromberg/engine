@@ -313,6 +313,7 @@ public final class OptimistImpresion {
     /**
      * Como la picture de GeneXus: "ZZ,ZZZ,ZZ9.99" (con separador de miles y 2 decimales), "ZZZ9.999", "99/99/99" (fecha
      * corta), "99/99/9999". Sin formato: el valor como texto (números sin ceros de más, fechas dd/mm/aa).
+     * E6e: una picture numérica sin ningún 9 (solo Z) imprime el cero en blanco, como GeneXus.
      */
     String formatear(Object v, String formato) {
         if (v == null) return "";
@@ -333,6 +334,8 @@ public final class OptimistImpresion {
             int dec = punto < 0 ? 0 : formato.length() - punto - 1;
             boolean miles = formato.substring(0, punto < 0 ? formato.length() : punto).contains(",");
             n = n.setScale(dec, RoundingMode.HALF_UP);
+            // E6e: como GeneXus, una picture sin ningún 9 ("ZZZ,ZZZ.ZZ") deja en blanco el cero (las percepciones en 0 de una factura)
+            if (n.signum() == 0 && formato.indexOf('9') < 0) return "";
             String abs = n.abs().toPlainString();
             String ent = abs.contains(".") ? abs.substring(0, abs.indexOf('.')) : abs;
             String fr = abs.contains(".") ? abs.substring(abs.indexOf('.') + 1) : "";
