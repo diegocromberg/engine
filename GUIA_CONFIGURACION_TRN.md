@@ -410,6 +410,20 @@ El *Dynamic Combo Box* de GeneXus: `combo: {tabla: MediosDeContacto, valor: Medi
 
 Para mostrar variables que calcula el inicio (en GeneXus, variables en el web form): `- {nombre: TRPRSCostoTotal, dominio: Total, etiqueta: Costo Total, pantalla: true}` y en las reglas `TRPRSCostoTotal = &TRPRSCostoTotal;`. No se graba ni necesita referencia; la regla corre al abrir el registro. Con `TRPRSCostoTotal.Visible = &Variable;` se muestra u oculta.
 
+### 6.1.3b Variables editables en la pantalla o en los renglones (`variable: true`, E6g)
+
+Para una **&variable que el usuario edita** (en GeneXus, una variable en el web form o una columna variable de la grilla, ej. el
+tilde `&bImputar` de la grilla de COBR y PAGO): `- {nombre: bImputar, dominio: Boolean, etiqueta: Imputar, variable: true}` en los
+campos del nivel (cabecera o detalle). Se ve y se edita como un campo más, **no se graba** (no es una columna de la tabla) y las
+reglas de ese nivel la leen y la asignan como `&bImputar`, **con el valor de cada renglón**:
+```
+COBRDetImputacion = COBRDetImporte if &bImputar = true and &Mode = "UPD";        // tildada: imputa todo el saldo
+&bImputar = true if COBRDetImputacion = COBRDetImporte and &Mode = "UPD";       // al abrir, tildada si ya está todo imputado
+COBRDetImputacion = 0 if &bImputar = false and COBRDetImputacion = COBRDetImporte and &Mode = "UPD";
+```
+Al abrir el registro arranca vacía (o con lo que le asignen las reglas de `&` que corren al abrir). No puede ser clave, fórmula ni
+inferida. Sin `variable: true` todo sigue igual (las `&variables` de las reglas son de toda la TRN).
+
 ### 6.1.4 Vínculo a otra TRN (`enlace:`, V50d)
 
 `enlace: PED` (el valor es la clave de PED) o `enlace: {trn: PED, clave: PRSPEDId}` (se muestra este campo y se abre por la clave de otro): `- {nombre: PRSPEDNumero, dominio: N09, etiqueta: Pedido, soloLectura: true, enlace: {trn: PED, clave: PRSPEDId}}`. Se ve como vínculo en el formulario y en la columna del WorkWith, y abre esa TRN en Visualizar (V50e). Para mostrarlo solo cuando hay pedido: `PRSPEDNumero.Visible = not PRSPEDId.IsEmpty();`.
@@ -1790,6 +1804,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6g**: `variable: true` en un campo de la cabecera o de un detalle: una &variable editable, por renglón, que no se graba (6.1.3b).
 - **E5a**: permisos (24.3): seguridad de WorkWithPlus aplicada por el motor (TRN, modos, campos, web panels, consultas, acciones) y panel de Seguridad.
 - **E4h**: teclado en los formularios (sección 19): cursor en el primer campo editable al abrir; Enter pasa al campo siguiente; Enter nunca confirma ni toca un botón.
 - **E4d**: mails con los datos del servidor en el optimist.cfg, archivos de texto (DFW), `&WWPContext.UserId` / `UserName` (16.1).

@@ -104,7 +104,16 @@ public final class OptimistTrnDefinicion {
                         boolean editableEnModificacion, String visibleSi, boolean nulo, String formula,
                         boolean autonumerico, boolean inferido, boolean soloLectura, boolean oculto,
                         Object defecto, String mensaje, String ancho, boolean guardar, int renglonesDefinidos,
-                        Map<String, String> estilo, Insignia insignia) {
+                        Map<String, String> estilo, Insignia insignia, boolean variable) {
+        /** E6g: compatibilidad: campo que no es variable (se graba como siempre). */
+        public Campo(String nombre, String etiqueta, Dominio dominio, boolean clave, boolean obligatorio,
+                     boolean editableEnModificacion, String visibleSi, boolean nulo, String formula,
+                     boolean autonumerico, boolean inferido, boolean soloLectura, boolean oculto,
+                     Object defecto, String mensaje, String ancho, boolean guardar, int renglonesDefinidos,
+                     Map<String, String> estilo, Insignia insignia) {
+            this(nombre, etiqueta, dominio, clave, obligatorio, editableEnModificacion, visibleSi, nulo, formula, autonumerico,
+                 inferido, soloLectura, oculto, defecto, mensaje, ancho, guardar, renglonesDefinidos, estilo, insignia, false);
+        }
         /** Compatibilidad V38: campo sin insignia. */
         public Campo(String nombre, String etiqueta, Dominio dominio, boolean clave, boolean obligatorio,
                      boolean editableEnModificacion, String visibleSi, boolean nulo, String formula,
@@ -128,7 +137,7 @@ public final class OptimistTrnDefinicion {
         /** V30: el default ya resuelto: si es "&Empresa", el valor del contexto del usuario. */
         public Object defectoActual() { return resolver(dominio, defecto); }
         /** Se guarda: campo común, o fórmula REDUNDANTE (guardar: true, se calcula al grabar). */
-        public boolean persistido() { return (formula == null || guardar) && !inferido; }
+        public boolean persistido() { return (formula == null || guardar) && !inferido && !variable; }
         public boolean editable() { return formula == null && !inferido && !soloLectura && !autonumerico; }
     }
 
@@ -976,7 +985,12 @@ public final class OptimistTrnDefinicion {
                     bool(c.get("soloLectura"), false), bool(c.get("oculto"), false),
                     defecto == null ? null : variableContexto(defecto) != null ? "&" + variableContexto(defecto) : normalizar(dom, defecto),
                     opcional(c, "mensaje"), ancho(c.get("ancho"), n), bool(c.get("guardar"), false),
-                    renglones(c.get("renglones"), n, dom), estiloDeCampo(c, n, clases, claseNivel), insignia(c.get("insignia"), n, dom)));
+                    renglones(c.get("renglones"), n, dom), estiloDeCampo(c, n, clases, claseNivel), insignia(c.get("insignia"), n, dom),
+                    bool(c.get("variable"), false)));
+            // E6g: variable: true = una &variable de la pantalla (la columna &bImputar de la grilla de GeneXus): se carga y se
+            // edita, las reglas la leen y la asignan como &Nombre, y no se graba (no es una columna de la tabla)
+            if (bool(c.get("variable"), false) && (clave || formula != null || inferido))
+                throw error(n + ": 'variable' no puede ser clave, fórmula ni inferido");
             if (bool(c.get("guardar"), false) && formula == null) throw error(n + ": 'guardar' es solo para fórmulas");
             if (c.get("combo") != null) COMBOS.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), comboTabla(c.get("combo"), donde + "." + n + ".combo"));
             if (c.get("enlace") != null) ENLACES.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), enlaceDe(c.get("enlace"), donde + "." + n));

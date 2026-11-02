@@ -2,6 +2,18 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6g — Variables editables en los renglones de una TRN (`variable: true`, 02/11/2026)
+
+- Diego: en GeneXus la grilla de comprobantes de COBR y PAGO tenía el tilde `&bImputar` (imputar todo el saldo) y en 4.0 no
+  aparecía: el motor no sabía mostrar una &variable editable en un renglón.
+- Nuevo (opcional, guía 6.1.3b): `variable: true` en un campo de la cabecera o de un detalle. Se ve y se edita como un campo,
+  **no se graba** y las reglas del nivel lo usan como `&Nombre` con el valor de **cada renglón** (leer, asignar, condiciones;
+  cambiarlo dispara las reglas que lo leen, como cualquier campo).
+- Compatible: sin la clave, todo igual.
+- Pendiente: que el importador (gx2yaml / importador.js) traiga solas las variables de las grillas de GeneXus como `variable: true`
+  (hoy las saltea; en el ERP se agregaron a mano en COBR y PAGO).
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6f — La calculadora se abre con el clic derecho (02/11/2026)
 
 - Diego: el doble clic en un campo numérico abría la calculadora y no dejaba seleccionar el contenido, como en cualquier campo.

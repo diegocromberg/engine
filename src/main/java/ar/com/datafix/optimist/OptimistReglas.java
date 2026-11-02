@@ -553,6 +553,11 @@ public final class OptimistReglas {
         Set<String> cambio = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         if (cambiados != null) cambio.addAll(cambiados);
         Nivel cab = trn.cabecera();
+        // E6g: el usuario cambió una columna 'variable: true': para las reglas es &Nombre
+        for (String x : new ArrayList<>(cambio)) {
+            Campo vc = (nivel == null ? cab : nivel).campo(x);
+            if (vc != null && vc.variable()) cambio.add("&" + vc.nombre());
+        }
         try (Conexion c = new Conexion(abridor, conexion)) {
             Ctx ctx = new Ctx(this, est, nivel == null ? cab : nivel, vals, cabecera, viejos, cambio, c);
             ctx.selectivo = soloAfectadas;
@@ -781,6 +786,9 @@ public final class OptimistReglas {
                     default:
                 }
                 String[] partes = low.split("\\.");
+                // E6g: &Nombre de una columna 'variable: true' del nivel: el valor de ESTE renglón
+                Campo vc = partes.length == 1 ? nivel.campo(n) : null;
+                if (vc != null && vc.variable()) return vals.get(vc.nombre());
                 Object v;
                 if (est.vars.containsKey(partes[0])) v = est.vars.get(partes[0]);
                 else {
@@ -825,6 +833,21 @@ public final class OptimistReglas {
         }
 
         void asignar(String destino, Object v, Efecto ef) {
+            // E6g: &Nombre de una columna 'variable: true' del nivel: se asigna en el renglón (y vuelve a la pantalla)
+            if (destino.startsWith("&") && !destino.contains(".")) {
+                Campo vc = nivel.campo(destino.substring(1));
+                if (vc != null && vc.variable()) {
+                    Object x = OptimistCalculo.redondear(vc, v);
+                    boolean igual = mismoValor(vals.get(vc.nombre()), x);
+                    vals.put(vc.nombre(), x);
+                    ef.asignados().put(vc.nombre(), x);
+                    if (selectivo && igual) { marcar(destino); return; }
+                    cambio.add(destino);
+                    cambio.add(vc.nombre());
+                    marcar(destino);
+                    return;
+                }
+            }
             if (destino.startsWith("&")) {
                 String[] partes = destino.substring(1).split("\\.");
                 String k = partes[0].toLowerCase(Locale.ROOT);

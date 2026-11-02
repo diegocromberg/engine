@@ -59,3 +59,15 @@ src/main/java/ar/com/datafix/optimist/OptimistVisorPdf.java
 src/main/java/ar/com/datafix/optimist/OptimistRecursos.java
 src/main/java/ar/com/datafix/optimist/OptimistReglas.java
 src/main/java/ar/com/datafix/optimist/OptimistVisuals.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistStock.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistAfip.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistSql.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistGeoDatos.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistExtensionStock.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistConsultaStock.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistListarStock.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistFacturacionMasiva.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistStockDetalle.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistPrecios.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistGeoView.java
+../optimist-erp/src/main/java/ar/com/datafix/optimist/OptimistExtensionErp.java
