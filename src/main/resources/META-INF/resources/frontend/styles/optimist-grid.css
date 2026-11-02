@@ -26,6 +26,15 @@
 :host([column-resizing]) [part~="resize-handle"]::before {
   width: 10px !important; transform: none !important; left: 0 !important; background: none !important;
 }
+/* E6d (Diego, 01/11/2026): en la ÚLTIMA columna el manejador queda adentro de la celda (la línea, pegada al borde). Con
+   right: -5px sobresalía 5 px de la tabla y aparecía la barra horizontal en todas las grillas (hasta con 4 columnas); con esa
+   barra, al cambiar los registros por página (10 → 20) la grilla no volvía a calcular su alto: barra vertical y último renglón
+   cortado, y al volver a 10 quedaba igual. */
+[last-column] [part~="resize-handle"], [last-column] [part~="resize-handle"]:hover, [last-column] [part~="resize-handle"]:active,
+:host([column-resizing]) [last-column] [part~="resize-handle"] {
+  right: 0 !important;
+  background: linear-gradient(to right, transparent 8px, var(--lumo-primary-color, #1676f3) 8px, var(--lumo-primary-color, #1676f3) 10px) !important;
+}
 /* V84c: la fila de TOTALES con la letra del resto de los números (Lumo la achicaba a font-size-s); va en negrita
    (Diego, 26/10/2026: para todas las listas: WorkWith, consultas, web panels y ventanas) */
 [part~="footer-cell"], [part~="footer-cell"] ::slotted(vaadin-grid-cell-content) { font-size: var(--lumo-font-size-m) !important; }

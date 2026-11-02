@@ -2,6 +2,19 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6d — Barras de desplazamiento de más en las grillas (01/11/2026)
+
+Diego: una lista con 3 o 4 columnas mostraba barra horizontal; con 20 registros por página aparecía la barra vertical adentro de
+la grilla y el último renglón quedaba cortado, y al volver a 10 seguía igual. Es de todas las grillas (WorkWith, consultas,
+web panels).
+
+- Causa: el manejador para arrastrar el ancho de las columnas (V82n, `optimist-grid.css`) sobresalía 5 px de la última
+  columna (`right: -5px`); esos 5 px disparaban la barra horizontal, y con ella la grilla de Vaadin (`setAllRowsVisible`) no
+  volvía a calcular su alto al cambiar la cantidad de registros: barra vertical y último renglón cortado.
+- Arreglo: en la última columna el manejador queda adentro de la celda, con la línea pegada al borde. Reproducido y verificado
+  con la grilla de Vaadin 24.9.3 en Chromium (sin el sobresaliente, 10 → 20 → 10 → 3 registros sin ninguna barra).
+- Solo CSS del motor (no cambia ningún YAML ni la API).
+
 ## E6 — Grilla tipo WorkWith en los web panels: filtros y tildes; bajada de archivos (01/11/2026), versión 0.6.0
 
 Diego: cualquier grilla tipo WW tiene que poder agrandar las columnas, filtrar y ordenar por columna (la Facturación Masiva del ERP).
