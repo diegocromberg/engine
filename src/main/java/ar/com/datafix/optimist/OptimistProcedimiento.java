@@ -2123,13 +2123,36 @@ public final class OptimistProcedimiento {
             try {
                 if (clave.values().stream().anyMatch(v -> v == null || (v instanceof Number n && new BigDecimal(n.toString()).signum() == 0)))
                     throw new SQLException(t.singular() + " no encontrad" + t.genero());
-                OptimistTrnDatos.Registro r = new OptimistTrnDatos(c).cargarBc(t, clave);
+                OptimistTrnDatos datos = new OptimistTrnDatos(c);
+                OptimistTrnDatos.Registro r = datos.cargarBc(t, clave);
+                // E6l: como GeneXus, el Load calcula las fórmulas de la TRN (también las que se graban): no se devuelve lo que
+                // quedó en la tabla (ej. PAGOPagoACuenta = PAGOImporteAPagar + PAGOCreditos - PAGODebitos, con PAGOCreditos y
+                // PAGODebitos sumas del detalle; un For each anterior lo había grabado con otra cuenta). Si no se puede calcular,
+                // queda lo grabado, como antes.
+                OptimistCalculo.Resultado calc = null;
+                try {
+                    Map<String, List<Map<String, Object>>> ls = new LinkedHashMap<>();
+                    for (var d : r.detalles().entrySet()) {
+                        List<Map<String, Object>> l = new ArrayList<>();
+                        for (OptimistTrnDatos.Linea x : d.getValue()) l.add(x.valores());
+                        ls.put(d.getKey(), l);
+                    }
+                    calc = OptimistCalculo.calcular(t, r.cabecera(), ls, datos.abridor());
+                } catch (RuntimeException ex) {
+                    if (DEPURAR) System.out.println("  Load " + trn + ": fórmulas sin calcular: " + ex.getMessage());
+                }
                 putAll(r.cabecera());
+                if (calc != null) ponerFormulas(this, t.cabecera(), calc.cabecera());
                 for (var e : r.detalles().entrySet()) {
                     List<Object> lineas = new ArrayList<>();
+                    OptimistTrnDefinicion.Nivel nv = t.detalles().stream().filter(d -> d.nombre().equals(e.getKey())).findFirst().orElse(null);
+                    List<Map<String, Object>> cl = calc == null ? List.of() : calc.lineas().getOrDefault(e.getKey(), List.of());
+                    int i = 0;
                     for (OptimistTrnDatos.Linea l : e.getValue()) {
                         Bc b = new Bc(trn + "." + e.getKey());
                         b.putAll(l.valores());
+                        if (nv != null && i < cl.size()) ponerFormulas(b, nv, cl.get(i));
+                        i++;
                         b.claveOriginal = l.claveOriginal();
                         b.cargado = true;
                         lineas.add(b);
@@ -2141,6 +2164,13 @@ public final class OptimistProcedimiento {
                 cargado = false; exito = false;
                 mensajes.add(ex.getMessage() == null ? ex.toString() : ex.getMessage());
             }
+        }
+
+        /** E6l: los campos fórmula del nivel con el valor calculado (si el cálculo lo trajo). */
+        private static void ponerFormulas(Map<String, Object> destino, OptimistTrnDefinicion.Nivel nivel, Map<String, Object> calculado) {
+            if (calculado == null) return;
+            for (OptimistTrnDefinicion.Campo c : nivel.campos())
+                if (c.formula() != null && calculado.containsKey(c.nombre())) destino.put(c.nombre(), calculado.get(c.nombre()));
         }
 
         /** V50m: Delete() de GeneXus: borra el registro leído con Load (cabecera y niveles), sin Commit. */

@@ -2,6 +2,17 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6l — El Load de un BC calcula las fórmulas, como GeneXus (03/11/2026)
+
+- Diego: una orden de pago efectivizada en 4.0 dejaba el recibo con saldo igual a su importe ("A CUENTA"), aunque imputaba toda la
+  factura; en GeneXus queda en 0. GenerarMovimientosDeCuentaCorriente (igual a la KB) recalcula en un For each PAGOCreditos,
+  PAGODebitos y PAGOPagoACuenta con el signo al revés de las fórmulas de la TRN y después hace `&PAGO.Load()`: en GeneXus el Load
+  vuelve a calcular las fórmulas (PAGOPagoACuenta = A Pagar + créditos − débitos = 0); el motor devolvía lo grabado por el For each.
+- Ahora `&BC.Load()` calcula todas las fórmulas de la TRN (cabecera y renglones, también las que se graban) con el registro leído.
+  Si no se pueden calcular, queda lo grabado, como antes.
+- Probado: la batería del banco (21 web panels y 4 procedimientos) da exactamente igual.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6k — Las variables numéricas no se truncan a sus decimales (03/11/2026)
 
 - Diego: la retención de IIBB del PAGO daba 94.329,31 y en GeneXus 95.071,29. En CalcularRetenciones, `&Porcentaje Numeric(6.2) =

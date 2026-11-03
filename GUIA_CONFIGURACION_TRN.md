@@ -1805,6 +1805,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6l**: `&BC.Load()` en un procedimiento calcula las fórmulas de la TRN, como GeneXus (antes devolvía lo grabado en la tabla).
 - **E6k**: las variables numéricas de los procedimientos, reglas y web panels ya no se truncan a sus decimales al asignarlas (como GeneXus; sección 16). Al grabar un atributo con más decimales, se redondea (antes: error "máximo N decimales").
 - **E6j**: `panel.confirmar=false` en el optimist.cfg saca la pregunta automática "¿Confirmás …?" de los botones de los web panels (la de `confirmar: "texto"` queda).
 - **E6i**: `url:` en una opción de `menu.yaml` (ej. `{titulo: Proveedores, trn: entidadesproveedores, url: "wwentidades?2"}`): la opción del menú de la base con esa dirección va a esa ruta (sección 22).
