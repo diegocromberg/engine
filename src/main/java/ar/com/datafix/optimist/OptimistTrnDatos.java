@@ -1704,8 +1704,13 @@ public class OptimistTrnDatos {
                 throw new IllegalArgumentException(c.etiqueta() + ": máximo " + d.longitud() + " caracteres");
             if (d.esNumerico()) {
                 BigDecimal n = decimal(x);
-                if (n.scale() > d.decimales() && n.setScale(d.decimales(), RoundingMode.DOWN).compareTo(n) != 0)
-                    throw new IllegalArgumentException(c.etiqueta() + ": máximo " + d.decimales() + " decimales");
+                // E6k: con más decimales que el atributo (viene de una cuenta de las reglas o de un BC: las variables ya no se
+                // truncan) se graba redondeado a los del atributo, como GeneXus (lo redondea la base). Desde la pantalla no
+                // llega así: el campo ya redondea a sus decimales.
+                if (n.scale() > d.decimales() && n.setScale(d.decimales(), RoundingMode.DOWN).compareTo(n) != 0) {
+                    n = n.setScale(d.decimales(), RoundingMode.HALF_UP);
+                    try { v.put(c.nombre(), n); } catch (UnsupportedOperationException e) { /* al grabar también se redondea */ }
+                }
                 int enteros = n.abs().toBigInteger().toString().length();
                 if (enteros > Math.max(1, d.longitud() - d.decimales()))
                     throw new IllegalArgumentException(c.etiqueta() + ": máximo " + (d.longitud() - d.decimales()) + " dígitos enteros");

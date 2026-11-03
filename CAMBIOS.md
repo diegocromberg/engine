@@ -2,6 +2,18 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6k — Las variables numéricas no se truncan a sus decimales (03/11/2026)
+
+- Diego: la retención de IIBB del PAGO daba 94.329,31 y en GeneXus 95.071,29. En CalcularRetenciones, `&Porcentaje Numeric(6.2) =
+  &BaseDeCalculo / &CPBPTotal` el motor lo truncaba a 0,82; GeneXus guarda la cuenta completa (0,8264…) y la retención sale con eso.
+- Ahora, como GeneXus: una variable numérica (procedimientos, reglas `&var = …`, web panels) guarda el valor completo. Si los
+  decimales de más son ceros, queda con los de la declaración, como antes (así lo que se muestra o se pasa a texto no cambia).
+  Se redondea a los del atributo al grabar y a los del dominio al mostrar.
+- Al grabar una TRN o un BC con un atributo con más decimales que su dominio, se redondea (antes daba "máximo N decimales"; desde la
+  pantalla no puede pasar, el campo ya redondea). Los New y For each de los procedimientos ya lo dejaban redondear a la base.
+- Probado: la batería de los web panels y procedimientos del banco (21 paneles y 4 procedimientos) da exactamente igual que antes.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6j — La pregunta "¿Confirmás …?" de los web panels, opcional (03/11/2026)
 
 - Diego: con `panel.confirmar=false` en el `optimist.cfg` del cliente, los botones de los web panels ya no preguntan "¿Confirmás

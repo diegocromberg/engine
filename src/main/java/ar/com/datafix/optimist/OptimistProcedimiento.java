@@ -2861,8 +2861,15 @@ public final class OptimistProcedimiento {
         if (d == null) return v;
         switch (d.tipo()) {
             case "numeric": {
+                // E6k: como GeneXus, la variable guarda el resultado de la cuenta completo, sin truncarlo a sus decimales
+                // (ej. &Porcentaje Numeric(6.2) = NetoGravado / Total = 0,8264…, y no 0,82: CalcularRetenciones daba la
+                // retención de menos). Se trunca o redondea al grabarlo en un atributo y al mostrarlo. Si tiene menos decimales
+                // que la declaración, se completan con ceros (500 -> 500.00), sin cambiar el valor.
+                // Si los decimales de más son ceros (11279.5000000), queda con los de la declaración (11279.5000), como antes.
                 BigDecimal b = OptimistFormula.num(v);
-                return b.setScale(d.decimales(), RoundingMode.DOWN);
+                if (b.scale() <= d.decimales()) return b.setScale(d.decimales());
+                BigDecimal exacto = b.stripTrailingZeros();
+                return exacto.scale() <= d.decimales() ? b.setScale(d.decimales(), RoundingMode.UNNECESSARY) : exacto;
             }
             case "boolean": return OptimistFormula.verdad(v);
             case "character": case "varchar": {

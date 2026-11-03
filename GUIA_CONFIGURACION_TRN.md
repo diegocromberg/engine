@@ -1058,6 +1058,7 @@ EndFor
 
 - **"Qué hace"**: la explicación en castellano. Es documentación: lo que se ejecuta es el código de abajo.
 - **Parm**: `in`, `out`, `inout`. También atributos (`Parm(in: ArticulosPK)`), que filtran los For Each como en GeneXus.
+- **Decimales de las variables (E6k)**: como en GeneXus, una variable numérica guarda el resultado de la cuenta completo, aunque tenga más decimales que su declaración (`&Porcentaje Numeric(6.2) = &Base / &Total` queda en 0,8264…, no en 0,82). Se redondea a los decimales del atributo al grabarlo (New, For each, BC, TRN) y a los del dominio al mostrarlo. Para truncar o redondear a propósito: `Round()`, `Trunc()`, `Int()`.
   - **`out` empieza vacío** (V66j, como GeneXus): el procedimiento no recibe el valor que tiene la variable de quien llama; si no la asigna, devuelve vacío (0, "", falso). `inout` (o sin modo) sí lo recibe. **Necesita el motor V66j.**
 - **Variables**: `Numeric(l.d)`, `Character(n)`, `VarChar(n)`, `Date`, `DateTime`, `Boolean`, `Sdt(Nombre)` (estructura: `&Ctx.Empresa`), `Coleccion(Nombre)` (lista). El número se trunca a sus decimales y el texto a su largo, como en GeneXus.
 - **Se puede usar**: asignaciones (`= += -=`), `If/Else/EndIf`, `Do Case`, `Do While`, `For &i = 1 To 10`, `For &Fecha = &FechaDesde To &FechaHasta` (V86: recorre los días; `Step 7`, de a semanas), `For &x in &Lista`, `For each` (con `where`, `order`, `defined by`, `When none`; anidados), `Exit`, `Return`, `Sub`/`Do 'sub'`, `Msg()`, `Commit`/`Rollback` (V51f: `Commit` no hace nada: cada operación —confirmar una TRN, una acción del WorkWith, un botón de un web panel— es una sola transacción que se confirma al final o se deshace entera si hay un error; `Rollback` deshace todo lo hecho hasta ese momento en la operación), llamadas (`Proc.Call(...)`, `&x = Proc.Udp(...)`), `New ... When duplicate ... EndNew` (alta), asignar atributos y `Delete` dentro de un For Each (modificación y baja).
@@ -1804,6 +1805,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6k**: las variables numéricas de los procedimientos, reglas y web panels ya no se truncan a sus decimales al asignarlas (como GeneXus; sección 16). Al grabar un atributo con más decimales, se redondea (antes: error "máximo N decimales").
 - **E6j**: `panel.confirmar=false` en el optimist.cfg saca la pregunta automática "¿Confirmás …?" de los botones de los web panels (la de `confirmar: "texto"` queda).
 - **E6i**: `url:` en una opción de `menu.yaml` (ej. `{titulo: Proveedores, trn: entidadesproveedores, url: "wwentidades?2"}`): la opción del menú de la base con esa dirección va a esa ruta (sección 22).
 - **E6h**: menú de la base: una opción cuya dirección trae parámetros (`wwentidades?1`) usa la opción de `menu.yaml` con el mismo título, si la hay (ej. una vista por parámetro, sección 22).
