@@ -2,6 +2,15 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6i — `url:` en las opciones de menu.yaml (02/11/2026)
+
+- Lo de la E6h no alcanzaba: en la base de Diego las dos opciones se llaman igual ("Entidades", con `wwentidades?1` y
+  `wwentidades?2`), así que por el título no se distinguen y Clientes y Proveedores seguían abriendo la lista entera.
+- Nuevo (opcional): `url:` en una opción de `menu.yaml`, con la dirección del menú de GeneXus que la abre:
+  `{titulo: Proveedores, trn: entidadesproveedores, url: "wwentidades?2"}`. Si la dirección de la opción de la base es esa
+  (sin importar mayúsculas, `.aspx` ni el paquete), va esa ruta. Es lo primero que se mira; sin `url:`, todo como antes.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6h — Opciones del menú de la base con parámetros (02/11/2026)
 
 - Aquiles: Clientes y Proveedores (en el menú de la base, `wwentidades?1` y `wwentidades?2`) abrían la misma lista, con todas las

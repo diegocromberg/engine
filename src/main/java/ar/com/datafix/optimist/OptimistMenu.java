@@ -186,6 +186,9 @@ public final class OptimistMenu {
         /** MenuURL -> ruta del motor: "wwpais.aspx" -> trn/pais, "prsaltawbp" -> wbp/prsaltawbp. Si no, por título en menu.yaml. */
         String ruta(Nodo n, String camino) {
             String p = programa(n.url());
+            // E6i: una opción de menu.yaml con 'url:' igual a la dirección de la base (ej. wwentidades?2 -> la vista de proveedores)
+            String porUrl = POR_URL.get(claveUrl(n.url()));
+            if (porUrl != null) return porUrl;
             // E6h: una dirección con parámetros (wwentidades?1 / wwentidades?2) abre en GeneXus el mismo programa de distinta
             // forma: si menu.yaml tiene una opción con ese título (ej. Clientes -> la vista entidadesclientes), va esa
             String u = n.url() == null ? "" : n.url();
@@ -262,7 +265,21 @@ public final class OptimistMenu {
     }
 
     /** El menú de resources/menu.yaml (el de siempre). */
+    /** E6i: {titulo, trn/ruta, url: "wwentidades?2"}: la dirección del menú de GeneXus que abre esa opción (clave normalizada). */
+    private static final Map<String, String> POR_URL = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** E6i: "WWEntidades.aspx?2" -> "wwentidades?2" (programa en minúscula + sus parámetros, sin espacios). */
+    static String claveUrl(String url) {
+        if (url == null) return "";
+        String u = url.trim();
+        int q = u.indexOf('?');
+        String param = q < 0 ? "" : u.substring(q + 1).replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+        String p = programa(u);
+        return p.isEmpty() ? "" : param.isEmpty() ? p : p + "?" + param;
+    }
+
     public static List<Carpeta> cargarYaml() {
+        POR_URL.clear();
         try (InputStream in = OptimistRecursos.abrir("menu.yaml")) {
             if (in == null) throw new IllegalStateException("no se encontró menu.yaml");
             Map<String, Object> y = new Yaml().load(in);
@@ -319,6 +336,10 @@ public final class OptimistMenu {
         else if (ruta != null) destino = String.valueOf(ruta).trim();
         else throw new IllegalArgumentException("ítem '" + titulo + "' sin trn, ruta ni pendiente");
         if (!destino.matches("[a-z0-9_/-]*")) throw new IllegalArgumentException("ruta inválida: " + destino);
+        if (m.get("url") != null) {   // E6i
+            String k = claveUrl(String.valueOf(m.get("url")));
+            if (!k.isEmpty()) POR_URL.put(k, destino);
+        }
         return new Item(String.valueOf(titulo).trim(), destino);
     }
 }
