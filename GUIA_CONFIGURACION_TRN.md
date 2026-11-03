@@ -1428,7 +1428,7 @@ grillas:
 
 **Bajar un archivo (V66)**: `Link(&Archivo)` en un evento baja el archivo que armó un procedimiento en ese mismo evento (hoy: el Excel de un `&ExcelDocument`, ver sección 20). Ejemplo: el botón Excel de `WPIvaVentas` / `WPIvaCompras`.
 
-**Confirmación de los botones (V66z)**: todo botón de un web panel (salvo los de `Cancel`) pregunta antes de correr: "¿Confirmás Procesar?" (el título del botón). En el botón: `confirmar: "Se va a actualizar ... ¿Confirmás?"` para una pregunta propia; `confirmar: false` para los que no procesan (buscar, ir a, ver, leer, comparar). **Necesita el motor V66z.**
+**Confirmación de los botones (V66z)**: todo botón de un web panel (salvo los de `Cancel`) pregunta antes de correr: "¿Confirmás Procesar?" (el título del botón). **E6j**: con `panel.confirmar=false` en el `optimist.cfg` del cliente esa pregunta automática no sale; la propia del botón (`confirmar: "texto"`) sale igual. En el botón: `confirmar: "Se va a actualizar ... ¿Confirmás?"` para una pregunta propia; `confirmar: false` para los que no procesan (buscar, ir a, ver, leer, comparar). **Necesita el motor V66z.**
 
 **% de avance (V66z)**: la ventanita "Procesando…" muestra el % solo: el primer For Each de 2 o más filas que corre (el principal del proceso) informa sus vueltas. Si el procedimiento sabe mejor el total (o no recorre un For Each, ej. las filas de un Excel), `TotalProgreso.Call(&Total)` + un `MostrarProgreso.Call(&Texto)` por cada uno, o `PorcentajeProgreso.Call(&Porcentaje)`: desde ahí manda el suyo.
 
@@ -1804,6 +1804,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6j**: `panel.confirmar=false` en el optimist.cfg saca la pregunta automática "¿Confirmás …?" de los botones de los web panels (la de `confirmar: "texto"` queda).
 - **E6i**: `url:` en una opción de `menu.yaml` (ej. `{titulo: Proveedores, trn: entidadesproveedores, url: "wwentidades?2"}`): la opción del menú de la base con esa dirección va a esa ruta (sección 22).
 - **E6h**: menú de la base: una opción cuya dirección trae parámetros (`wwentidades?1`) usa la opción de `menu.yaml` con el mismo título, si la hay (ej. una vista por parámetro, sección 22).
 - **E6g**: `variable: true` en un campo de la cabecera o de un detalle: una &variable editable, por renglón, que no se graba (6.1.3b).

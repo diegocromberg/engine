@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6j — La pregunta "¿Confirmás …?" de los web panels, opcional (03/11/2026)
+
+- Diego: con `panel.confirmar=false` en el `optimist.cfg` del cliente, los botones de los web panels ya no preguntan "¿Confirmás
+  …?" antes de correr. La pregunta propia de un botón (`confirmar: "texto"` en el YAML, ej. la de Imprimir Comprobante) sigue
+  saliendo. Sin la clave, como antes (pregunta). Se lee al día: no hace falta reiniciar.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6i — `url:` en las opciones de menu.yaml (02/11/2026)
 
 - Lo de la E6h no alcanzaba: en la base de Diego las dos opciones se llaman igual ("Entidades", con `wwentidades?1` y

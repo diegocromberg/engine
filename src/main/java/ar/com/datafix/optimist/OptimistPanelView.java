@@ -609,6 +609,10 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
             if (e.equals("cancel")) { ejecutar(b.evento()); cerrar(); return; }
             // V66z: todo proceso de un web panel pide confirmación antes de correr (salvo confirmar: false en el botón)
             String pregunta = b.pregunta();
+            // E6j: panel.confirmar=false (optimist.cfg) saca la pregunta automática "¿Confirmás …?"; la propia del botón
+            // (confirmar: "texto") sigue apareciendo
+            if (pregunta != null && b.confirmar() == null && db != null
+                    && "false".equalsIgnoreCase(db.propiedadAlDia("panel.confirmar", "true").trim())) pregunta = null;
             if (pregunta == null) { ejecutarConProgreso(b.evento()); return; }
             com.vaadin.flow.component.confirmdialog.ConfirmDialog cd = new com.vaadin.flow.component.confirmdialog.ConfirmDialog(
                     p.titulo, pregunta, "Sí", ev -> ejecutarConProgreso(b.evento()), "No", ev -> { });

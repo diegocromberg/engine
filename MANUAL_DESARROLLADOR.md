@@ -155,6 +155,7 @@ Opciones útiles del `optimist.cfg` (guía para el resto):
 | `application.precalentar` / `application.precalentarTrn` | deja armadas las TRN al arrancar |
 | `application.<Condicion>=true` | condiciones de `visibleSi` de los YAML |
 | `totales.usuarios` | quién ve el botón Σ de totales (`*` = todos) |
+| `panel.confirmar` | `false`: los botones de los web panels no preguntan "¿Confirmás …?" (sí los que tienen su propio `confirmar: "texto"`) |
 | `mail.host`, `mail.puerto`, `mail.usuario`, `mail.clave`… | servidor de correo de los procedimientos que mandan mails (guía 16.1) |
 
 ## 9. Java propio: extensiones
