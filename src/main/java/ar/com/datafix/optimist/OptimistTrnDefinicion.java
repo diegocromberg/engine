@@ -195,10 +195,7 @@ public final class OptimistTrnDefinicion {
      *     Articulos: {codigo: ArticulosId}
      *     Entidades: {codigo: EntidadesId, segun: EntidadesTipoEntidad}
      */
-    /** V47 / E6m: mostrarClave: el campo de la clave muestra y acepta la clave interna (la lupa sigue con el código). */
-    public record Codigo(String columna, String segun, boolean mostrarClave) {
-        public Codigo(String columna, String segun) { this(columna, segun, false); }
-    }
+    public record Codigo(String columna, String segun) {}
 
     /**
      * V47: condición de un 'donde' que depende de un campo de la TRN: {campo: PRSCPI, C: 1, P: 2} = si PRSCPI es "C",
@@ -1042,9 +1039,6 @@ public final class OptimistTrnDefinicion {
                     cod = k.equalsIgnoreCase("ninguno") ? null : new Codigo(ident(k, "referencia " + t + ".codigo"), cod == null ? null : cod.segun());
                 }
                 if (cod != null && cs.size() != 1) cod = null;   // clave compuesta: se sigue escribiendo la clave
-                // E6m: mostrarClave: true -> en el formulario el campo muestra la clave (ej. EntidadesPK 40369) y no el código;
-                // la lupa, el WorkWith y el resto siguen con el código
-                if (cod != null && Boolean.TRUE.equals(r.get("mostrarClave"))) cod = new Codigo(cod.columna(), cod.segun(), true);
                 refs.add(new Referencia(t, cs, tr, desc, donde(r.get("donde"), t), cod));
                 // V65: opcional: true = con 0 (o vacío) no se valida (un atributo de GeneXus que no es clave foránea, ej. CondPagoFPagoId)
                 if (bool(r.get("opcional"), false)) REF_OPCIONAL.add(claveOpcional(tabla, t, cs.keySet()));

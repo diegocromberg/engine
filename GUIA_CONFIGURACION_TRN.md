@@ -461,7 +461,6 @@ codigos:
 - **WorkWith y Excel**: la columna de la clave interna muestra el código.
 - Reglas, fórmulas, procedimientos y la grabación siguen trabajando con la clave interna: no cambia nada de eso.
 - Una referencia puede usar otra columna con `codigo: OtraColumna` o mostrar la clave interna con `codigo: ninguno`. Las claves compuestas (dos o más campos) siguen como antes.
-- **E6m** `mostrarClave: true` en la referencia: en el formulario el campo muestra y acepta la clave interna (ej. EntidadesPK 40369, con EntidadesId 1546 al lado), pero la lupa, el WorkWith y lo demás siguen con el código (a diferencia de `codigo: ninguno`, que también cambia la lupa).
 
 ---
 
@@ -1806,7 +1805,6 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
-- **E6m**: `mostrarClave: true` en una referencia con código: el campo de la clave muestra la clave interna; la lupa sigue con el código (sección de códigos).
 - **E6l**: `&BC.Load()` en un procedimiento calcula las fórmulas de la TRN, como GeneXus (antes devolvía lo grabado en la tabla).
 - **E6k**: las variables numéricas de los procedimientos, reglas y web panels ya no se truncan a sus decimales al asignarlas (como GeneXus; sección 16). Al grabar un atributo con más decimales, se redondea (antes: error "máximo N decimales").
 - **E6j**: `panel.confirmar=false` en el optimist.cfg saca la pregunta automática "¿Confirmás …?" de los botones de los web panels (la de `confirmar: "texto"` queda).
