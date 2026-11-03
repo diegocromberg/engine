@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6m — `mostrarClave: true` en una referencia (03/11/2026)
+
+- Diego: en los comprobantes "Entidad PK" mostraba el código de la entidad (1546) en vez de su clave (40369), y al lado "Entidades
+  Id" con el mismo 1546. Nuevo (opcional): `mostrarClave: true` en la referencia: en el formulario el campo de la clave muestra la
+  clave interna; la lupa (columnas, filtro por código), el WorkWith y lo demás siguen igual. Sin la clave, como antes.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6l — El Load de un BC calcula las fórmulas, como GeneXus (03/11/2026)
 
 - Diego: una orden de pago efectivizada en 4.0 dejaba el recibo con saldo igual a su importe ("A CUENTA"), aunque imputaba toda la

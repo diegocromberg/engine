@@ -2655,6 +2655,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                                                Map<String, Object> inicial) {
         Referencia ref = OptimistTrnDatos.referenciaConCodigo(nivel, ed.campo().nombre());
         if (ref == null) return ed;
+        if (ref.codigo().mostrarClave()) return ed;   // E6m: el campo muestra la clave tal cual (la lupa no cambia)
         Campo c = ed.campo();
         TextField t = new TextField();
         String etiqueta = ed.componente().getElement().getProperty("label");
