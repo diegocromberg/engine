@@ -186,12 +186,24 @@ public final class OptimistMenu {
         /** MenuURL -> ruta del motor: "wwpais.aspx" -> trn/pais, "prsaltawbp" -> wbp/prsaltawbp. Si no, por título en menu.yaml. */
         String ruta(Nodo n, String camino) {
             String p = programa(n.url());
+            // E6h: una dirección con parámetros (wwentidades?1 / wwentidades?2) abre en GeneXus el mismo programa de distinta
+            // forma: si menu.yaml tiene una opción con ese título (ej. Clientes -> la vista entidadesclientes), va esa
+            String u = n.url() == null ? "" : n.url();
+            if (u.indexOf('?') >= 0 && u.indexOf('?') < u.trim().length() - 1) {
+                String porTit = porTitulo(n, camino);
+                if (porTit != null) return porTit;
+            }
             if (!p.isEmpty()) {
                 if (p.startsWith("ww") && trns.contains(p.substring(2))) return "trn/" + p.substring(2);
                 if (trns.contains(p)) return "trn/" + p;
                 if (wbps.contains(p)) return "wbp/" + p;
                 if (cnss.contains(p)) return "cns/" + p;   // V52
             }
+            return porTitulo(n, camino);
+        }
+
+        /** La ruta de la opción de menu.yaml con el mismo título (primero la de la misma carpeta); null si no hay. */
+        String porTitulo(Nodo n, String camino) {
             List<String[]> cands = porTitulo.get(normal(n.titulo()));
             if (cands == null || cands.isEmpty()) return null;
             for (String[] c : cands) if (c[0].equals(camino)) return c[1];

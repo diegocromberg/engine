@@ -1630,7 +1630,7 @@ En el OPTIMIST Designer se editan las columnas, anchos, títulos, columnas SQL (
 
 ## 22. Vistas (`vistas/*.yaml`, V57)
 
-Una vista es la lista (WorkWith) de una TRN con otra configuración, como los "ExtraWW" de GeneXus (ExtraWWPEDAutorizar, ExtraWWPEDDespacho...). El formulario que se abre desde la lista es el de la TRN. La ruta es `trn/<vista en minúscula>`: la opción del menú de GeneXus que llama a ese programa la encuentra sola (en `menu.yaml`: `{titulo: ..., trn: extrawwpedautorizar}`).
+Una vista es la lista (WorkWith) de una TRN con otra configuración, como los "ExtraWW" de GeneXus (ExtraWWPEDAutorizar, ExtraWWPEDDespacho...). El formulario que se abre desde la lista es el de la TRN. La ruta es `trn/<vista en minúscula>`: la opción del menú de GeneXus que llama a ese programa la encuentra sola (E6h: si el programa de GeneXus recibía un parámetro en el menú, ej. `wwentidades?1`, se hace una vista por valor y en `menu.yaml` la opción con el mismo título apunta a ella: `{titulo: Clientes, trn: entidadesclientes}`) (en `menu.yaml`: `{titulo: ..., trn: extrawwpedautorizar}`).
 
 ```yaml
 vista: ExtraWWPEDAutorizar        # nombre (el del web panel de GeneXus)
@@ -1804,6 +1804,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6h**: menú de la base: una opción cuya dirección trae parámetros (`wwentidades?1`) usa la opción de `menu.yaml` con el mismo título, si la hay (ej. una vista por parámetro, sección 22).
 - **E6g**: `variable: true` en un campo de la cabecera o de un detalle: una &variable editable, por renglón, que no se graba (6.1.3b).
 - **E5a**: permisos (24.3): seguridad de WorkWithPlus aplicada por el motor (TRN, modos, campos, web panels, consultas, acciones) y panel de Seguridad.
 - **E4h**: teclado en los formularios (sección 19): cursor en el primer campo editable al abrir; Enter pasa al campo siguiente; Enter nunca confirma ni toca un botón.

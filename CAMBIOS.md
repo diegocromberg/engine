@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6h — Opciones del menú de la base con parámetros (02/11/2026)
+
+- Aquiles: Clientes y Proveedores (en el menú de la base, `wwentidades?1` y `wwentidades?2`) abrían la misma lista, con todas las
+  entidades: el motor tiraba lo que viene después del `?`. Ahora, si la dirección trae parámetros y `menu.yaml` tiene una opción
+  con ese mismo título (ej. `{titulo: Clientes, trn: entidadesclientes}`, una vista con su filtro), va esa. Si no, como antes.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6g — Variables editables en los renglones de una TRN (`variable: true`, 02/11/2026)
 
 - Diego: en GeneXus la grilla de comprobantes de COBR y PAGO tenía el tilde `&bImputar` (imputar todo el saldo) y en 4.0 no
