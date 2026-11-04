@@ -1806,7 +1806,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
-- **E6n**: versión de la aplicación debajo del nombre del sistema (`version.properties` con `version=${project.version}`, filtrado por el pom de la aplicación) y color del nombre en Apariencia.
+- **E6n**: versión de la aplicación debajo del nombre del sistema (`version.properties` con `version=@project.version@`, que Maven reemplaza al compilar con spring-boot-starter-parent) y color del nombre en Apariencia.
 - **E6m**: `mostrarClave: true` en una referencia con código: el campo de la clave muestra la clave interna; la lupa sigue con el código (sección de códigos).
 - **E6l**: `&BC.Load()` en un procedimiento calcula las fórmulas de la TRN, como GeneXus (antes devolvía lo grabado en la tabla).
 - **E6k**: las variables numéricas de los procedimientos, reglas y web panels ya no se truncan a sus decimales al asignarlas (como GeneXus; sección 16). Al grabar un atributo con más decimales, se redondea (antes: error "máximo N decimales").

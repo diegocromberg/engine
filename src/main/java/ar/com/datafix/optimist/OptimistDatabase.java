@@ -81,7 +81,7 @@ public class OptimistDatabase {
             java.util.Properties p = new java.util.Properties();
             p.load(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
             String v = p.getProperty("version");
-            return v == null || v.isBlank() || v.contains("${") ? null : v.trim();
+            return v == null || v.isBlank() || v.contains("${") || v.contains("@") ? null : v.trim();
         } catch (java.io.IOException e) { return null; }
     }
 
