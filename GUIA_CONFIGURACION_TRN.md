@@ -1806,6 +1806,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6o**: fechas: 0411 -> 04/11/(año actual) al salir del campo (TAB, Enter o mouse) y el calendario se abre solo con el ícono, en todos los campos fecha.
 - **E6n**: versión de la aplicación debajo del nombre del sistema (`version.properties` con `version=@project.version@`, que Maven reemplaza al compilar con spring-boot-starter-parent) y color del nombre en Apariencia.
 - **E6m**: `mostrarClave: true` en una referencia con código: el campo de la clave muestra la clave interna; la lupa sigue con el código (sección de códigos).
 - **E6l**: `&BC.Load()` en un procedimiento calcula las fórmulas de la TRN, como GeneXus (antes devolvía lo grabado en la tabla).

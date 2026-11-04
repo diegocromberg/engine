@@ -299,7 +299,11 @@ public final class OptimistTrnCampos {
      * del campo o con Enter: el control entiende lo corto y lo muestra completo. Vale para las TRN, los web panels y los filtros.
      */
     public static void fechaRapida(DatePicker f) {
-        // se envuelve el parseDate del control (el que arma Flow con el formato dd/MM/yyyy): lo corto se completa antes de leerlo
+        // E6o (Diego): el calendario se abre solo con el ícono, no al hacer clic en el campo ni al escribir
+        f.setAutoOpen(false);
+        // se envuelve el parseDate del control (el que arma Flow con el formato dd/MM/yyyy): lo corto se completa antes de leerlo.
+        // E6o: con Vaadin 24.9 el control ya no lee el parseDate por ahí; además, lo escrito se completa en el mismo campo
+        // (04/11/2026) al salir de él o con Enter / TAB, antes de que el control lo lea
         f.getElement().executeJs(
                 "const p = this; if (p.__optimistFecha) return; p.__optimistFecha = true;"
                 + "const corto = t => { const v = (t || '').trim(); const y = new Date().getFullYear(); const d2 = s => String(s).padStart(2, '0'); let m;"
@@ -313,7 +317,11 @@ public final class OptimistTrnCampos {
                 + "const envolver = o => { if (o && typeof o.parseDate === 'function' && !o.parseDate.__optimist) { const orig = o.parseDate; const f = t => orig.call(o, corto(t)); f.__optimist = true; o.parseDate = f; } return o; };"
                 + "let pr = Object.getPrototypeOf(p), d; while (pr && !(d = Object.getOwnPropertyDescriptor(pr, 'i18n'))) pr = Object.getPrototypeOf(pr);"
                 + "if (d && d.get && d.set) Object.defineProperty(p, 'i18n', { configurable: true, get() { return envolver(d.get.call(p)); }, set(v) { d.set.call(p, envolver(v)); } });"
-                + "envolver(p.i18n);");
+                + "envolver(p.i18n);"
+                + "const completar = () => { const i = p.inputElement || p.querySelector('input'); if (!i) return; const n = corto(i.value);"
+                + "  if (n && n !== i.value) { i.value = n; i.dispatchEvent(new Event('input', { bubbles: true })); } };"
+                + "p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === 'Tab') completar(); }, true);"
+                + "p.addEventListener('blur', completar, true); p.addEventListener('focusout', completar, true);");
     }
 
     public static DatePicker.DatePickerI18n i18nFecha() {

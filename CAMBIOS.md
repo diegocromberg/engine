@@ -2,6 +2,15 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6o — Fechas: 0411 de nuevo y el calendario solo con el ícono (04/11/2026)
+
+- Diego: escribir 0411 en una fecha ya no la completaba (con Vaadin 24.9 el control dejó de leer la conversión de la V50), y el
+  calendario se abría al hacer clic en el campo. Ahora lo escrito se completa en el mismo campo al salir (con TAB, Enter o el mouse):
+  0411 -> 04/11/(año actual), 041126 -> 04/11/2026, 04112026, 4/11, 4/11/26. El calendario se abre solo con el ícono. En todos los
+  campos fecha: TRN, renglones, web panels, filtros de los WorkWith y parámetros de las consultas.
+- Probado con el date-picker de Vaadin 24.9.3 en el navegador: 0411+TAB, 041126+Enter, 5/3+clic afuera, fecha completa, el ícono.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6n — Versión de la aplicación y color del nombre del sistema (04/11/2026)
 
 - Diego: debajo del nombre del sistema (arriba a la izquierda, en el menú horizontal y en el vertical) se ve la versión de la
