@@ -264,7 +264,7 @@ public final class OptimistShell {
         String v = OptimistDatabase.versionSistema();
         if (v == null) return logo;
         Span version = new Span("v " + v);
-        version.getStyle().set("font-size", "11px").set("line-height", "1").set("color", "var(--optimist-marca, var(--optimist-texto))")
+        version.getStyle().set("font-size", "13px").set("line-height", "1").set("color", "var(--optimist-marca, var(--optimist-texto))")
                 .set("text-align", "center").set("white-space", "nowrap").set("margin-top", "-2px");
         logo.getStyle().set("line-height", "1.1");
         Div caja = new Div(logo, version);

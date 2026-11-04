@@ -11,6 +11,7 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 - Apariencia: un color nuevo con el nombre del sistema (ej. "OPTIMIST ERP"): el color del nombre y de la versión en la barra (para
   distinguir en qué empresa se trabaja). Solo en la barra, no en el login. Va primero en el renglón de los colores. Sin elegir (y al
   Restablecer), el color de la aplicación (`sistema.color` del cfg o `OptimistExtension.colorSistema()`); si no tiene, el de las letras.
+- La versión va con letra de 13px (Diego: un poco más grande que los 11px del principio).
 - **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
 
 ## E6m — `mostrarClave: true` en una referencia (03/11/2026)
