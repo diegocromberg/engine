@@ -2,6 +2,16 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6n — Versión de la aplicación y color del nombre del sistema (04/11/2026)
+
+- Diego: debajo del nombre del sistema (arriba a la izquierda, en el menú horizontal y en el vertical) se ve la versión de la
+  APLICACIÓN, chiquita, centrada y del mismo color. Sale de `version.properties` (clave `version`) de los recursos de la aplicación,
+  que su `pom.xml` completa al compilar; sin ese archivo no se ve nada (como antes). El nombre sigue saliendo de la aplicación
+  (`sistema.nombre` del cfg o `OptimistExtension.nombreSistema()`), nunca del motor.
+- Apariencia: un color nuevo con el nombre del sistema (ej. "OPTIMIST ERP"): el color del nombre y de la versión en la barra (para
+  distinguir en qué empresa se trabaja). Solo en la barra, no en el login. Sin elegir, el de las letras (como antes); Restablecer lo saca.
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6m — `mostrarClave: true` en una referencia (03/11/2026)
 
 - Diego: en los comprobantes "Entidad PK" mostraba el código de la entidad (1546) en vez de su clave (40369), y al lado "Entidades

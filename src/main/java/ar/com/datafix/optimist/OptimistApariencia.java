@@ -27,8 +27,8 @@ public final class OptimistApariencia {
     private void abrir(){
         Dialog d=new Dialog();OptimistVisuals.estilizarDialogo(d, cfg);d.setHeaderTitle("Configuración de pantalla — "+usuario);
         ComboBox<String> modo=new ComboBox<>("Modo");modo.setItems("Oscuro","Claro","Personalizado");modo.setValue(cfg.getProperty("modo","Oscuro"));
-        Input fondo=color(cfg.getProperty("fondo","#091e24"));Input texto=color(cfg.getProperty("texto","#f5f7fb"));Input acento=color(cfg.getProperty("acento","#0ea88f"));
-        HorizontalLayout paleta=new HorizontalLayout(campoColor("Fondo",fondo),campoColor("Letras",texto),campoColor("Principal",acento));
+        Input fondo=color(cfg.getProperty("fondo","#091e24"));Input texto=color(cfg.getProperty("texto","#f5f7fb"));Input acento=color(cfg.getProperty("acento","#0ea88f"));Input marca=color(cfg.getProperty("marca","").isBlank()?cfg.getProperty("texto","#f5f7fb"):cfg.getProperty("marca"));
+        HorizontalLayout paleta=new HorizontalLayout(campoColor("Fondo",fondo),campoColor("Letras",texto),campoColor("Principal",acento),campoColor(OptimistDatabase.nombreSistema(),marca));
         ComboBox<String> fuente=new ComboBox<>("Tipografía");fuente.setItems("Arial","Verdana","Georgia","Tahoma","Trebuchet MS","Calibri","Cambria","Garamond","Century Gothic","Courier New","Times New Roman","Perpetua Titling MT");fuente.setValue(cfg.getProperty("fuente","Arial"));
         ComboBox<Integer> letra=new ComboBox<>("Tamaño de letra (px)");letra.setItems(12,13,14,15,16,18,20,22,24,26,28);letra.setValue(Integer.parseInt(cfg.getProperty("letra","15")));
         ComboBox<String> den=new ComboBox<>("Densidad de la grilla");den.setItems("Supercompacta","Compacta","Normal","Cómoda");den.setValue(cfg.getProperty("densidad","Normal"));
@@ -63,6 +63,8 @@ public final class OptimistApariencia {
             if(e.isFromClient() && !cambiandoModo[0]) {modo.setValue("Personalizado"); cambio.run();}
         });
         acento.addValueChangeListener(e->cambio.run());
+        // E6n: el color del nombre del sistema en la barra (ej. uno por empresa, para saber en cuál se está trabajando)
+        marca.addValueChangeListener(e->{if(e.isFromClient()){cfg.setProperty("marca",marca.getValue());guardar();aplicar();}});
         fuente.addValueChangeListener(e->cambio.run());
         letra.addValueChangeListener(e->cambio.run());
         den.addValueChangeListener(e->cambio.run());

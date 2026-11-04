@@ -71,6 +71,20 @@ public class OptimistDatabase {
      * V83: nombre del sistema que muestra la pantalla (login, barra, títulos). optimist.cfg: sistema.nombre; sin la línea,
      * el de la aplicación (E3, OptimistExtension.nombreSistema: OPTIMIST ERP) o "OPTIMIST".
      */
+    /**
+     * E6n: la versión de la APLICACIÓN (no del motor), del archivo version.properties de sus recursos (clave version, que el
+     * pom de la aplicación completa con su número al compilar). Sin el archivo, null (no se muestra nada).
+     */
+    public static String versionSistema() {
+        try (java.io.InputStream in = OptimistDatabase.class.getClassLoader().getResourceAsStream("version.properties")) {
+            if (in == null) return null;
+            java.util.Properties p = new java.util.Properties();
+            p.load(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+            String v = p.getProperty("version");
+            return v == null || v.isBlank() || v.contains("${") ? null : v.trim();
+        } catch (java.io.IOException e) { return null; }
+    }
+
     public static String nombreSistema() {
         String n = null;
         try {

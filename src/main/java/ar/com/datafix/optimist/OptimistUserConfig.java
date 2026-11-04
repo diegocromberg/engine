@@ -99,7 +99,7 @@ public class OptimistUserConfig {
 
     /** Claves de Apariencia (Restablecer vuelve solo estas a su valor inicial). */
     public static final java.util.List<String> CLAVES_APARIENCIA = java.util.List.of(
-            "modo", "acento", "fondo", "texto", "fuente", "letra", "densidad", "densidadFormulario", "pantallaCompleta", "filasPagina", "menu", "acciones");
+            "modo", "acento", "fondo", "texto", "fuente", "letra", "densidad", "densidadFormulario", "pantallaCompleta", "filasPagina", "menu", "acciones", "marca");
 
     public static Properties defaults() {
         Properties p = new Properties();

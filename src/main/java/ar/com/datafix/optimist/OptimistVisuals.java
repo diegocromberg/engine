@@ -17,6 +17,8 @@ public final class OptimistVisuals {
         String fuente = cfg.getProperty("fuente", "Arial");
         String letra = cfg.getProperty("letra", "15") + "px";
         String modo = cfg.getProperty("modo", "Oscuro");
+        // E6n: el color del nombre del sistema en la barra (Apariencia); sin elegir, el de las letras
+        String marca = cfg.getProperty("marca", "").isBlank() ? texto : cfg.getProperty("marca").trim();
         // V66p: las densidades se publican en <html> para que las tomen TODAS las grillas y los formularios que no son ventana
         String densForm = clave(cfg.getProperty("densidadFormulario", "Normal"));
         String densGrilla = clave(cfg.getProperty("densidad", "Normal"));
@@ -33,7 +35,8 @@ public final class OptimistVisuals {
               '--lumo-secondary-text-color': $1, '--lumo-primary-color': $2,
               '--lumo-font-family': $3, '--lumo-font-size-m': $4,
               '--vaadin-grid-cell-background': $0,
-              '--vaadin-grid-background': $0
+              '--vaadin-grid-background': $0,
+              '--optimist-marca': $8
             };
             for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
             root.setAttribute('theme', $5);
@@ -42,7 +45,7 @@ public final class OptimistVisuals {
             document.body.style.backgroundColor = $0;
             document.body.style.color = $1;
             """, fondo, texto, acento, "'" + fuente.replace("'", "") + "', Arial, sans-serif", letra,
-                claro ? "light" : "dark", densForm, densGrilla);
+                claro ? "light" : "dark", densForm, densGrilla, marca);
     }
 
     /** V66p: "Supercompacta" -> "supercompacta", "Cómoda" -> "comoda" (el valor del atributo que usa el CSS). */

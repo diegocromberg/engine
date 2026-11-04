@@ -105,9 +105,10 @@ public final class OptimistShell {
 
         Span logo = new Span(OptimistDatabase.nombreSistema());
         logo.getStyle().set("font-family", "'Perpetua Titling MT','Perpetua',Georgia,serif")
-            .set("font-weight", "bold").set("font-size", "28px").set("padding", "12px 1px 8px 5px").set("color", "var(--optimist-texto)").set("white-space", "nowrap");
+            .set("font-weight", "bold").set("font-size", "28px").set("padding", "12px 1px 8px 5px").set("color", "var(--optimist-marca, var(--optimist-texto))").set("white-space", "nowrap");
 
-        HorizontalLayout cabecera = new HorizontalLayout(colapsar, logo);
+        Component logoCaja = conVersion(logo);
+        HorizontalLayout cabecera = new HorizontalLayout(colapsar, logoCaja);
         cabecera.setWidthFull(); cabecera.setAlignItems(HorizontalLayout.Alignment.CENTER); cabecera.setSpacing(false);
 
         Span sesion = new Span("Usuario: " + usuario());
@@ -169,7 +170,7 @@ public final class OptimistShell {
             menu.setWidth(ancho); menu.setMinWidth(ancho);
             anchoMenu(c ? "64px" : abierto);
             manija.setVisible(!c && !movil[0]);
-            logo.setVisible(!c); sesion.setVisible(!c); buscar.setVisible(!c); navegacion.setVisible(!c); salir.setVisible(!c);
+            logoCaja.setVisible(!c); sesion.setVisible(!c); buscar.setVisible(!c); navegacion.setVisible(!c); salir.setVisible(!c);
             // V28: en el celular, el menú abierto va ENCIMA de la pantalla (no la empuja)
             if (movil[0] && !c) menu.addClassName("optimist-menu-flotante");
             else menu.removeClassName("optimist-menu-flotante");
@@ -255,6 +256,23 @@ public final class OptimistShell {
         return Boolean.TRUE.equals(VaadinSession.getCurrent().getAttribute("optimist.angosta"));
     }
 
+    /**
+     * E6n: el nombre del sistema con la versión de la aplicación debajo (chiquita, centrada, del mismo color). Sin versión
+     * (la aplicación no tiene version.properties), el nombre solo, como antes.
+     */
+    private static Component conVersion(Span logo) {
+        String v = OptimistDatabase.versionSistema();
+        if (v == null) return logo;
+        Span version = new Span("v " + v);
+        version.getStyle().set("font-size", "11px").set("line-height", "1").set("color", "var(--optimist-marca, var(--optimist-texto))")
+                .set("text-align", "center").set("white-space", "nowrap").set("margin-top", "-2px");
+        logo.getStyle().set("line-height", "1.1");
+        Div caja = new Div(logo, version);
+        caja.getStyle().set("display", "flex").set("flex-direction", "column").set("align-items", "center").set("justify-content", "center")
+                .set("flex-shrink", "0");
+        return caja;
+    }
+
     private static void montarHorizontal(VerticalLayout raiz, Component contenido, String tituloPantalla) {
         anchoMenu("0px");
         altoBarra(ALTO_BARRA);
@@ -263,10 +281,11 @@ public final class OptimistShell {
 
         Span logo = new Span(OptimistDatabase.nombreSistema());
         logo.getStyle().set("font-family", "'Perpetua Titling MT','Perpetua',Georgia,serif")
-            .set("font-weight", "bold").set("font-size", "22px").set("padding", "0 10px 0 16px").set("color", "var(--optimist-texto)")
+            .set("font-weight", "bold").set("font-size", "22px").set("padding", "0 10px 0 16px").set("color", "var(--optimist-marca, var(--optimist-texto))")
             .set("white-space", "nowrap").set("flex-shrink", "0").set("cursor", "pointer");
         logo.getElement().setAttribute("title", "Inicio");
         logo.getElement().addEventListener("click", e -> UI.getCurrent().navigate(""));
+        Component logoBarra = conVersion(logo);
 
         MenuBar barra = new MenuBar();
         barra.addThemeVariants(MenuBarVariant.LUMO_TERTIARY);
@@ -355,7 +374,7 @@ public final class OptimistShell {
         Button salir = new Button("Cerrar sesión", e -> cerrarSesion());
         salir.getStyle().set("flex-shrink", "0");
 
-        HorizontalLayout cabecera = new HorizontalLayout(logo, barra, buscar, OptimistAyuda.botonBarra(), quien, salir);   // V48: Ayuda
+        HorizontalLayout cabecera = new HorizontalLayout(logoBarra, barra, buscar, OptimistAyuda.botonBarra(), quien, salir);   // V48: Ayuda
         OptimistPostIts.abrirDePantalla();   // V82i / V82q: los PostIts de la pantalla (el botón lo pone cada pantalla)
         Component campana = OptimistMensajes.campana(false);   // V72: la campanita de mensajes, entre Ayuda y el usuario
         if (campana != null) cabecera.addComponentAtIndex(cabecera.indexOf(quien), campana);
