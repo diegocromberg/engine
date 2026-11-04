@@ -27,8 +27,8 @@ public final class OptimistApariencia {
     private void abrir(){
         Dialog d=new Dialog();OptimistVisuals.estilizarDialogo(d, cfg);d.setHeaderTitle("Configuración de pantalla — "+usuario);
         ComboBox<String> modo=new ComboBox<>("Modo");modo.setItems("Oscuro","Claro","Personalizado");modo.setValue(cfg.getProperty("modo","Oscuro"));
-        Input fondo=color(cfg.getProperty("fondo","#091e24"));Input texto=color(cfg.getProperty("texto","#f5f7fb"));Input acento=color(cfg.getProperty("acento","#0ea88f"));Input marca=color(cfg.getProperty("marca","").isBlank()?cfg.getProperty("texto","#f5f7fb"):cfg.getProperty("marca"));
-        HorizontalLayout paleta=new HorizontalLayout(campoColor("Fondo",fondo),campoColor("Letras",texto),campoColor("Principal",acento),campoColor(OptimistDatabase.nombreSistema(),marca));
+        Input fondo=color(cfg.getProperty("fondo","#091e24"));Input texto=color(cfg.getProperty("texto","#f5f7fb"));Input acento=color(cfg.getProperty("acento","#0ea88f"));Input marca=color(OptimistDatabase.colorMarca(cfg));
+        HorizontalLayout paleta=new HorizontalLayout(campoColor(OptimistDatabase.nombreSistema(),marca),campoColor("Fondo",fondo),campoColor("Letras",texto),campoColor("Principal",acento));
         ComboBox<String> fuente=new ComboBox<>("Tipografía");fuente.setItems("Arial","Verdana","Georgia","Tahoma","Trebuchet MS","Calibri","Cambria","Garamond","Century Gothic","Courier New","Times New Roman","Perpetua Titling MT");fuente.setValue(cfg.getProperty("fuente","Arial"));
         ComboBox<Integer> letra=new ComboBox<>("Tamaño de letra (px)");letra.setItems(12,13,14,15,16,18,20,22,24,26,28);letra.setValue(Integer.parseInt(cfg.getProperty("letra","15")));
         ComboBox<String> den=new ComboBox<>("Densidad de la grilla");den.setItems("Supercompacta","Compacta","Normal","Cómoda");den.setValue(cfg.getProperty("densidad","Normal"));
@@ -73,7 +73,7 @@ public final class OptimistApariencia {
         VerticalLayout campos=new VerticalLayout(modo,paleta,fuente,letra,den,denForm,pantalla,menu,acciones);campos.setWidth("480px");d.add(campos);
         OptimistVisuals.pieIzquierda(d,new Button("Restablecer",e->{boolean recargar=OptimistShell.menuHorizontal(cfg)||"Renglón".equalsIgnoreCase(cfg.getProperty("acciones","Menú").trim());cfg=OptimistUserConfig.defaults();guardar();aplicar();d.close();if(recargar)UI.getCurrent().getPage().reload();else abrir();}),new Button("Cerrar",e->d.close()));d.open();
     }
-    private VerticalLayout campoColor(String nombre,Input input){VerticalLayout v=new VerticalLayout(new Span(nombre),input);v.setPadding(false);v.setSpacing(false);return v;}
+    private VerticalLayout campoColor(String nombre,Input input){Span t=new Span(nombre);t.getStyle().set("white-space","nowrap");VerticalLayout v=new VerticalLayout(t,input);v.setPadding(false);v.setSpacing(false);return v;}
     /** V29: graba SOLO las claves de Apariencia (lo demás del archivo, como el WorkWith, no se toca). */
     private void guardar(){try{java.util.Map<String,String> m=new java.util.HashMap<>();for(String k:OptimistUserConfig.CLAVES_APARIENCIA)m.put(k,cfg.getProperty(k));store.guardarClaves(usuario,m);}catch(Exception e){Notification.show("No se pudo guardar "+store.ruta(usuario)+": "+e.getMessage(),7000,Notification.Position.MIDDLE);}}
     private void aplicar(){

@@ -17,8 +17,8 @@ public final class OptimistVisuals {
         String fuente = cfg.getProperty("fuente", "Arial");
         String letra = cfg.getProperty("letra", "15") + "px";
         String modo = cfg.getProperty("modo", "Oscuro");
-        // E6n: el color del nombre del sistema en la barra (Apariencia); sin elegir, el de las letras
-        String marca = cfg.getProperty("marca", "").isBlank() ? texto : cfg.getProperty("marca").trim();
+        // E6n: el color del nombre del sistema en la barra (Apariencia); sin elegir, el de la aplicación o el de las letras
+        String marca = OptimistDatabase.colorMarca(cfg);
         // V66p: las densidades se publican en <html> para que las tomen TODAS las grillas y los formularios que no son ventana
         String densForm = clave(cfg.getProperty("densidadFormulario", "Normal"));
         String densGrilla = clave(cfg.getProperty("densidad", "Normal"));

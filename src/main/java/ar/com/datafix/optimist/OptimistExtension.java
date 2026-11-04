@@ -24,6 +24,9 @@ public interface OptimistExtension {
     /** El nombre del sistema si el optimist.cfg no dice sistema.nombre (OPTIMIST ERP: "OPTIMIST ERP"). */
     default String nombreSistema() { return null; }
 
+    /** E6n: el color del nombre del sistema en la barra si el usuario no eligió otro en Apariencia (null: el de las letras). */
+    default String colorSistema() { return null; }
+
     /** Procedimientos en Java (OptimistProcedimiento.registrarNativo / OptimistProcedimientos.reemplazar). Se llama una vez al arrancar. */
     default void registrarProcedimientos() {}
 

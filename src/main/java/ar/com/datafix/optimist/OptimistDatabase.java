@@ -85,6 +85,26 @@ public class OptimistDatabase {
         } catch (java.io.IOException e) { return null; }
     }
 
+    /** E6n: el color por defecto del nombre del sistema: sistema.color del cfg o el de la aplicación; null si no hay. */
+    public static String colorSistema() {
+        String c = null;
+        try {
+            OptimistDatabase d = INSTANCIA;
+            c = d == null ? null : d.propiedad("sistema.color", null);
+        } catch (RuntimeException ignorado) { }
+        if (c != null && !c.isBlank()) return c.trim();
+        for (OptimistExtension e : OptimistExtension.todas()) { String x = e.colorSistema(); if (x != null && !x.isBlank()) return x.trim(); }
+        return null;
+    }
+
+    /** E6n: el color del nombre del sistema para esta Apariencia: el elegido, si no el de la aplicación, si no el de las letras. */
+    public static String colorMarca(java.util.Properties cfg) {
+        String m = cfg.getProperty("marca", "");
+        if (!m.isBlank()) return m.trim();
+        String c = colorSistema();
+        return c != null ? c : cfg.getProperty("texto", "#f5f7fb");
+    }
+
     public static String nombreSistema() {
         String n = null;
         try {
