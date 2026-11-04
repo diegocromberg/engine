@@ -2,6 +2,15 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6p — La lupa se deshabilita con su campo bloqueado (04/11/2026)
+
+- Diego: en COBR la lupa de la Cuenta tiene que andar solo si la forma de pago afecta banco. La regla de GeneXus ya bloqueaba el
+  campo (`NoAccept(...) if FPagoAfectaBanco = false`), pero la lupa seguía activa. Ahora toda lupa (de referencia o de
+  procedimiento, en la cabecera o en los renglones) se ve deshabilitada y no busca mientras su campo esté bloqueado; cuando la regla
+  lo libera, vuelve a andar. Como el Prompt de GeneXus.
+- Probado con los componentes de Vaadin 24.9.3 en el navegador (campo editable, bloqueado y liberado).
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6o — Fechas: 0411 de nuevo y el calendario solo con el ícono (04/11/2026)
 
 - Diego: escribir 0411 en una fecha ya no la completaba (con Vaadin 24.9 el control dejó de leer la conversión de la V50), y el

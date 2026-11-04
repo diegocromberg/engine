@@ -2419,6 +2419,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         if (ref == null || !habilitado) return ed.componente();
         String local = ref.campos().keySet().stream().filter(k -> k.equalsIgnoreCase(nombre)).findFirst().orElse(nombre);
         Button lupa = new Button(VaadinIcon.SEARCH.create(), e -> {
+            // E6p: con el campo bloqueado (ej. NoAccept(...) de una regla) la lupa no busca, como el Prompt de GeneXus
+            if (ed.componente() instanceof com.vaadin.flow.component.HasValue<?, ?> hv && hv.isReadOnly()) return;
             Map<String, Object> actuales = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             actuales.putAll(valores.get());
             // el padre tiene que estar cargado antes de buscar el hijo
@@ -2454,6 +2456,10 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         HorizontalLayout h = new HorizontalLayout(ed.componente(), lupa);
         h.setSpacing(false);
         h.setAlignItems(FlexComponent.Alignment.END);
+        // E6p: la lupa se ve deshabilitada mientras su campo esté bloqueado o deshabilitado (y se habilita cuando se libera)
+        h.getElement().executeJs("const f = $0, b = $1; const s = () => { b.disabled = f.hasAttribute('readonly') || f.hasAttribute('disabled'); };"
+                + " s(); new MutationObserver(s).observe(f, { attributes: true, attributeFilter: ['readonly', 'disabled'] });",
+                ed.componente().getElement(), lupa.getElement());
         return h;
     }
 
@@ -2559,12 +2565,19 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     }
 
     private Component conLupaProc(OptimistTrnCampos.Editor ed, OptimistTrnDefinicion.LupaProc lp, Runnable abrir) {
-        Button lupa = new Button(VaadinIcon.SEARCH.create(), e -> abrir.run());
+        Button lupa = new Button(VaadinIcon.SEARCH.create(), e -> {
+            // E6p: con el campo bloqueado la lupa no busca
+            if (ed.componente() instanceof com.vaadin.flow.component.HasValue<?, ?> hv && hv.isReadOnly()) return;
+            abrir.run();
+        });
         lupa.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         lupa.getElement().setAttribute("title", lp.titulo() != null ? lp.titulo() : "Buscar " + ed.campo().etiqueta());
         HorizontalLayout h = new HorizontalLayout(ed.componente(), lupa);
         h.setSpacing(false);
         h.setAlignItems(FlexComponent.Alignment.END);
+        h.getElement().executeJs("const f = $0, b = $1; const s = () => { b.disabled = f.hasAttribute('readonly') || f.hasAttribute('disabled'); };"
+                + " s(); new MutationObserver(s).observe(f, { attributes: true, attributeFilter: ['readonly', 'disabled'] });",
+                ed.componente().getElement(), lupa.getElement());
         return h;
     }
 
