@@ -670,6 +670,11 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             return;
         }
         cargar();
+        if (abrirDespues != null && mensajes.isEmpty() && "Panel".equals(abrirDespues[2])) {   // E7a: pidió abrir un web panel
+            @SuppressWarnings("unchecked") List<Object> pa = (List<Object>) abrirDespues[1];
+            OptimistPanelView.abrirDialogo(String.valueOf(abrirDespues[0]), db, pa, ab -> { cargar(); abrirTrn(ab.trn(), ab.modo(), ab.clave()); }, this::cargar);
+            return;
+        }
         if (abrirDespues != null && mensajes.isEmpty()) {   // el procedimiento pidió abrir una TRN (y no dejó un error)
             boolean ver = abrirDespues.length > 2 && abrirDespues[2] != null
                     && List.of("dsp", "display").contains(String.valueOf(abrirDespues[2]).trim().toLowerCase(Locale.ROOT));

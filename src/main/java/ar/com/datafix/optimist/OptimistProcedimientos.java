@@ -547,6 +547,24 @@ public final class OptimistProcedimientos {
             });
             return OptimistProcedimiento.nativo(nom);
         }
+        // E7a: OtroPanel.Call(...) dentro de un procedimiento (ej. CPBCInvocarConfirmarStock → WPModificarStock): la pantalla
+        // que corrió el procedimiento abre ese web panel al terminar, con lo que recibe (su parm, en orden)
+        if (OptimistPanel.esPanel(nombre)) {
+            OptimistProcedimiento p = OptimistProcedimiento.nativo(nombre);
+            if (p != null) return p;
+            List<String> parm;
+            try { parm = OptimistPanelView.cargar(nombre).parm; }
+            catch (RuntimeException ex) { return null; }
+            StringBuilder firma = new StringBuilder();
+            for (String v : parm) firma.append(firma.length() == 0 ? "" : ", ").append("in: &").append(v);
+            OptimistProcedimiento.registrarNativo(nombre, firma.toString(), (in, c) -> {
+                List<Object> args = new ArrayList<>();
+                for (String v : parm) args.add(in.get(v.toLowerCase(Locale.ROOT)));
+                OptimistProcedimiento.TRN_A_ABRIR.set(new Object[]{nombre, args, "Panel"});
+                return Map.of();
+            });
+            return OptimistProcedimiento.nativo(nombre);
+        }
         if (nombre.equalsIgnoreCase("NotAuthorized")) {
             OptimistProcedimiento p = OptimistProcedimiento.nativo(nombre);
             if (p != null) return p;

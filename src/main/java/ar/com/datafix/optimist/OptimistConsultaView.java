@@ -1124,6 +1124,11 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
             return;
         }
         refrescar();
+        if (abrir != null && mensajes.isEmpty() && "Panel".equals(abrir[2])) {   // E7a: pidió abrir un web panel
+            @SuppressWarnings("unchecked") List<Object> pa = (List<Object>) abrir[1];
+            OptimistPanelView.abrirDialogo(String.valueOf(abrir[0]), db, pa, ab -> { refrescar(); abrirTrn(ab.trn(), ab.modo(), ab.clave()); }, this::refrescar);
+            return;
+        }
         if (abrir != null && mensajes.isEmpty()) {
             boolean ver = abrir.length > 2 && abrir[2] != null && List.of("dsp", "display").contains(String.valueOf(abrir[2]).trim().toLowerCase(Locale.ROOT));
             abrirTrn(String.valueOf(abrir[0]), ver ? "Display" : "Update", abrir[1]);

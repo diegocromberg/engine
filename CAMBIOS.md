@@ -2,6 +2,15 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E7a — Un procedimiento que abre un web panel (05/11/2026)
+
+- `OtroPanel.Call(&A, &B, ...)` dentro de un **procedimiento** (antes, solo dentro de un web panel, V84e): cuando el procedimiento lo
+  corre una acción del renglón (WorkWith) o de una consulta, al terminar se abre ese web panel en una ventana, con esos valores en su
+  `parm` (en el orden del `parm`). Si el panel termina con `Trn.Call(TrnMode.Update, &Id)`, la lista se actualiza y se abre el registro.
+  Es el `WPModificarStock.Call(...)` de `CPBCInvocarConfirmarStock` de GeneXus. Se reconoce como panel si existe `wbp/OtroPanel.yaml`
+  y no hay un procedimiento con ese nombre. Si el procedimiento dejó un `Msg(...)`, se muestra el mensaje y el panel no se abre.
+- Opcional: un procedimiento que no lo usa corre como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6z — Datos del registro en la pregunta de una acción (05/11/2026)
 
 - `confirmar:` de una acción del renglón (WorkWith): `{Campo}` se reemplaza por el valor del registro (de la fila de la lista; si no
