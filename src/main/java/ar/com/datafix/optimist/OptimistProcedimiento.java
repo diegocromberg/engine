@@ -2094,6 +2094,10 @@ public final class OptimistProcedimiento {
         /** V60b: mientras se graba: lo que se protege (cabecera y cada renglón), con el valor del original. */
         private Map<String, Object> protegidosCab;
         private Map<OptimistTrnDatos.Linea, Map<String, Object>> protegidosLinea;
+        /** E6q: lo que dejaron las reglas del Save (estado de las variables, cabecera y renglones con sus inferidos), para reglasBc. */
+        private OptimistReglas.Estado estadoBc;
+        private Map<String, Object> cabBc;
+        private Map<String, List<Map<String, Object>>> lineasBc;
 
         Bc(String estructura) {
             String e = estructura == null ? "" : estructura.trim();
@@ -2220,6 +2224,18 @@ public final class OptimistProcedimiento {
                 }
                 if (!cargado && original != null) protegidosCab.putAll(sinTocar(original, cab));   // V60b
                 reglasYCalculo(c, t, cab, dets);   // V48c
+                // E6q: las reglas de GeneXus que valen para el Business Component (reglasBc:), en sus eventos, como el Save() de GeneXus
+                String textoBc = OptimistTrnDefinicion.reglasBc(t.nombre());
+                OptimistReglas rsBc = textoBc == null ? null : OptimistReglas.deBc(t, textoBc);
+                if (rsBc != null) {
+                    List<String> errBc = reglasBcAntes(c, t, rsBc, cab, dets);
+                    if (!errBc.isEmpty()) {
+                        exito = false;
+                        mensajes.addAll(errBc);
+                        System.out.println("Business Component " + trn + ".Save(): *** ERROR: " + String.join(" · ", errBc));
+                        return;
+                    }
+                }
                 OptimistContexto ctx = OptimistContexto.actual();
                 String usuario = ctx == null || ctx.valor("SecUserName") == null ? "" : String.valueOf(ctx.valor("SecUserName"));
                 // V60b: los valores por defecto no pisan lo que se protege
@@ -2234,7 +2250,8 @@ public final class OptimistProcedimiento {
                 }
                 Map<String, Object> clave;
                 OptimistTrnDatos.protegerDefectos(protegidosCab.keySet(), salvoLineas);
-                try { clave = new OptimistTrnDatos(c).guardar(t, new OptimistTrnDatos.Registro(cab, dets), !cargado, usuario, null); }
+                OptimistTrnDatos.Enganche enganche = rsBc == null ? null : enganche(t, rsBc, !cargado);
+                try { clave = new OptimistTrnDatos(c).guardar(t, new OptimistTrnDatos.Registro(cab, dets), !cargado, usuario, enganche); }
                 finally { OptimistTrnDatos.protegerDefectos(null, null); }
                 if (clave != null) putAll(clave);
                 cargado = true; exito = true;
@@ -2368,6 +2385,86 @@ public final class OptimistProcedimiento {
                 for (var x : protegidosLinea.entrySet()) x.getKey().valores().putAll(x.getValue());
             for (String a : avisos) System.out.println("Business Component " + trn + ": " + a);
             for (String x : errores) System.out.println("Business Component " + trn + " (se controla al confirmar): " + x);
+            estadoBc = est; cabBc = cabV; lineasBc = lineasV;   // E6q
+        }
+
+        /**
+         * E6q: antes de grabar, las reglasBc de los eventos BeforeValidate, AfterValidate y BeforeInsert / BeforeUpdate: primero la
+         * cabecera, después cada renglón (como la pantalla, V65) y al final las AfterLevel de la cabecera. Lo que asignan vuelve a
+         * lo que se graba. Devuelve los Error (con uno, el Save no graba nada y Success() da falso, como en GeneXus).
+         */
+        private List<String> reglasBcAntes(Connection c, OptimistTrnDefinicion.Trn t, OptimistReglas rs, Map<String, Object> cab,
+                                           Map<String, List<OptimistTrnDatos.Linea>> dets) throws SQLException {
+            List<String> errores = new ArrayList<>();
+            OptimistCalculo.Abridor ab = new OptimistTrnDatos(c).abridor();
+            OptimistTrnDefinicion.Nivel cabN = t.cabecera();
+            if (estadoBc == null) estadoBc = rs.nuevoEstado(cargado ? "UPD" : "INS");
+            Map<String, Object> cabV = cabBc != null ? cabBc : new LinkedHashMap<>(cab);
+            Map<String, List<Map<String, Object>>> lineasV = lineasBc != null ? lineasBc : new LinkedHashMap<>();
+            try { cabV.putAll(OptimistCalculo.calcular(t, cabV, lineasV, ab).cabecera()); }   // QtyDet, totales (AfterLevel)
+            catch (RuntimeException ignorado) { }
+            OptimistReglas.Momento G = OptimistReglas.Momento.GRABAR;
+            String antes = cargado ? "beforeupdate" : "beforeinsert";
+            for (String ev : List.of("beforevalidate", "aftervalidate", antes)) {
+                OptimistReglas.Efecto e = rs.aplicar(G, Set.of(ev), null, cabV, null, null, new HashSet<>(), estadoBc, ab, c);
+                errores.addAll(e.errores());
+                e.fallas().forEach(x -> System.out.println("Business Component " + trn + " (reglasBc): " + x));
+            }
+            for (var d : dets.entrySet()) {
+                OptimistTrnDefinicion.Nivel det = t.detalles().stream().filter(x -> x.nombre().equalsIgnoreCase(d.getKey())).findFirst().orElse(null);
+                if (det == null) continue;
+                List<Map<String, Object>> ls = lineasV.get(d.getKey());
+                for (int i = 0; i < d.getValue().size(); i++) {
+                    OptimistTrnDatos.Linea l = d.getValue().get(i);
+                    Map<String, Object> lv = ls != null && i < ls.size() ? ls.get(i) : new LinkedHashMap<>(l.valores());
+                    String antesL = l.claveOriginal() == null ? "beforeinsert" : "beforeupdate";
+                    for (String ev : List.of("beforevalidate", "aftervalidate", antesL)) {
+                        OptimistReglas.Efecto e = rs.aplicar(G, Set.of(ev), det, lv, cabV, null, new HashSet<>(), estadoBc, ab, c);
+                        for (String x : e.errores()) errores.add(det.titulo() + ", renglón " + (i + 1) + ": " + x);
+                        e.fallas().forEach(x -> System.out.println("Business Component " + trn + " (reglasBc): " + x));
+                        for (var a : e.asignados().entrySet())
+                            if (det.campo(a.getKey()) != null) lv.put(a.getKey(), a.getValue());
+                            else if (cabN.campo(a.getKey()) != null) cabV.put(a.getKey(), a.getValue());
+                    }
+                    for (var x : lv.entrySet()) {
+                        OptimistTrnDefinicion.Campo k = det.campo(x.getKey());
+                        if (k != null && !k.inferido()) l.valores().put(k.nombre(), x.getValue());
+                    }
+                }
+            }
+            OptimistReglas.Efecto e = rs.aplicar(G, Set.of("afterlevel"), null, cabV, null, null, new HashSet<>(), estadoBc, ab, c);
+            errores.addAll(e.errores());
+            e.fallas().forEach(x -> System.out.println("Business Component " + trn + " (reglasBc): " + x));
+            for (var x : cabV.entrySet()) {
+                OptimistTrnDefinicion.Campo k = cabN.campo(x.getKey());
+                if (k != null && !k.inferido() && k.formula() == null) { cab.put(k.nombre(), x.getValue()); put(k.nombre(), x.getValue()); }
+            }
+            cabBc = cabV;
+            return errores;
+        }
+
+        /**
+         * E6q: ya grabado, en la misma transacción: las reglasBc de AfterLevel que leen lo grabado, AfterInsert / AfterUpdate y
+         * BeforeComplete (un Error deshace lo grabado por este Save y Success() da falso), y después las de AfterComplete (sus
+         * Error solo se informan, como en GeneXus, donde corren después del Commit).
+         */
+        private OptimistTrnDatos.Enganche enganche(OptimistTrnDefinicion.Trn t, OptimistReglas rs, boolean nuevo) {
+            return (c2, clave, todo) -> {
+                Map<String, Object> conTodo = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                if (cabBc != null) conTodo.putAll(cabBc);
+                todo.forEach((k, v) -> { if (v != null || !conTodo.containsKey(k)) conTodo.put(k, v); });
+                OptimistReglas.Momento G = OptimistReglas.Momento.GRABAR;
+                List<String> errores = new ArrayList<>();
+                for (Set<String> evs : List.of(Set.of(OptimistReglas.AFTERLEVEL_BASE), Set.of(nuevo ? "afterinsert" : "afterupdate", "beforecomplete"))) {
+                    OptimistReglas.Efecto e = rs.aplicar(G, evs, null, conTodo, null, null, new HashSet<>(), estadoBc, null, c2);
+                    errores.addAll(e.errores());
+                    e.fallas().forEach(x -> System.out.println("Business Component " + trn + " (reglasBc): " + x));
+                    if (!errores.isEmpty()) throw new IllegalArgumentException(String.join(" · ", errores));
+                }
+                OptimistReglas.Efecto fin = rs.aplicar(G, Set.of("aftercomplete"), null, conTodo, null, null, new HashSet<>(), estadoBc, null, c2);
+                fin.errores().forEach(x -> System.out.println("Business Component " + trn + " (AfterComplete): " + x));
+                fin.fallas().forEach(x -> System.out.println("Business Component " + trn + " (reglasBc): " + x));
+            };
         }
 
         private static boolean sinCambios(Map<String, Object> a, Map<String, Object> b) {

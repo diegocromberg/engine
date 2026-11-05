@@ -2,6 +2,26 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6q — El Save() de un Business Component corre las reglas de sus eventos, como GeneXus (04/11/2026)
+
+- Diego: la cobranza generaba el movimiento de caja con los importes con signo en 0. En GeneXus los pone
+  `CorregirSignoMovCaja.Call(MovCajaId) on BeforeComplete;`, una regla de MovCaja que **no** está en un bloque `[web]`: GeneXus la
+  corre también cuando un procedimiento graba con el Business Component (`&MovCaja.Save()`). El motor no corría en el BC las reglas
+  con evento (V48c), así que se perdía todo lo que hacen: números (`LlamarGetNumeroId`), estados históricos, cuenta corriente y
+  stock de un comprobante grabado por BC (`CPBCActualizarTablas`, `ActualizarMovimientosDeStock`...).
+- Clave nueva y opcional de la TRN: **`reglasBc: |`**, las reglas que el Save() / Insert() / Update() del Business Component corre en
+  sus eventos (las de GeneXus fuera de `[web]`, más las de `[bc]` y `[web][bc]`). Antes de grabar: BeforeValidate, AfterValidate y
+  BeforeInsert / BeforeUpdate (cabecera y cada renglón) y las AfterLevel; ya grabado, en la misma transacción: AfterInsert /
+  AfterUpdate y BeforeComplete, y al final AfterComplete. Un `Error()` hace que el Save no grabe nada y `Success()` dé falso (en
+  AfterComplete solo se informa). Usan las mismas variables que dejaron las reglas de la TRN. Sin `reglasBc:`, todo como antes.
+- `parchar_reglas.py --bc` arma `reglasBc:` desde la KB en los YAML que ya existen. Corregido también en el convertidor: las reglas de
+  un bloque `[web][bc]` se perdían (valen para la pantalla y para el BC); en MovCaja era `GrabarEgresoDeCaja` (cheques, banco y
+  transferencia de un movimiento cargado a mano). El importador del Designer todavía no traduce reglas (las deja para la IA): cuando
+  las traduzca, va con esto.
+- Probado en el banco de pruebas: la cobranza 301 genera su movimiento de caja con el signo, los importes con signo y el estado
+  histórico. Batería de regresión igual. Las 293 TRN del ERP cargan (58 con `reglasBc:`).
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6p — La lupa se deshabilita con su campo bloqueado (04/11/2026)
 
 - Diego: en COBR la lupa de la Cuenta tiene que andar solo si la forma de pago afecta banco. La regla de GeneXus ya bloqueaba el

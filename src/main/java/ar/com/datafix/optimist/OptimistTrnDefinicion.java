@@ -898,6 +898,14 @@ public final class OptimistTrnDefinicion {
         if (trn.calculo() != null) OptimistComercial.de(trn);
         // V35: el inicio (evento Start) y las reglas se validan al leer la TRN (renglón y motivo si algo está mal)
         if (trn.inicio() != null || trn.reglas() != null) OptimistReglas.de(trn);
+        // E6q: reglasBc (opcional): las reglas que el Save() de un Business Component corre en sus eventos; se validan al leer
+        String rbc = opcional(y, "reglasBc");
+        if (rbc == null || rbc.isBlank()) REGLAS_BC.remove(nombre.toLowerCase(Locale.ROOT));
+        else {
+            try { OptimistReglas.deBc(trn, rbc); }
+            catch (IllegalArgumentException e) { throw error("reglasBc: " + e.getMessage()); }
+            REGLAS_BC.put(nombre.toLowerCase(Locale.ROOT), rbc);
+        }
         return trn;
     }
 
@@ -1699,6 +1707,10 @@ public final class OptimistTrnDefinicion {
     private static final Map<String, Enlace> ENLACES = new java.util.concurrent.ConcurrentHashMap<>();
     /** E5a: los campos de cada TRN (en minúscula) que piden permiso para verse (permisos.campos del YAML). */
     private static final Map<String, Set<String>> CAMPOS_PERMISO = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E6q: las reglas que corre el Business Component al grabar (reglasBc: del YAML), por TRN en minúscula. */
+    private static final Map<String, String> REGLAS_BC = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E6q: reglasBc: de la TRN (las reglas de GeneXus que valen para el Business Component, con sus eventos), o null. */
+    public static String reglasBc(String trn) { return trn == null ? null : REGLAS_BC.get(trn.toLowerCase(Locale.ROOT)); }
     public static Set<String> camposConPermiso(String trn) { return trn == null ? Set.of() : CAMPOS_PERMISO.getOrDefault(trn.toLowerCase(Locale.ROOT), Set.of()); }
     public static Enlace enlace(String tabla, String campo) {
         return ENLACES.get(tabla.toLowerCase(Locale.ROOT) + "." + campo.toLowerCase(Locale.ROOT));

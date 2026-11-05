@@ -104,6 +104,28 @@ public final class OptimistReglas {
 
     public boolean vacio() { return inicio == null && reglas.isEmpty(); }
 
+    private static final Map<String, OptimistReglas> CACHE_BC = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * E6q: las reglas que corre el Save() de un Business Component en sus eventos (reglasBc: del YAML; en GeneXus, las reglas
+     * que no están en un bloque [web], más las de [bc] y [web][bc]). Sin inicio: usan las variables del Estado de las reglas de la TRN.
+     */
+    public static OptimistReglas deBc(Trn trn, String texto) {
+        String clave = trn.nombre() + "\u0000" + texto;
+        OptimistReglas r = CACHE_BC.get(clave);
+        if (r == null || r.trn != trn) {
+            r = new OptimistReglas(trn, texto);
+            CACHE_BC.put(clave, r);
+        }
+        return r;
+    }
+
+    private OptimistReglas(Trn trn, String texto) {
+        this.trn = trn;
+        this.inicio = null;
+        this.reglas = leer(texto);
+    }
+
     private OptimistReglas(Trn trn) {
         this.trn = trn;
         try {

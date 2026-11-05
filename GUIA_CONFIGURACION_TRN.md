@@ -1066,6 +1066,18 @@ EndFor
 - **La tabla del For Each** se deduce como en GeneXus: por los atributos que se usan (tabla base + las que se unen por clave). Solo se consideran las tablas de la base, no las vistas; en un empate gana la tabla de una TRN (V66d).
 - **Transacción**: todo el procedimiento es una unidad: si falla, no graba nada.
 - **Contexto del usuario**: `LoadWWPContext.Call(&Ctx)` trae empresa, división, usuario… (`&Ctx.Empresa`). `SetWWPContext` lo cambia.
+- **Reglas del Business Component** (E6q, `reglasBc: |` en la TRN, opcional): las reglas que el `Save()` / `Insert()` / `Update()` de un
+  Business Component corre en sus eventos, como GeneXus con las reglas que no están en un bloque `[web]` (más las de `[bc]` y `[web][bc]`).
+  Antes de grabar corren las de BeforeValidate, AfterValidate y BeforeInsert / BeforeUpdate (la cabecera y después cada renglón) y las
+  AfterLevel; ya grabado, en la misma transacción, las de AfterInsert / AfterUpdate y BeforeComplete; al final, las de AfterComplete.
+  Un `Error()` hace que no se grabe nada y que `Success()` dé falso (los de AfterComplete solo se informan en la consola). Usan las
+  variables que dejaron las reglas de la TRN (`reglas:`), que el BC corre como siempre (sin sus eventos). `parchar_reglas.py --bc` las
+  arma desde la KB. Ej. en MovCaja:
+  ```yaml
+  reglasBc: |
+    CorregirSignoMovCaja.Call(MovCajaId) on BeforeComplete;
+    MovCajaGrabarStatusHistorico.Call(MovCajaId, MovCajaStatus) on AfterComplete;
+  ```
 - **Duplicar con un Business Component** (V60b): `&Out = &In.Clone()` y después `&Out.Save()` graba una copia. Lo que el procedimiento **no tocó** después del `Clone()` (cabecera y renglones) queda **igual que en el original**: no lo pisan las reglas de la TRN, el cálculo comercial ni los valores por defecto (`default:`), aunque esté vacío. Lo que el procedimiento cambió o vació (`SetEmpty()`, una asignación) lo pueden completar las reglas y el cálculo como siempre (ej. `ClonarPED` vacía el IVA del renglón para que se recalcule con la tasa nueva). Las fórmulas que se graban (`guardar: true`) y la auditoría (alta: fecha y usuario) se calculan siempre.
 - **Verificar una duplicación** (V60c): `CompararRegistros.Call("Tcbte", "C;FAC;0001", "C;FAC;0008", "TcbteDescripcion", &Diferencias)` compara la copia con el original **directo en la base**: la cabecera y todos sus niveles (también los ocultos), con todas las columnas de cada tabla, estén o no en el YAML. Los renglones se aparean por su clave propia. No compara la clave de la cabecera, la auditoría ni las columnas que se pasan para ignorar (lo que la duplicación cambia a propósito). `&Diferencias` queda vacío si son iguales, o con un renglón por diferencia ("Almacenes [1/1/3]: TcbteAlmTipoAlmacen original '1', copia '2'", "Impuestos: el original tiene 3 renglones y la copia 2"). Corre en la misma transacción, así que ve la copia antes del Commit. Compara como GeneXus (V65a): NULL es igual al vacío de su tipo (`''`, 0, `false`, fecha vacía). Para comparar a mano dos registros que ya existen: el web panel **Comparar Registros** (`wbp/compararregistros`).
 - **Traducir de la KB**: `python3 gx2proc.py D:\ruta\OptimistU12NEW.xml Nombre1 Nombre2 --salida ..\src\main\resources\proc`. Deja el "Qué hace" para completar; lo que el motor todavía no ejecuta queda marcado `REVISAR:` en el encabezado. No pisa un `.proc` existente (salvo `--pisar`).
@@ -1806,6 +1818,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6q**: `reglasBc:` (las reglas que el Save() de un Business Component corre en sus eventos, como GeneXus); el convertidor ya no pierde las reglas de `[web][bc]`.
 - **E6p**: la lupa se deshabilita mientras su campo esté bloqueado (ej. por un `NoAccept` de las reglas).
 - **E6o**: fechas: 0411 -> 04/11/(año actual) al salir del campo (TAB, Enter o mouse) y el calendario se abre solo con el ícono, en todos los campos fecha.
 - **E6n**: versión de la aplicación debajo del nombre del sistema (`version.properties` con `version=@project.version@`, que Maven reemplaza al compilar con spring-boot-starter-parent) y color del nombre en Apariencia.

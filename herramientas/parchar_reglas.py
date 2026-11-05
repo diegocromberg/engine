@@ -88,10 +88,12 @@ def recorrer(t):
         i += 1
 
 
-def bloques_plataforma(t):
-    """[win]{...} fuera; [web]{...} -> su contenido. También '[web]' sin llaves (se saca la marca)."""
+def bloques_plataforma(t, para='web'):
+    """Las reglas que valen para la pantalla (para='web') o para el Business Component (para='bc', E6q).
+    web: [win]{...} y [bc]{...} fuera; [web]{...} y [web][bc]{...} -> su contenido (E6q: antes [web][bc] se perdía).
+    bc:  [win]{...} y [web]{...} fuera; [bc]{...} y [web][bc]{...} -> su contenido; las reglas sin marca valen para los dos."""
     for _ in range(200):
-        m = re.search(r'\[(win|web|bc)\]\s*(?:(?://[^\n]*\n|/\*.*?\*/)\s*)*\{', t, re.I | re.S)
+        m = re.search(r'((?:\[(?:win|web|bc)\]\s*)+)(?:(?://[^\n]*\n|/\*.*?\*/)\s*)*\{', t, re.I | re.S)
         if not m:
             break
         ini = m.end() - 1
@@ -109,10 +111,13 @@ def bloques_plataforma(t):
         if fin is None:
             break
         dentro = t[ini + 1:fin]
-        t = t[:m.start()] + ('' if m.group(1).lower() in ('win', 'bc') else dentro) + t[fin + 1:]
-    t = re.sub(r'\[(web|win)\]', '', t, flags=re.I)
-    # '[bc] regla;' sin llaves: solo vale para el business component
-    t = re.sub(r'(?is)\[bc\][^;]*;', '', t)
+        marcas = {x.lower() for x in re.findall(r'\[(win|web|bc)\]', m.group(1), re.I)}
+        t = t[:m.start()] + (dentro if para in marcas else '') + t[fin + 1:]
+    # marcas sin llaves: valen para la regla que sigue (hasta el ';')
+    def sin_llaves(mm):
+        marcas = {x.lower() for x in re.findall(r'\[(win|web|bc)\]', mm.group(1), re.I)}
+        return mm.group(2) if para in marcas else ''
+    t = re.sub(r'(?is)((?:\[(?:win|web|bc)\]\s*)+)([^;]*;)', sin_llaves, t)
     # llaves sueltas que quedaron (bloques mal cerrados en GeneXus): fuera, respetando textos y comentarios
     cod = set(recorrer(t))
     return ''.join(' ' if (i in cod and ch in '{}') else ch for i, ch in enumerate(t))
@@ -219,6 +224,26 @@ def reglas_de(texto, campos, enums):
             continue
         limpio.append(l)
     return limpio
+
+
+EVENTO = re.compile(r'(?i)\bon\s+(before|after)(insert|update|delete|validate|complete|level|trn)\b')
+
+
+def reglas_bc_de(texto, campos, enums):
+    """E6q: las reglas con evento (on BeforeValidate ... AfterComplete) que GeneXus corre en el Save() del Business Component:
+    las que no están en un bloque [web] (más las de [bc] y [web][bc]). Lo del patrón WorkWithPlus (auditoría) lo hace el motor."""
+    t = texto.replace('\r\n', '\n')
+    m = GEN.search(t)
+    if m:
+        t = t[:m.start()] + '\n' + t[m.end():]
+    t = bloques_plataforma(t, 'bc')
+    lineas = []
+    for _, regla in sentencias(t):
+        r = clasificar(regla, campos)
+        if r is None or not EVENTO.search(r):
+            continue
+        lineas.append(g.reemplazar_enums(r, enums) + ';')
+    return lineas
 
 
 FOTOS = []   # variables Boolean que agrega el inicio (fotos de Visible/Enabled)
@@ -369,6 +394,37 @@ def insertar(texto, inicio, reglas):
     return re.sub(r'\n{3,}', '\n\n', t)
 
 
+def poner_bc(texto, lineas):
+    """E6q: pone (o reemplaza) el bloque 'reglasBc:' después del bloque 'reglas:' (o al final). Sin reglas, lo saca."""
+    ls = texto.split('\n')
+    def fin_bloque(i):
+        j = i + 1
+        while j < len(ls) and (ls[j] == '' or ls[j].startswith((' ', '\t'))):
+            j += 1
+        while j > i + 1 and ls[j - 1] == '':
+            j -= 1
+        return j
+    i = next((k for k, l in enumerate(ls) if re.match(r'^reglasBc:', l)), None)
+    if i is not None:
+        j = fin_bloque(i)
+        while j < len(ls) and ls[j] == '':
+            j += 1
+        del ls[i:j]
+    if not lineas:
+        return '\n'.join(ls)
+    nuevo = ['# E6q: las reglas que GeneXus corre también en el Business Component (fuera de [web]): el Save() de un',
+             '# procedimiento las corre en sus eventos. Las genera parchar_reglas.py --bc desde la KB.'] + bloque_yaml('reglasBc', lineas)
+    r = next((k for k, l in enumerate(ls) if re.match(r'^reglas:', l)), None)
+    if r is not None:
+        donde = fin_bloque(r)
+    else:
+        donde = len(ls)
+        while donde > 0 and ls[donde - 1] == '':
+            donde -= 1
+    ls[donde:donde] = [''] + nuevo + ([''] if donde < len(ls) and ls[donde] != '' else [])
+    return re.sub(r'\n{3,}', '\n\n', '\n'.join(ls))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('xml')
@@ -377,6 +433,7 @@ def main():
     ap.add_argument('--solo', default='')
     ap.add_argument('--ver', action='store_true')
     ap.add_argument('--pisar', action='store_true')
+    ap.add_argument('--bc', action='store_true', help='E6q: solo pone reglasBc: (las reglas que valen para el Business Component)')
     a = ap.parse_args()
     kb = pf.cargar_kb(a.xml)
     M = g._modelo(kb)
@@ -398,7 +455,7 @@ def main():
         if not m or (solo and m.group(1).lower() not in solo):
             continue
         n = m.group(1)
-        if re.search(r'^reglas:', texto, re.M) and not a.pisar:
+        if re.search(r'^reglas:', texto, re.M) and not a.pisar and not a.bc:
             continue
         obj = kb.get('objetivos', {}).get(n)
         if not obj:
@@ -407,6 +464,16 @@ def main():
         campos = {str(c.get('nombre')).lower() for c in (doc.get('campos') or []) if isinstance(c, dict)}
         for d in doc.get('detalles') or []:
             campos |= {str(c.get('nombre')).lower() for c in (d.get('campos') or []) if isinstance(c, dict)}
+        if a.bc:
+            rbc = reglas_bc_de(obj.get('reglas') or '', campos, enums)
+            nuevo = poner_bc(texto, rbc)
+            if nuevo != texto:
+                total += 1
+                necesitan |= procs_llamados(rbc, procs)
+                print(f'== {archivo}: {len(rbc)} reglas del Business Component')
+                if not a.ver:
+                    open(ruta, 'w', encoding='utf-8').write(nuevo)
+            continue
         reglas = reglas_de(obj.get('reglas') or '', campos, enums)
         del_inicio = []
         inicio = inicio_de(obj.get('eventos') or '', enums, campos, del_inicio)
