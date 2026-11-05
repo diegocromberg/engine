@@ -1004,7 +1004,18 @@ public final class OptimistTrnDefinicion {
                 throw error(n + ": 'variable' no puede ser clave, fórmula ni inferido");
             if (bool(c.get("guardar"), false) && formula == null) throw error(n + ": 'guardar' es solo para fórmulas");
             if (c.get("combo") != null) COMBOS.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), comboTabla(c.get("combo"), donde + "." + n + ".combo"));
-            if (c.get("enlace") != null) ENLACES.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), enlaceDe(c.get("enlace"), donde + "." + n));
+            if (c.get("enlace") instanceof List<?> listaEnl) {   // E6t: [{si: "condición", trn: X, clave: Y}, ...]: el primero que se cumple
+                List<EnlaceSi> es = new ArrayList<>();
+                for (Object o : listaEnl) {
+                    if (!(o instanceof Map<?, ?> mm)) throw error(donde + "." + n + ".enlace: cada opción es {si, trn, clave}");
+                    Object si = mm.get("si");
+                    es.add(new EnlaceSi(si == null ? null : OptimistFormula.de(String.valueOf(si)), enlaceDe(mm, donde + "." + n)));
+                }
+                if (!es.isEmpty()) {
+                    ENLACES_SI.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), List.copyOf(es));
+                    ENLACES.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), es.get(0).enlace());
+                }
+            } else if (c.get("enlace") != null) ENLACES.put(tabla.toLowerCase(Locale.ROOT) + "." + n.toLowerCase(Locale.ROOT), enlaceDe(c.get("enlace"), donde + "." + n));
             // V65: siguiente: true en una clave numérica: en el alta se propone el último + 1 (se puede cambiar)
             if (bool(c.get("siguiente"), false)) {
                 if (!clave || auto || !dom.esNumerico() || dom.decimales() > 0)
@@ -1661,6 +1672,13 @@ public final class OptimistTrnDefinicion {
     /** V50c: enlace: TRN = el valor del campo es la clave de esa TRN; se ve como vínculo y al tocarlo la abre (PRSPEDId -> PED). */
     /** V50e: trn a abrir y el campo con su clave (null = el valor del mismo campo): enlace: PED o {trn: PED, clave: PRSPEDId}. */
     public record Enlace(String trn, String clave) {}
+    /** E6t: una opción de un enlace con condición (la primera que se cumple decide la TRN). */
+    public record EnlaceSi(OptimistFormula si, Enlace enlace) {}
+    private static final Map<String, List<EnlaceSi>> ENLACES_SI = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E6t: las opciones del enlace con condición de ese campo, o null. */
+    public static List<EnlaceSi> enlacesSi(String tabla, String campo) {
+        return ENLACES_SI.get(tabla.toLowerCase(Locale.ROOT) + "." + campo.toLowerCase(Locale.ROOT));
+    }
     /**
      * V66k: una lupa del formulario que abre una consulta (consultas/) con datos del registro. En la cabecera ('ver:' de la
      * TRN) va arriba del formulario; en un detalle ('ver:' del detalle), en cada renglón. parametros: los campos (del nivel o

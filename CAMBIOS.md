@@ -2,6 +2,12 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6t — Vínculo con condición en un renglón (05/11/2026)
+
+- `enlace: [{si: "condición", trn: X, clave: Y}, ...]` en un campo de un detalle: abre la TRN de la primera opción cuya condición se
+  cumple con los valores del renglón (ej. en Partidas, el comprobante es un CPBC, un CPBP, una OTR o un MovStock según su CPI y clase).
+  El `enlace:` de siempre sigue igual. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6s — Vínculo en un renglón, renglones de la grilla, Agregar Filas y título del formulario desde las reglas (05/11/2026)
 
 - `enlace:` en un campo de un **detalle** (de solo lectura): se ve como vínculo y abre esa TRN en Visualizar con la clave del renglón

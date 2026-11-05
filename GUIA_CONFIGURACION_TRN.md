@@ -427,6 +427,7 @@ inferida. Sin `variable: true` todo sigue igual (las `&variables` de las reglas 
 ### 6.1.4 Vínculo a otra TRN (`enlace:`, V50d)
 
 `enlace: PED` (el valor es la clave de PED) o `enlace: {trn: PED, clave: PRSPEDId}` (se muestra este campo y se abre por la clave de otro): `- {nombre: PRSPEDNumero, dominio: N09, etiqueta: Pedido, soloLectura: true, enlace: {trn: PED, clave: PRSPEDId}}`. Se ve como vínculo en el formulario y en la columna del WorkWith, y abre esa TRN en Visualizar (V50e). Para mostrarlo solo cuando hay pedido: `PRSPEDNumero.Visible = not PRSPEDId.IsEmpty();`.
+(E6t) En un detalle también `enlace: [{si: "PartidasDetalleCPI = 'C'", trn: CPBC, clave: PartidasDetalleCBTEId}, {si: "...", trn: CPBP, clave: ...}]`: la primera opción cuya condición se cumple con los valores del renglón.
 
 ### 6.1.5 Lupas que abren una consulta (`ver:`, V66k)
 
@@ -1824,6 +1825,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6t**: `enlace:` con condición (lista de `{si, trn, clave}`) en los campos de los renglones.
 - **E6s**: `enlace:` en los campos de los renglones, `Detalle.Rows`, `AgregarFilas<Detalle>.Visible` y `Form.Caption`.
 - **E6r**: reglas `X.Caption` / `X.Title`, `X.Width` (columnas de los detalles) y `SolapaTítulo.Visible` / `PanelTítulo.Visible`.
 - **E6q**: `reglasBc:` (las reglas que el Save() de un Business Component corre en sus eventos, como GeneXus); el convertidor ya no pierde las reglas de `[web][bc]`.

@@ -2584,12 +2584,26 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
     }
 
     /** E6s: un campo de un renglón con 'enlace:': como enlazar(), con la clave tomada del mismo renglón. */
-    private void enlazarFila(Form f, FilaDetalle fila, OptimistTrnCampos.Editor ed, OptimistTrnDefinicion.Enlace destino) {
+    private void enlazarFila(Form f, FilaDetalle fila, OptimistTrnCampos.Editor ed, OptimistTrnDefinicion.Enlace primero,
+                             List<OptimistTrnDefinicion.EnlaceSi> opciones) {
         var el = ed.componente().getElement();
         el.getStyle().set("cursor", "pointer").set("--vaadin-input-field-value-color", "var(--lumo-primary-text-color)")
                 .set("--lumo-secondary-text-color", "var(--lumo-primary-text-color)").set("text-decoration", "underline");
-        el.setAttribute("title", "Ver " + destino.trn());
+        el.setAttribute("title", opciones == null ? "Ver " + primero.trn() : "Ver");
         el.addEventListener("click", e -> {
+            OptimistTrnDefinicion.Enlace destino = primero;
+            if (opciones != null) {   // E6t: la primera opción cuya condición se cumple con los valores del renglón
+                Map<String, Object> vals = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                vals.putAll(f.valoresCabecera());
+                fila.valores().forEach((k, x) -> vals.put(k, x));
+                destino = null;
+                for (OptimistTrnDefinicion.EnlaceSi o : opciones) {
+                    boolean ok;
+                    try { ok = o.si() == null || OptimistFormula.verdad(o.si().evaluar(vals::get)); } catch (RuntimeException ex) { ok = false; }
+                    if (ok) { destino = o.enlace(); break; }
+                }
+                if (destino == null) return;
+            }
             Object v;
             if (destino.clave() == null) v = ed.leer().get();
             else {
@@ -3155,7 +3169,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             eds.put(c.nombre(), ed);
             // E6s: 'enlace:' en un campo del renglón: vínculo que abre esa TRN en Visualizar (el &VerCheque de GeneXus)
             OptimistTrnDefinicion.Enlace enl = OptimistTrnDefinicion.enlace(det.tabla(), c.nombre());
-            if (enl != null && ro) enlazarFila(f, fila, ed, enl);
+            if (enl != null && ro) enlazarFila(f, fila, ed, enl, OptimistTrnDefinicion.enlacesSi(det.tabla(), c.nombre()));
             OptimistTrnDefinicion.LupaProc lp = OptimistTrnDefinicion.lupaProc(det.tabla(), c.nombre());   // V49u
             Component pieza = lp != null ? (ro ? ed.componente() : conLupaProc(f, det, fila, ed, lp))
                     : conBuscador(ed, det, trn.cabecera(), !ro, () -> cambioFila(f, det, fila, c.nombre()), () -> {
