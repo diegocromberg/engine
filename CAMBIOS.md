@@ -2,6 +2,19 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6w — Lo que faltaba para dejar las TRN como GeneXus (05/11/2026)
+
+- `X.InviteMessage = "texto"` en las reglas: el texto de ayuda dentro del campo vacío (Entidades: "Personas Físicas: Apellido, Nombre…").
+- `X.Visible = …` sobre el **archivo** (Blob) de un detalle: oculta esa columna (COBR: el archivo de la forma de pago según el proceso).
+- La lista de la TRN misma (no una vista) vacía las claves de la sesión que ponen sus vistas (`sesion:`, E6u), como el WWCSEventuales de
+  GeneXus que hace `&WebSession.Remove(...)`.
+- Procedimientos y reglas: `&Texto.ReplaceRegEx(patrón, reemplazo)` (QuitarTagsHTML de Eventos fallaba), `Dominio.Convert(&x)` de un
+  enumerado (el inicio del CPBC en Modificar se cortaba ahí) y `YMDtoD` / `YmdHmsToT` con una fecha inválida devuelven la fecha vacía
+  como GeneXus (antes, un error: Días de Producción no abría).
+- `gx2yaml.py` y el importador del Designer: las grillas que están **debajo** del control de solapas (ej. Apertura de Caja: los niveles
+  Cbte y Det) van en la primera solapa; antes el nivel entero se perdía. Las salidas de los dos siguen idénticas.
+- Todo opcional / compatible: un YAML que no usa nada de esto anda igual. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6v — Regla Default() de GeneXus (05/11/2026)
 
 - `Default(A, expresión)` en las reglas: el valor inicial de A en el alta (cabecera nueva o renglón nuevo), cuando sale de una

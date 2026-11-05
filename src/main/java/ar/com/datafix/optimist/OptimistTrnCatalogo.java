@@ -142,12 +142,17 @@ public final class OptimistTrnCatalogo {
         if (v.get("sesion") instanceof Map<?, ?> sm) sm.forEach((a, b) -> ses.put(String.valueOf(a), b == null ? "" : String.valueOf(b)));
         else if (v.get("sesion") != null) throw new IllegalArgumentException("sesion: debe ser {CLAVE: valor, ...}");
         SESION_VISTA.put(nombre.toLowerCase(Locale.ROOT), Map.copyOf(ses));
+        SESION_TRN.computeIfAbsent(String.valueOf(t).trim().toLowerCase(Locale.ROOT), k -> java.util.concurrent.ConcurrentHashMap.newKeySet()).addAll(ses.keySet());
         return OptimistTrnDefinicion.desde(y, dominios);
     }
 
     private static final Map<String, Map<String, String>> SESION_VISTA = new java.util.concurrent.ConcurrentHashMap<>();
     /** E6u: los valores de WebSession que pone la vista con esa ruta al abrirse (vacío si no tiene). */
     public static Map<String, String> sesionDeVista(String ruta) { return ruta == null ? Map.of() : SESION_VISTA.getOrDefault(ruta.toLowerCase(Locale.ROOT), Map.of()); }
+
+    private static final Map<String, Set<String>> SESION_TRN = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E6w: las claves de WebSession que ponen las vistas de esa TRN (al abrir la lista de la TRN misma se vacían). */
+    public static Set<String> sesionDeVistasDe(String trn) { return trn == null ? Set.of() : SESION_TRN.getOrDefault(trn.toLowerCase(Locale.ROOT), Set.of()); }
 
     public static List<Trn> todas() { return new ArrayList<>(cargar().trns().values()); }
 

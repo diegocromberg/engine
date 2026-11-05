@@ -3353,12 +3353,19 @@ public final class OptimistProcedimiento {
                 case ".getoldvalue" -> a.get(0);   // en un procedimiento: el valor como se leyó (no hay "valor anterior" de pantalla)
                 case "eom" -> fecha(a.get(0)) == null ? null : fecha(a.get(0)).withDayOfMonth(fecha(a.get(0)).lengthOfMonth());
                 case "trunc" -> OptimistFormula.num(a.get(0)).setScale(a.size() > 1 ? OptimistFormula.num(a.get(1)).intValue() : 0, RoundingMode.DOWN);
-                case "ymdhmstot" -> LocalDateTime.of(OptimistFormula.num(a.get(0)).intValue(), OptimistFormula.num(a.get(1)).intValue(),
-                        OptimistFormula.num(a.get(2)).intValue(), a.size() > 3 ? OptimistFormula.num(a.get(3)).intValue() : 0,
-                        a.size() > 4 ? OptimistFormula.num(a.get(4)).intValue() : 0, a.size() > 5 ? OptimistFormula.num(a.get(5)).intValue() : 0);
+                case "ymdhmstot" -> {   // E6w: fecha inválida (año / mes 0) -> vacía, como GeneXus
+                    try {
+                        yield LocalDateTime.of(OptimistFormula.num(a.get(0)).intValue(), OptimistFormula.num(a.get(1)).intValue(),
+                                OptimistFormula.num(a.get(2)).intValue(), a.size() > 3 ? OptimistFormula.num(a.get(3)).intValue() : 0,
+                                a.size() > 4 ? OptimistFormula.num(a.get(4)).intValue() : 0, a.size() > 5 ? OptimistFormula.num(a.get(5)).intValue() : 0);
+                    } catch (java.time.DateTimeException ex) { yield null; }
+                }
                 case "tadd", ".addseconds" -> a.get(0) instanceof LocalDateTime t ? t.plusSeconds(OptimistFormula.num(a.get(1)).longValue())
                         : fecha(a.get(0)) == null ? null : fecha(a.get(0)).atStartOfDay().plusSeconds(OptimistFormula.num(a.get(1)).longValue());
-                case "ymdtod" -> LocalDate.of(OptimistFormula.num(a.get(0)).intValue(), OptimistFormula.num(a.get(1)).intValue(), OptimistFormula.num(a.get(2)).intValue());
+                case "ymdtod" -> {   // E6w: como GeneXus, una fecha inválida (mes 0, día 31 de febrero...) da la fecha vacía, no un error
+                    try { yield LocalDate.of(OptimistFormula.num(a.get(0)).intValue(), OptimistFormula.num(a.get(1)).intValue(), OptimistFormula.num(a.get(2)).intValue()); }
+                    catch (java.time.DateTimeException ex) { yield null; }
+                }
                 case "addmth", ".addmonths" -> fecha(a.get(0)) == null ? null : fecha(a.get(0)).plusMonths(OptimistFormula.num(a.get(1)).longValue());
                 case "adddays", ".adddays" -> fecha(a.get(0)) == null ? null : fecha(a.get(0)).plusDays(OptimistFormula.num(a.get(1)).longValue());
                 case "ctod" -> ctod(s(a, 0));
@@ -3398,6 +3405,11 @@ public final class OptimistProcedimiento {
                 case ".endswith" -> s(a, 0).endsWith(s(a, 1));
                 case ".indexof" -> BigDecimal.valueOf(s(a, 0).indexOf(s(a, 1)) + 1);
                 case ".replace" -> s(a, 0).replace(s(a, 1), s(a, 2));
+                case ".convert" -> a.size() > 1 ? a.get(1) : a.get(0);   // E6w: Dominio.Convert(&x) de un enumerado: el valor (CPBC: ClaseCbte.Convert)
+                case ".replaceregex" -> {   // E6w: &Texto.ReplaceRegEx(patrón, reemplazo) (QuitarTagsHTML de Eventos)
+                    try { yield java.util.regex.Pattern.compile(s(a, 1)).matcher(s(a, 0)).replaceAll(java.util.regex.Matcher.quoteReplacement(s(a, 2))); }
+                    catch (java.util.regex.PatternSyntaxException ex) { throw new IllegalArgumentException("ReplaceRegEx: patrón inválido " + s(a, 1)); }
+                }
                 case "new" -> new Sdt();
                 case "mod" -> {
                     BigDecimal d = OptimistFormula.num(a.size() > 1 ? a.get(1) : null);

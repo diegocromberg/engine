@@ -18,6 +18,9 @@ Uso:
 import argparse, html, json, re, sys, os
 import xml.etree.ElementTree as ET
 
+# E6w: los atributos binarios de GeneXus que van en 'archivos:' (Ver / Bajar / Subir / Quitar): Blob, Image, Audio y Video
+BINARIOS = ('Blob', 'Image', 'Audio', 'Video')
+
 T_DOM = '00972a17-9975-449e-aab1-d26165d51393'
 T_TAB = '857ca50e-7905-0000-0007-c5d9ff2975ec'
 T_TRN = '1db606f2-af09-4cf9-a3b5-b481519d28f6'
@@ -498,7 +501,13 @@ def leer_solapas(webform):
                 break
         else:
             pila.append(m.start())
+    despues = ''
     if fin > 0:
+        # E6w: las grillas que están DESPUÉS del control de solapas (ej. OpenCaja: los niveles Cbte y Det debajo de las
+        # solapas) van en la primera solapa; antes se perdían los niveles enteros
+        resto = s[fin:]
+        corte = resto.find('<table id="TableActions"')
+        despues = resto[:corte] if corte > 0 else ''
         s = s[:fin]
     pos = [(m.group(1), m.start()) for m in re.finditer(r'<container containerId="(tabPanel\d+)"', s)
            if not any(a <= m.start() < b for a, b in internos)]
@@ -534,6 +543,11 @@ def leer_solapas(webform):
             grillas.append((g.group(1), [c for c in cols if not c[0].startswith('&')]))
         solapas.append({'id': int(tid[8:]), 'titulo': html.unescape(titulos.get(tid, tid)), 'campos': campos,
                         'renglones': renglones, 'grillas': grillas})
+    if despues and solapas:
+        for g in re.finditer(r'<gxGrid [^>]*ControlName="(?:GridLevel_)?([A-Za-z0-9_]+)"(.*?)</gxGrid>', despues, re.S):
+            cols = [(html.unescape(c.group(1)), html.unescape(c.group(2)), c.group(3) != 'False')
+                    for c in re.finditer(r'<gxColumn [^>]*ColAttId="([^"]+)"[^>]*ColTitleExpression="([^"]*)"[^>]*ColVisible="(\w+)"', g.group(2))]
+            solapas[0]['grillas'].append((g.group(1), [c for c in cols if not c[0].startswith('&')]))
     return solapas
 
 
@@ -984,11 +998,11 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
         dom, txt, enum, fuente = M.tipo(n)
         if txt is None:
             # V83: Blob de la cabecera -> 'archivos:' (con los campos de nombre y extensión del archivo)
-            if (fuente.get('ATTCUSTOMTYPE') or '').endswith('Blob') and ind == 2 and not inferido and not formula:
+            if (fuente.get('ATTCUSTOMTYPE') or '').endswith(BINARIOS) and ind == 2 and not inferido and not formula:
                 archivos_cab.append((n, etiqueta or M.etiqueta(n), fuente))
                 return
             # E4c: Blob de un detalle -> 'archivos:' del detalle (Ver, Bajar, Subir y Quitar en cada renglón)
-            if (fuente.get('ATTCUSTOMTYPE') or '').endswith('Blob') and ind == 6 and not inferido and not formula:
+            if (fuente.get('ATTCUSTOMTYPE') or '').endswith(BINARIOS) and ind == 6 and not inferido and not formula:
                 archivos_det.append((n, etiqueta or M.etiqueta(n), fuente))
                 return
             no_soportados.append(n)
@@ -1119,7 +1133,7 @@ def generar(kb, trn_nombre, solapas_ids, workwith=None, textos=None, previos_det
         a = next(x for x in cab['atts'] if x['n'] == n)
         if n in no_soportado_tipo(M, n):
             fu = M.tipo(n)[3]
-            if (fu.get('ATTCUSTOMTYPE') or '').endswith('Blob') and n not in info['inferidos'] and n not in info['formulas']:
+            if (fu.get('ATTCUSTOMTYPE') or '').endswith(BINARIOS) and n not in info['inferidos'] and n not in info['formulas']:
                 archivos_cab.append((n, etiqueta_form.get(n) or M.etiqueta(n), fu))   # V83: Blob -> 'archivos:'
             continue
         if n in info['descartados']:

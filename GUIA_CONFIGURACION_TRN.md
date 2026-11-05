@@ -1132,7 +1132,7 @@ reglas: |
 | `Error("texto") if …` | Frena el Confirmar y muestra el texto. |
 | `Msg("texto") if …` | Muestra el aviso (no frena). |
 | `NoAccept(A, B) if …` · `A.Enabled = …` | Habilita o deshabilita el campo (lo que ya es solo lectura sigue así). |
-| `A.Visible = …` | Muestra u oculta el campo; en un detalle, la columna entera. |
+| `A.Visible = …` | Muestra u oculta el campo; en un detalle, la columna entera (E6w: también la de un archivo de `archivos:` del detalle). |
 | `X.Caption = "texto"` · `X.Title = …` | (E6r) El título del campo (cabecera) o de la columna (detalle). Vacío: el de siempre. Ej. `PEDComisionistaId.Caption = &TitPEDComisionistaId;` (IEP: "Programa de Fidelización"). |
 | `X.Width = n` | (E6r) El ancho en px de la columna de un detalle (VERCampo de GeneXus). 0: el de siempre. |
 | `Detalle.Rows = n` | (E6s) Renglones vacíos del detalle al abrir y los que agrega "Agregar Filas" (0: ninguno al abrir). Es el `GridLevel_X.Rows` de GeneXus. |
@@ -1141,6 +1141,7 @@ reglas: |
 | `SolapaTítulo.Visible = …` · `PanelTítulo.Visible = …` | (E6r) La solapa o el panel con ese título, escrito sin espacios, signos ni acentos (`SolapaMercadoLibre`, `PanelDatosDelMovimiento`). Es el `HideTab` / `ShowTab` y el `Tabla.Visible` de GeneXus. |
 | `Detalle.Visible = …` | (V65d) Con el nombre de un detalle (ej. `COBRFPago.Visible = &VerFormasDePago;`): muestra u oculta el detalle entero, y su panel si el panel no tiene otra cosa. Es el `Detalle_de_Pago.Visible` de GeneXus. |
 | `Default(A, expresión)` | (E6v) El valor inicial de A en el alta (de la cabecera nueva o del renglón nuevo), como el `Default` de GeneXus cuando el valor sale de una variable del inicio o de otro campo: `Default(EntidadesId, &EntidadesIdNuevo);`, `Default(CPBPAnioIva, Year(CPBPFecha));`, `Default(CMPDetAlmacen, ArticulosAlmDefCompras);`. Se aplica al abrir, de nuevo si cambia lo que usa la expresión y, en un renglón, cuando se empieza a cargar; nunca al grabar ni al modificar un registro. Un valor vacío no se asigna. Para una constante o un dato del usuario sigue `default:` en el campo. |
+| `X.InviteMessage = "texto"` | (E6w) El texto de ayuda que se ve dentro del campo mientras está vacío (el `InviteMessage` de GeneXus). |
 | `A.Class = "Clase" if …` | (V49t) El campo de la cabecera toma el estilo de esa clase (`clases:` de la TRN o de dominios.yaml). Si ninguna regla `Class` del campo se cumple, vuelve a su estilo de siempre. Ej.: `PRSRentabilidad.Class = "AttributeTitleGreen" if PRSRentabilidad >= &EmpresaPorcentajeRentabilidad;` |
 
 **Condiciones**: todo lo de las fórmulas (5.1) más `after(X)` (X cambió: lo cargó el usuario o lo asignó otra regla), `X.GetOldValue()` (el valor al abrir), `Insert`, `Update`, `Delete`, `&Mode = "INS"/"UPD"/"DLT"/"DSP"`, `Level(X)`.
@@ -1695,7 +1696,7 @@ trn: Entidades
 sesion: {TIPOENTIDAD: CLIENTE, COMERCIOEXTERIOR: "FALSE"}
 ```
 
-Es opcional. Como en GeneXus, el valor queda en la sesión hasta que otra vista lo cambie: si la TRN se puede abrir también por otro
+Es opcional. Como en GeneXus, el valor queda en la sesión hasta que otra vista lo cambie (E6w: al abrir la lista de la TRN misma, las claves que ponen sus vistas se vacían, como el `&WebSession.Remove` del WorkWith de GeneXus): si la TRN se puede abrir también por otro
 camino, conviene que sus reglas tengan un valor por defecto cuando `&WebSession.Get` viene vacío.
 
 ## 23. Extensiones de la aplicación (`OptimistExtension`, E3)
@@ -1839,6 +1840,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6w**: `X.InviteMessage`, `Visible` de un archivo de un detalle, la lista de la TRN vacía la sesión de sus vistas.
 - **E6v**: regla `Default(A, expresión)`.
 - **E6u**: `sesion:` en las vistas (valores de la WebSession al abrir la lista).
 - **E6t**: `enlace:` con condición (lista de `{si, trn, clave}`) en los campos de los renglones.

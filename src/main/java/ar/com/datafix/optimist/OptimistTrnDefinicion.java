@@ -1710,6 +1710,9 @@ public final class OptimistTrnDefinicion {
             if (cns == null) throw error(donde + " '" + titulo + "': falta 'cns' (la consulta que abre)");
             List<String> ps = new ArrayList<>();
             for (String p : lista(m.get("parametros"))) {
+                String pt = p.trim();
+                // E6w: una constante (número o texto entre comillas) pasa tal cual
+                if (pt.matches("-?\\d+(\\.\\d+)?") || pt.length() >= 2 && (pt.startsWith("'") && pt.endsWith("'") || pt.startsWith("\"") && pt.endsWith("\""))) { ps.add(pt); continue; }
                 Campo c = n.campo(p.trim());
                 if (c == null && cab != null) c = cab.campo(p.trim());
                 if (c == null) throw error(donde + " '" + titulo + "'.parametros: '" + p.trim() + "' no es un campo");

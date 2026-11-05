@@ -98,6 +98,10 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         // E6u: la vista deja en la WebSession lo que dejaba el menú de GeneXus (ej. TIPOENTIDAD = CLIENTE), para el inicio de la TRN
         OptimistContexto ctxSes = OptimistContexto.actual();
         if (ctxSes != null) OptimistTrnCatalogo.sesionDeVista(ruta).forEach((k, x) -> ctxSes.poner("websession." + k, x));
+        // E6w: la lista de la TRN misma (no una vista, ni un registro abierto desde otra pantalla) vacía lo que ponen sus vistas,
+        // como el WWCSEventuales de GeneXus que hace &WebSession.Remove('CS_PROGRAMA_LLAMADOR')
+        if (ctxSes != null && !formularioEnUrl && trn != null && ruta.equalsIgnoreCase(trn.nombre()))
+            for (String k : OptimistTrnCatalogo.sesionDeVistasDe(trn.nombre())) ctxSes.poner("websession." + k, "");
         // V84f: la misma pantalla sirve para todas las TRN (Vaadin la reusa al ir de una lista a otra): lo calculado con el inicio
         // de las acciones de la anterior no vale para esta. Antes, de Comprobantes a Pedidos quedaban las &variables de
         // Comprobantes y las acciones de Pedidos salían en gris ("&FacturarEligiendoCPBC = (vacío)") hasta apretar F5.
@@ -560,7 +564,12 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         Map<String, Object> ci = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         valores.forEach((k, x) -> { if (k != null) ci.put(k, x); });
         List<Object> args = new ArrayList<>();
-        for (String p : v.parametros()) args.add(ci.get(p));
+        for (String p : v.parametros()) {
+            // E6w: también una constante (un número o un texto entre comillas), ej. el tipo de entidad de ChequesEntidad
+            if (p.matches("-?\\d+(\\.\\d+)?")) args.add(new java.math.BigDecimal(p));
+            else if (p.length() >= 2 && (p.startsWith("'") && p.endsWith("'") || p.startsWith("\"") && p.endsWith("\""))) args.add(p.substring(1, p.length() - 1));
+            else args.add(ci.get(p));
+        }
         Runnable ir = () -> {
             Dialog d = dialogo != null ? dialogo : f.dialogo;
             if (d != null) {
@@ -1115,6 +1124,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         /** V35: visibilidad de las columnas de los detalles que decidieron las reglas (detalle.campo -> visible). */
         final Map<String, Boolean> columnas = new HashMap<>();
         final Map<String, Component> titulosColumna = new HashMap<>();
+        /** E6w: las celdas de cada columna de archivo de un detalle (detalle.archivo -> celdas), para ocultarlas con su regla Visible. */
+        final Map<String, List<Component>> celdasArchivo = new HashMap<>();
         final Set<String> mensajesVistos = new HashSet<>();
         boolean aplicandoReglas;
         /** V48: líneas nuevas en las que ya corrieron todas las reglas del nivel (la primera vez que se toca la línea). */
@@ -2215,9 +2226,15 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 OptimistTrnCampos.Editor ed = editorDe(fd.editores(), n);
                 if (ed != null) piezaDe(ed).setVisible(vis);
             }
+            for (Component ca : f.celdasArchivo.getOrDefault(clave, List.of())) ca.setVisible(vis);   // E6w: la columna de un archivo
         });
         // E6r: X.Caption / X.Title: el título del campo (cabecera) o de la columna (detalle)
         e.titulos().forEach((n, t) -> {
+            if (n.startsWith("invitacion:")) {   // E6w: X.InviteMessage = "texto": el texto de ayuda dentro del campo vacío
+                OptimistTrnCampos.Editor ei = editorDe(eds, n.substring(11));
+                if (ei != null) ei.componente().getElement().setProperty("placeholder", t);
+                return;
+            }
             if (det == null) {
                 OptimistTrnCampos.Editor ed = editorDe(eds, n);
                 if (ed == null && (n.equalsIgnoreCase("Form") || n.equalsIgnoreCase(trn.nombre() + "Title"))) {   // E6s: el título del formulario
@@ -3029,6 +3046,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         }
         for (OptimistTrnDefinicion.Archivo a : det.archivos()) {   // E4c
             Span s = new Span(a.etiqueta());
+            f.titulosColumna.put(det.nombre() + "." + a.nombre().toLowerCase(Locale.ROOT), s);   // E6w: X.Visible del archivo
+            if (Boolean.FALSE.equals(f.columnas.get(det.nombre() + "." + a.nombre().toLowerCase(Locale.ROOT)))) s.setVisible(false);
             s.setWidth(ANCHO_ARCHIVO);
             s.setMinWidth(ANCHO_ARCHIVO);
             s.getStyle().set("font-size", "var(--lumo-font-size-s)").set("color", "var(--optimist-texto)").set("opacity", "0.85");
@@ -3198,7 +3217,13 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             }
             renglon.add(pieza);
         }
-        for (OptimistTrnDefinicion.Archivo a : det.archivos()) renglon.add(celdaArchivo(f, det, fila, a));   // E4c
+        for (OptimistTrnDefinicion.Archivo a : det.archivos()) {   // E4c
+            Component celda = celdaArchivo(f, det, fila, a);
+            String ca = det.nombre() + "." + a.nombre().toLowerCase(Locale.ROOT);   // E6w: COBRFPagoFile.Visible = ...
+            f.celdasArchivo.computeIfAbsent(ca, k -> new ArrayList<>()).add(celda);
+            if (Boolean.FALSE.equals(f.columnas.get(ca))) celda.setVisible(false);
+            renglon.add(celda);
+        }
         filas.add(fila);
         f.renglonDe.put(fila, renglon);
         if (f.completos.contains(det.nombre().toLowerCase(Locale.ROOT))) estirarRenglon(renglon);   // V38: filas agregadas después

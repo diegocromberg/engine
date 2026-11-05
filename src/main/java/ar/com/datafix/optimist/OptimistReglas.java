@@ -36,7 +36,7 @@ public final class OptimistReglas {
 
     /** PANTALLA (V48): una línea nueva vacía: solo Enabled / Visible / NoAccept (sin procedimientos ni asignaciones). */
     public enum Momento { CARGA, CAMBIO, GRABAR, PANTALLA }
-    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO, FILAS, DEFECTO }
+    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO, FILAS, DEFECTO, INVITACION }
 
     static final Set<String> EVENTOS = Set.of("beforevalidate", "aftervalidate", "beforeinsert", "beforeupdate", "beforedelete",
             "afterinsert", "afterupdate", "afterdelete", "beforecomplete", "aftercomplete", "afterlevel", "beforetrn", "aftertrn");
@@ -232,7 +232,7 @@ public final class OptimistReglas {
     private static final Pattern ERROR = Pattern.compile("(?is)^error\\s*\\((.*)\\)$");
     private static final Pattern MSG = Pattern.compile("(?is)^msg\\s*\\((.*)\\)$");
     private static final Pattern NOACCEPT = Pattern.compile("(?is)^noaccept\\s*\\((.*)\\)$");
-    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class|caption|title|width|rows)\\s*=\\s*(.+)$");
+    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class|caption|title|width|rows|invitemessage)\\s*=\\s*(.+)$");
     private static final Pattern VACIAR = Pattern.compile("(?is)^(&?[A-Za-z_]\\w*)\\s*\\.\\s*(setempty|setnull)\\s*\\(\\s*\\)$");
     private static final Pattern LLAMADA = Pattern.compile("(?is)^(?:[A-Za-z_]\\w*\\s*\\.\\s*)*?([A-Za-z_]\\w*)\\s*\\.\\s*call\\s*\\((.*)\\)$");
     private static final Pattern CALL = Pattern.compile("(?is)^call\\s*\\(\\s*([A-Za-z_]\\w*)\\s*(?:,(.*))?\\)$");
@@ -278,7 +278,7 @@ public final class OptimistReglas {
             String prop = m.group(2).toLowerCase(Locale.ROOT);
             r = new Regla(indice, renglon, t, prop.equals("enabled") ? Tipo.ENABLED : prop.equals("class") ? Tipo.CLASE
                     : prop.equals("caption") || prop.equals("title") ? Tipo.TITULO : prop.equals("width") ? Tipo.ANCHO
-                    : prop.equals("rows") ? Tipo.FILAS : Tipo.VISIBLE);   // E6s: Detalle.Rows = n
+                    : prop.equals("rows") ? Tipo.FILAS : prop.equals("invitemessage") ? Tipo.INVITACION : Tipo.VISIBLE);   // E6s: Detalle.Rows = n
             r.destino = m.group(1);
             r.expr = formula(renglon, m.group(3));
         } else if ((m = DEFAULT.matcher(cuerpo)).matches()) {
@@ -361,6 +361,8 @@ public final class OptimistReglas {
         for (String a : atts) {
             if (cab.campo(a) != null) continue;
             for (Nivel d : trn.detalles()) if (d.campo(a) != null) { r.nivel = d; return; }
+            // E6w: el archivo (Blob) de un detalle: COBRFPagoFile.Visible = ... es una regla de ese detalle
+            for (Nivel d : trn.detalles()) if (d.archivos().stream().anyMatch(x -> x.nombre().equalsIgnoreCase(a))) { r.nivel = d; return; }
         }
         r.nivel = null;
     }
@@ -710,7 +712,7 @@ public final class OptimistReglas {
             case CARGA:
                 if (!r.eventos.isEmpty()) return false;
                 return switch (r.tipo) {
-                    case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO, FILAS -> true;
+                    case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO, FILAS, INVITACION -> true;
                     case ASIGNAR -> r.destino.startsWith("&") || r.dePantalla;
                     case DEFECTO -> true;
                     case LLAMAR -> r.escribe.stream().allMatch(x -> x.startsWith("&"));
@@ -718,7 +720,7 @@ public final class OptimistReglas {
                 };
             case PANTALLA:
                 return r.eventos.isEmpty() && (r.tipo == Tipo.ENABLED || r.tipo == Tipo.VISIBLE || r.tipo == Tipo.NOACCEPT || r.tipo == Tipo.CLASE
-                        || r.tipo == Tipo.TITULO || r.tipo == Tipo.ANCHO || r.tipo == Tipo.FILAS || r.dePantalla);
+                        || r.tipo == Tipo.TITULO || r.tipo == Tipo.ANCHO || r.tipo == Tipo.FILAS || r.tipo == Tipo.INVITACION || r.dePantalla);
             case CAMBIO:
                 return r.eventos.isEmpty() && !r.soloAlGrabar;
             default:
@@ -754,6 +756,7 @@ public final class OptimistReglas {
             case ENABLED -> ef.habilitados().put(r.destino, OptimistFormula.verdad(r.expr.evaluar(ctx)));
             case VISIBLE -> ef.visibles().put(r.destino, OptimistFormula.verdad(r.expr.evaluar(ctx)));
             case CLASE -> { Object v = r.expr.evaluar(ctx); ef.clases().put(r.destino, v == null ? "" : String.valueOf(v).trim()); }
+            case INVITACION -> { Object v = r.expr.evaluar(ctx); ef.titulos().put("invitacion:" + r.destino, v == null ? "" : String.valueOf(v)); }   // E6w
             case TITULO -> { Object v = r.expr.evaluar(ctx); if (v != null && !String.valueOf(v).isBlank()) ef.titulos().put(r.destino, String.valueOf(v).trim()); }
             case ANCHO -> {
                 Object v = r.expr.evaluar(ctx);

@@ -546,6 +546,9 @@ function gx17AHtml(s) {
   return s;
 }
 
+// E6w: los atributos binarios de GeneXus que van en 'archivos:': Blob, Image, Audio y Video (como gx2yaml.py)
+const esBinario = t => ['Blob', 'Image', 'Audio', 'Video'].some(x => (t || '').endsWith(x));
+
 function leerSolapas(webform) {
   let s = webform;
   if (s.slice(0, 400).includes('type="layout"')) s = gx17AHtml(s);
@@ -559,7 +562,13 @@ function leerSolapas(webform) {
       else { fin = m.index; break; }
     } else pila.push(m.index);
   }
-  if (fin > 0) s = s.slice(0, fin);
+  // E6w: las grillas DESPUÉS del control de solapas (OpenCaja: los niveles debajo de las solapas) van en la primera solapa
+  let despues = '';
+  if (fin > 0) {
+    const resto = s.slice(fin), corte = resto.indexOf('<table id="TableActions"');
+    despues = corte > 0 ? resto.slice(0, corte) : '';
+    s = s.slice(0, fin);
+  }
   const dentro = p => internos.some(([a, b]) => a <= p && p < b);
   let pos = [...s.matchAll(/<container containerId="(tabPanel\d+)"/g)].filter(m => !dentro(m.index)).map(m => [m[1], m.index]);
   let titulos = {};
@@ -587,6 +596,12 @@ function leerSolapas(webform) {
     }
     solapas.push({ id: parseInt(tid.slice(8), 10), titulo: unescapeHtml(tid in titulos ? titulos[tid] : tid), campos, renglones, grillas });
   });
+  if (despues && solapas.length)
+    for (const g of despues.matchAll(/<gxGrid [^>]*ControlName="(?:GridLevel_)?([A-Za-z0-9_]+)"(.*?)<\/gxGrid>/gs)) {
+      const cols = [...g[2].matchAll(/<gxColumn [^>]*ColAttId="([^"]+)"[^>]*ColTitleExpression="([^"]*)"[^>]*ColVisible="(\w+)"/g)]
+        .map(c => [unescapeHtml(c[1]), unescapeHtml(c[2]), c[3] !== 'False']);
+      solapas[0].grillas.push([g[1], cols.filter(c => !c[0].startsWith('&'))]);
+    }
   return solapas;
 }
 
@@ -906,9 +921,9 @@ function generar(kb, trnNombre, solapasIds) {
     const { clave = false, inferido = false, formula = null, etiqueta = null, oculto = false, redundante = false } = o;
     const [dom, txt, en, fuente] = M.tipo(n);
     if (txt == null) {
-      if ((fuente.ATTCUSTOMTYPE || '').endsWith('Blob') && ind === 2 && !inferido && !formula) { archivosCab.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
+      if (esBinario(fuente.ATTCUSTOMTYPE) && ind === 2 && !inferido && !formula) { archivosCab.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
       // E4c: Blob de un detalle -> 'archivos:' del detalle
-      if ((fuente.ATTCUSTOMTYPE || '').endsWith('Blob') && ind === 6 && !inferido && !formula) { archivosDet.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
+      if (esBinario(fuente.ATTCUSTOMTYPE) && ind === 6 && !inferido && !formula) { archivosDet.push([n, etiqueta || M.etiqueta(n), fuente]); return; }
       noSoportados.push(n); return;
     }
     const nombreDom = dom || null;
@@ -1014,7 +1029,7 @@ function generar(kb, trnNombre, solapasIds) {
     const a = cab.atts.find(x => x.n === n);
     if (noSoportadoTipo(M, n)) {
       const fu = M.tipo(n)[3];
-      if ((fu.ATTCUSTOMTYPE || '').endsWith('Blob') && !info.inferidos.has(n) && !info.formulas.includes(n)) archivosCab.push([n, etiquetaForm[n] || M.etiqueta(n), fu]);
+      if (esBinario(fu.ATTCUSTOMTYPE) && !info.inferidos.has(n) && !info.formulas.includes(n)) archivosCab.push([n, etiquetaForm[n] || M.etiqueta(n), fu]);
       continue;
     }
     if (info.descartados.includes(n)) { omitidos.push(n); continue; }
