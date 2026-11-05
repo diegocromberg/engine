@@ -1132,6 +1132,9 @@ reglas: |
 | `Msg("texto") if …` | Muestra el aviso (no frena). |
 | `NoAccept(A, B) if …` · `A.Enabled = …` | Habilita o deshabilita el campo (lo que ya es solo lectura sigue así). |
 | `A.Visible = …` | Muestra u oculta el campo; en un detalle, la columna entera. |
+| `X.Caption = "texto"` · `X.Title = …` | (E6r) El título del campo (cabecera) o de la columna (detalle). Vacío: el de siempre. Ej. `PEDComisionistaId.Caption = &TitPEDComisionistaId;` (IEP: "Programa de Fidelización"). |
+| `X.Width = n` | (E6r) El ancho en px de la columna de un detalle (VERCampo de GeneXus). 0: el de siempre. |
+| `SolapaTítulo.Visible = …` · `PanelTítulo.Visible = …` | (E6r) La solapa o el panel con ese título, escrito sin espacios, signos ni acentos (`SolapaMercadoLibre`, `PanelDatosDelMovimiento`). Es el `HideTab` / `ShowTab` y el `Tabla.Visible` de GeneXus. |
 | `Detalle.Visible = …` | (V65d) Con el nombre de un detalle (ej. `COBRFPago.Visible = &VerFormasDePago;`): muestra u oculta el detalle entero, y su panel si el panel no tiene otra cosa. Es el `Detalle_de_Pago.Visible` de GeneXus. |
 | `A.Class = "Clase" if …` | (V49t) El campo de la cabecera toma el estilo de esa clase (`clases:` de la TRN o de dominios.yaml). Si ninguna regla `Class` del campo se cumple, vuelve a su estilo de siempre. Ej.: `PRSRentabilidad.Class = "AttributeTitleGreen" if PRSRentabilidad >= &EmpresaPorcentajeRentabilidad;` |
 
@@ -1818,6 +1821,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6r**: reglas `X.Caption` / `X.Title`, `X.Width` (columnas de los detalles) y `SolapaTítulo.Visible` / `PanelTítulo.Visible`.
 - **E6q**: `reglasBc:` (las reglas que el Save() de un Business Component corre en sus eventos, como GeneXus); el convertidor ya no pierde las reglas de `[web][bc]`.
 - **E6p**: la lupa se deshabilita mientras su campo esté bloqueado (ej. por un `NoAccept` de las reglas).
 - **E6o**: fechas: 0411 -> 04/11/(año actual) al salir del campo (TAB, Enter o mouse) y el calendario se abre solo con el ícono, en todos los campos fecha.

@@ -2,6 +2,16 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6r — Títulos, anchos, solapas y paneles desde las reglas (05/11/2026)
+
+- Para que las TRN queden como GeneXus, que en el Start cambia títulos, anchos y solapas según la instalación o VERCampo:
+  - `X.Caption = "texto"` (o `X.Title`): el título del campo de la cabecera o de la columna del detalle. Vacío: queda el de siempre.
+  - `X.Width = n`: el ancho (px) de la columna de un detalle, también en las filas que se agregan. 0 o vacío: el de siempre.
+  - `SolapaMercadoLibre.Visible = ...` / `PanelDatosDelMovimiento.Visible = ...`: la solapa o el panel con ese título (Solapa /
+    Panel + el título sin espacios, signos ni acentos).
+- Todas son opcionales: sin esas reglas, todo como antes. Se usan como las demás reglas de Visible / Class (al abrir y con cada cambio).
+- **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0) y reiniciar las aplicaciones.
+
 ## E6q — El Save() de un Business Component corre las reglas de sus eventos, como GeneXus (04/11/2026)
 
 - Diego: la cobranza generaba el movimiento de caja con los importes con signo en 0. En GeneXus los pone

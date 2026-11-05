@@ -35,7 +35,7 @@ public final class OptimistReglas {
 
     /** PANTALLA (V48): una línea nueva vacía: solo Enabled / Visible / NoAccept (sin procedimientos ni asignaciones). */
     public enum Momento { CARGA, CAMBIO, GRABAR, PANTALLA }
-    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE }
+    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO }
 
     static final Set<String> EVENTOS = Set.of("beforevalidate", "aftervalidate", "beforeinsert", "beforeupdate", "beforedelete",
             "afterinsert", "afterupdate", "afterdelete", "beforecomplete", "aftercomplete", "afterlevel", "beforetrn", "aftertrn");
@@ -77,10 +77,11 @@ public final class OptimistReglas {
 
     /** Lo que produjo una pasada de reglas sobre un nivel (o una línea). */
     public record Efecto(Map<String, Object> asignados, Map<String, Boolean> habilitados, Map<String, Boolean> visibles,
-                         List<String> errores, List<String> mensajes, List<String> fallas, Map<String, String> clases) {
+                         List<String> errores, List<String> mensajes, List<String> fallas, Map<String, String> clases,
+                         Map<String, String> titulos, Map<String, Integer> anchos) {
         static Efecto nuevo() {
             return new Efecto(new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashMap<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-                    new LinkedHashMap<>());
+                    new LinkedHashMap<>(), new LinkedHashMap<>(), new LinkedHashMap<>());
         }
     }
 
@@ -223,7 +224,7 @@ public final class OptimistReglas {
     private static final Pattern ERROR = Pattern.compile("(?is)^error\\s*\\((.*)\\)$");
     private static final Pattern MSG = Pattern.compile("(?is)^msg\\s*\\((.*)\\)$");
     private static final Pattern NOACCEPT = Pattern.compile("(?is)^noaccept\\s*\\((.*)\\)$");
-    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class)\\s*=\\s*(.+)$");
+    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class|caption|title|width)\\s*=\\s*(.+)$");
     private static final Pattern VACIAR = Pattern.compile("(?is)^(&?[A-Za-z_]\\w*)\\s*\\.\\s*(setempty|setnull)\\s*\\(\\s*\\)$");
     private static final Pattern LLAMADA = Pattern.compile("(?is)^(?:[A-Za-z_]\\w*\\s*\\.\\s*)*?([A-Za-z_]\\w*)\\s*\\.\\s*call\\s*\\((.*)\\)$");
     private static final Pattern CALL = Pattern.compile("(?is)^call\\s*\\(\\s*([A-Za-z_]\\w*)\\s*(?:,(.*))?\\)$");
@@ -264,8 +265,10 @@ public final class OptimistReglas {
             r.destinos = ds;
         } else if ((m = PROPIEDAD.matcher(cuerpo)).matches()) {
             // V49t: X.Class = "Clase" if ...: el campo toma esa clase (clases: del YAML o de dominios.yaml)
-            r = new Regla(indice, renglon, t, m.group(2).equalsIgnoreCase("enabled") ? Tipo.ENABLED
-                    : m.group(2).equalsIgnoreCase("class") ? Tipo.CLASE : Tipo.VISIBLE);
+            // E6r: X.Caption / X.Title = "texto" (el título del campo o de la columna) y X.Width = n (el ancho de la columna, en px)
+            String prop = m.group(2).toLowerCase(Locale.ROOT);
+            r = new Regla(indice, renglon, t, prop.equals("enabled") ? Tipo.ENABLED : prop.equals("class") ? Tipo.CLASE
+                    : prop.equals("caption") || prop.equals("title") ? Tipo.TITULO : prop.equals("width") ? Tipo.ANCHO : Tipo.VISIBLE);
             r.destino = m.group(1);
             r.expr = formula(renglon, m.group(3));
         } else if ((m = VACIAR.matcher(cuerpo)).matches()) {
@@ -691,14 +694,14 @@ public final class OptimistReglas {
             case CARGA:
                 if (!r.eventos.isEmpty()) return false;
                 return switch (r.tipo) {
-                    case ENABLED, VISIBLE, NOACCEPT, CLASE -> true;
+                    case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO -> true;
                     case ASIGNAR -> r.destino.startsWith("&") || r.dePantalla;
                     case LLAMAR -> r.escribe.stream().allMatch(x -> x.startsWith("&"));
                     default -> false;
                 };
             case PANTALLA:
                 return r.eventos.isEmpty() && (r.tipo == Tipo.ENABLED || r.tipo == Tipo.VISIBLE || r.tipo == Tipo.NOACCEPT || r.tipo == Tipo.CLASE
-                        || r.dePantalla);
+                        || r.tipo == Tipo.TITULO || r.tipo == Tipo.ANCHO || r.dePantalla);
             case CAMBIO:
                 return r.eventos.isEmpty() && !r.soloAlGrabar;
             default:
@@ -722,6 +725,12 @@ public final class OptimistReglas {
             case ENABLED -> ef.habilitados().put(r.destino, OptimistFormula.verdad(r.expr.evaluar(ctx)));
             case VISIBLE -> ef.visibles().put(r.destino, OptimistFormula.verdad(r.expr.evaluar(ctx)));
             case CLASE -> { Object v = r.expr.evaluar(ctx); ef.clases().put(r.destino, v == null ? "" : String.valueOf(v).trim()); }
+            case TITULO -> { Object v = r.expr.evaluar(ctx); if (v != null && !String.valueOf(v).isBlank()) ef.titulos().put(r.destino, String.valueOf(v).trim()); }
+            case ANCHO -> {
+                Object v = r.expr.evaluar(ctx);
+                try { int px = OptimistFormula.num(v).intValue(); if (px > 0) ef.anchos().put(r.destino, px); }   // 0 o vacío: el ancho de siempre
+                catch (RuntimeException ignorado) { }
+            }
             case LLAMAR -> {
                 OptimistProcedimiento p = definicion(r.proc);
                 if (p == null) throw new IllegalStateException("falta el procedimiento " + r.proc + " (proc/" + r.proc + ".proc)");

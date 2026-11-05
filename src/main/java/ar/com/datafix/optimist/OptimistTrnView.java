@@ -922,6 +922,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 panel.setOpened(p.abierto());
                 panel.setWidthFull();
                 panel.addClassName("optimist-panel");
+                if (p.titulo() != null && !p.titulo().isBlank()) f.nombrados.putIfAbsent(nombreDeRegla("Panel", p.titulo()), panel);   // E6r
                 // V65d: un panel que solo tiene un detalle se oculta con él (regla <Detalle>.Visible = ...)
                 if (p.bloques().size() == 1 && p.bloques().get(0) instanceof BloqueDetalle solo)
                     f.panelDeDetalle.put(solo.detalle().toLowerCase(Locale.ROOT), panel);
@@ -1134,6 +1135,10 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         final Map<String, Component> bloquesDetalle = new HashMap<>(), panelDeDetalle = new HashMap<>();
         /** V65f: el título (H3) de cada detalle, para <detalle X sinTitulo>. */
         final Map<String, Component> titulosDetalle = new HashMap<>();
+        /** E6r: solapas y paneles por su nombre de regla (Solapa<Título> / Panel<Título>, sin espacios ni acentos), para X.Visible. */
+        final Map<String, Component> nombrados = new HashMap<>();
+        /** E6r: ancho de columna puesto por una regla (X.Width), por "detalle.campo"; vale también para las filas nuevas. */
+        final Map<String, Integer> anchoColumna = new HashMap<>();
         final Map<OptimistTrnCampos.Editor, Set<String>> estiloDeRegla = new IdentityHashMap<>();
         Form(Registro actual, boolean soloVer) { this.actual = actual; this.nuevo = actual == null; this.soloVer = soloVer; }
         String modo() { return nuevo ? "INS" : soloVer ? "DSP" : "UPD"; }
@@ -1348,7 +1353,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 if (!s.bloques().isEmpty()) {
                     // V33: en orden (tablas, detalles, paneles, renglones)
                     for (Bloque b : s.bloques()) v.add(armarBloque(b, piezas, f, usados, detUsados, bloques));
-                    solapas.add(s.titulo(), v);
+                    f.nombrados.putIfAbsent(nombreDeRegla("Solapa", s.titulo()), solapas.add(s.titulo(), v));   // E6r
                     continue;
                 }
                 for (Tabla t : s.tablas()) v.add(tabla(t, piezas, f, usados));
@@ -1367,7 +1372,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                     if (det.oculto()) continue;   // V27: detalle oculto
                     if (detUsados.add(det.nombre())) v.add(bloques.get(det.nombre()));
                 }
-                solapas.add(s.titulo(), v);
+                f.nombrados.putIfAbsent(nombreDeRegla("Solapa", s.titulo()), solapas.add(s.titulo(), v));   // E6r
             }
             // lo visible que no quedó en ninguna solapa no se pierde: va a "Otros datos"
             List<Component> resto = new ArrayList<>();
@@ -2178,6 +2183,9 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 Component bloque = f.bloquesDetalle.get(dn), pnl = f.panelDeDetalle.get(dn);
                 if (bloque != null) bloque.setVisible(vis);
                 if (pnl != null) pnl.setVisible(vis);
+                // E6r: SolapaMercadoLibre.Visible / PanelDatosDelMovimiento.Visible = ... (la solapa o el panel con ese título)
+                Component nom = f.nombrados.get(dn);
+                if (nom != null) nom.setVisible(vis);
                 return;
             }
             // en un detalle, la columna entera (título y todas las filas)
@@ -2189,6 +2197,32 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             for (FilaDetalle fd : f.filas.getOrDefault(d.nombre(), List.of())) {
                 OptimistTrnCampos.Editor ed = editorDe(fd.editores(), n);
                 if (ed != null) piezaDe(ed).setVisible(vis);
+            }
+        });
+        // E6r: X.Caption / X.Title: el título del campo (cabecera) o de la columna (detalle)
+        e.titulos().forEach((n, t) -> {
+            if (det == null) {
+                OptimistTrnCampos.Editor ed = editorDe(eds, n);
+                Component et = ed == null ? null : f.etiquetas.get(ed);
+                if (et instanceof Span sp) {
+                    Campo c = ed.campo();
+                    sp.setText(t + (c.obligatorio() && c.editable() && !f.soloVer ? " *" : ""));
+                    sp.getElement().setAttribute("title", t);
+                }
+                return;
+            }
+            Component tc = f.titulosColumna.get(det.nombre() + "." + n.toLowerCase(Locale.ROOT));
+            if (tc instanceof Span sp) sp.setText(t);
+        });
+        // E6r: X.Width: el ancho de la columna de un detalle (título y todas las filas)
+        if (det != null) e.anchos().forEach((n, px) -> {
+            String clave = det.nombre() + "." + n.toLowerCase(Locale.ROOT);
+            if (Objects.equals(f.anchoColumna.put(clave, px), px)) return;
+            Component tc = f.titulosColumna.get(clave);
+            if (tc instanceof com.vaadin.flow.component.HasSize hs) { hs.setWidth(px + "px"); hs.setMinWidth(px + "px"); }
+            for (FilaDetalle fd : f.filas.getOrDefault(det.nombre(), List.of())) {
+                OptimistTrnCampos.Editor ed = editorDe(fd.editores(), n);
+                if (ed != null) anchoPieza(ed, px);
             }
         });
         // V49t: X.Class = "Clase" (por ahora, campos de la cabecera)
@@ -2214,6 +2248,19 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         for (String m : e.mensajes())
             if (f.mensajesVistos.add(m)) Notification.show(m, 6000, Notification.Position.MIDDLE);
         for (String x : e.fallas()) if (f.mensajesVistos.add("falla:" + x)) System.out.println("[" + trn.nombre() + "] " + x);
+    }
+
+    /** E6r: el nombre con que una regla nombra una solapa o un panel: Solapa / Panel + su título sin espacios, signos ni acentos. */
+    static String nombreDeRegla(String tipo, String titulo) {
+        String t = java.text.Normalizer.normalize(titulo == null ? "" : titulo, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        return (tipo + t.replaceAll("[^A-Za-z0-9]", "")).toLowerCase(Locale.ROOT);
+    }
+
+    /** E6r: X.Width en una fila: el campo (y su lupa) con ese ancho. */
+    private static void anchoPieza(OptimistTrnCampos.Editor ed, int px) {
+        Component p = piezaDe(ed);
+        if (p instanceof com.vaadin.flow.component.HasSize hs) { hs.setWidth(px + "px"); hs.setMinWidth(px + "px"); }
+        if (p != ed.componente()) ed.componente().getElement().getStyle().set("flex", "1 1 auto").set("min-width", "0");
     }
 
     private static OptimistTrnCampos.Editor editorDe(Map<String, OptimistTrnCampos.Editor> eds, String nombre) {
@@ -3071,6 +3118,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         quitar.addClickListener(e -> { filas.remove(fila); renglones.remove(renglon); f.renglonDe.remove(fila); cambioFila(f, det, null, null); });
         // V35: columnas que las reglas ocultaron, también en las filas nuevas
         for (OptimistTrnCampos.Editor ed : eds.values()) {
+            Integer px = f.anchoColumna.get(det.nombre() + "." + ed.campo().nombre().toLowerCase(Locale.ROOT));   // E6r: X.Width
+            if (px != null) anchoPieza(ed, px);
             Boolean vis = f.columnas.get(det.nombre() + "." + ed.campo().nombre().toLowerCase(Locale.ROOT));
             if (vis != null) piezaDe(ed).setVisible(vis);
             else if (ed.campo().oculto()) piezaDe(ed).setVisible(false);   // V49o: oculta hasta que su regla la muestre
