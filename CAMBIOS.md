@@ -2,6 +2,13 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6x — Procedimiento por renglón en las consultas (05/11/2026)
+
+- `porRenglon:` en una consulta: un procedimiento que corre por cada renglón de la página que se ve (el `Grid.Load` de GeneXus que
+  llama a un procedimiento) y llena columnas con sus `out` (declaradas en `columnasSql` con `sql: "NULL"`). Clase nueva `OptimistPorRenglon`.
+- `orden:` de una consulta por una de sus `columnasSql` (antes daba un error).
+- Opcional: una consulta sin esto, como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6w — Lo que faltaba para dejar las TRN como GeneXus (05/11/2026)
 
 - `X.InviteMessage = "texto"` en las reglas: el texto de ayuda dentro del campo vacío (Entidades: "Personas Físicas: Apellido, Nombre…").

@@ -1627,6 +1627,8 @@ Se abre desde una TRN con una lupa `ver:` (6.1.5) o una acción `cns:` (9.2). **
 | `columnasSql` `oculta: true` | Se trae en cada renglón (para `si:`, `estilos`, vínculos y acciones) sin ser columna. |
 | `estilos` | El color de una columna (o de un dato de la cabecera) según el renglón: `{Saldo: [{si: "EntidadesTipoEntidad = 1 and Saldo > 0", clase: "&ClaseClienteDebe"}, {si: "Saldo = 0", clase: AttributeBoldBlack}]}`. Va la primera regla que se cumple (sin `si`: siempre). `clase`: una clase del tema de GeneXus (`AttributeBoldRed`, `AttributeTitleGreen`...) o `&Variable` con la clase (ej. la de un parámetro de ParamGlb); el color, fondo y negrita salen de `resources/clases_gx.yaml` (lo genera `herramientas/gx2clases.py` desde la KB). `estilo`: CSS (`"color:red"`). Una regla sin clase ni estilo deja la celda sin color. |
 | `enlaces` a otra consulta | `{Cheques: {cns: ChequesEntidad, parametros: [EntidadesPK, EntidadesTipoEntidad], si: "Cheques <> 0"}}`: el valor abre otra consulta con lo que recibe (sus `recibe:`, en orden). |
+| `porRenglon` (E6x) | `- {proc: GetPreciosPED99, parametros: [PEDId, DetId, Precio, PrecioNeto], devuelve: {PrecioLista: "&PEDDetSumaLista"}}`: el procedimiento corre por cada renglón de la página que se ve (como el `Grid.Load` de GeneXus que llama a un procedimiento), con parámetros del renglón, constantes o `&Variables`, y sus `out` van a columnas que se declaran en `columnasSql` con `sql: "NULL"`. Esas columnas no se filtran ni se ordenan. Ej. `consultas/WPPreciosPED.yaml` del ERP. |
+| `orden` | (E6x) También por una columna de `columnasSql` (ej. `orden: [DetId]`). |
 | `acciones` | Las del renglón, como en un WorkWith (9.2): `{titulo, icono, si, cns / panel / trn / proc: Nombre, modo (trn: Display / Update), parametros, confirmar, permiso}` (E5b: `permiso:` como en 24.3). Parámetros: campos del renglón (o de la cabecera), `&Variables` o constantes. La que no corresponde va en gris; las de igual título e ícono son una con variantes (ej. "Ingresar Cobranza o Pago": `panel: COBRAltaWbp` si es cliente, `panel: PAGOAltaWbp` si es proveedor). Un `proc` muestra sus mensajes, abre el PDF que arme en la misma ventana o baja el Excel (`&ExcelDocument`). |
 | `botones` | Arriba de la lista, igual que `acciones`; su `si` y sus parámetros usan los datos de la cabecera (ej. `si: "EntidadesTipoEntidad = 1"`, `si: "SecIsAuthByFunctionalityKey.Udp('WPCtasCtes')"`). |
 | `tildes` (E6) | Columnas de tildes, antes de las de datos: `tildes: [Generar, Descargar]` o `[{nombre: Generar, titulo: Generar factura}]`. El usuario tilda renglones (se recuerdan entre páginas y filtros) y el tilde del título tilda o destilda los de la página. |
@@ -1840,6 +1842,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6x**: `porRenglon:` en las consultas y `orden:` por una columna de `columnasSql`.
 - **E6w**: `X.InviteMessage`, `Visible` de un archivo de un detalle, la lista de la TRN vacía la sesión de sus vistas.
 - **E6v**: regla `Default(A, expresión)`.
 - **E6u**: `sesion:` en las vistas (valores de la WebSession al abrir la lista).

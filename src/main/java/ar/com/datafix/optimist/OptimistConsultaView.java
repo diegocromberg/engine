@@ -120,6 +120,8 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
         }
     }
 
+    private static final Map<String, List<OptimistPorRenglon.PorRenglon>> POR_RENGLON = new java.util.concurrent.ConcurrentHashMap<>();
+
     @SuppressWarnings("unchecked")
     static Consulta cargar(String nombre) {
         if (!nombre.matches("[A-Za-z0-9_]{1,80}")) throw new IllegalArgumentException("nombre inválido");
@@ -236,6 +238,13 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
             }
             cabecera = new Cabecera(String.valueOf(cm.get("sql")), List.copyOf(cs));
         }
+        // E6x: porRenglon: procedimientos que calculan columnas de cada renglón de la página (el Grid.Load de GeneXus)
+        List<OptimistPorRenglon.PorRenglon> pr = OptimistPorRenglon.leer(y.get("porRenglon"));
+        for (OptimistPorRenglon.PorRenglon x : pr)
+            for (String col : x.devuelve().keySet())
+                if (colsSql.stream().noneMatch(cq -> cq.nombre().equalsIgnoreCase(col)))
+                    throw new IllegalArgumentException("porRenglon " + x.proc() + ": la columna " + col + " tiene que estar en columnasSql (con sql: \"NULL\")");
+        POR_RENGLON.put(archivo.toLowerCase(Locale.ROOT), List.copyOf(pr));
         return new Consulta(archivo, String.valueOf(y.getOrDefault("titulo", archivo)), String.valueOf(y.getOrDefault("plural", "registros")),
                 String.valueOf(y.get("trn")), y.get("calculo") == null ? "" : String.valueOf(y.get("calculo")), ps,
                 ((List<Object>) y.getOrDefault("columnas", List.of())).stream().map(String::valueOf).toList(),
@@ -636,8 +645,16 @@ public class OptimistConsultaView extends VerticalLayout implements BeforeEnterO
             @Override public List<Map<String, Object>> pagina(Map<String, String> filtros, String orden, boolean desc, int desde, int cantidad)
                     throws Exception {
                 OptimistTrnDatos.Extra ex = extraGeneral();
-                return ex == null ? datos.listarPagina(base, filtros, orden, desc, desde, cantidad)
+                List<Map<String, Object>> filas = ex == null ? datos.listarPagina(base, filtros, orden, desc, desde, cantidad)
                         : datos.listarPagina(base, filtros, orden, desc, desde, cantidad, ex);
+                List<OptimistPorRenglon.PorRenglon> prs = POR_RENGLON.get(def.nombre().toLowerCase(Locale.ROOT));
+                if (prs != null && !prs.isEmpty()) {   // E6x
+                    Map<String, Object> vars = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+                    vars.putAll(varsFijas);
+                    recibidos.forEach(vars::put);
+                    try (Connection c = db.openConnection()) { OptimistPorRenglon.calcular(prs, filas, vars, c); }
+                }
+                return filas;
             }
         });
         pantalla.cargar(List.of());

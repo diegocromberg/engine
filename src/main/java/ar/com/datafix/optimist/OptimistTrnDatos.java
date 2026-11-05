@@ -492,7 +492,8 @@ public class OptimistTrnDatos {
             // V41: el orden puede usar campos inferidos (con el mismo LEFT JOIN de su referencia)
             for (String o : cab.orden()) {
                 String[] p = o.trim().split("\\s+");
-                ordenSql.add(expresion(cab, p[0], alias, joins, 0) + (p.length > 1 ? " " + p[1] : ""));
+                String ex2 = cab.campo(p[0]) == null ? exprExtra(p[0]) : null;   // E6x: el orden de una consulta por una de sus columnasSql
+                ordenSql.add((ex2 != null ? ex2 : expresion(cab, p[0], alias, joins, 0)) + (p.length > 1 ? " " + p[1] : ""));
             }
             // desempate fijo: las páginas no se pisan. V84h: también con el orden del YAML (ej. CPBCIdDescending, que en los
             // comprobantes grabados sin él queda en 0): con la página en dos pasos, el empate tiene que dar siempre lo mismo
