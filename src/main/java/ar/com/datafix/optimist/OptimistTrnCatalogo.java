@@ -124,8 +124,8 @@ public final class OptimistTrnCatalogo {
         String nombre = String.valueOf(v.get("vista")).trim();
         if (!nombre.matches("[A-Za-z_][A-Za-z0-9_]*")) throw new IllegalArgumentException("vista: nombre inválido '" + nombre + "'");
         for (String k : v.keySet())
-            if (!List.of("vista", "trn", "titulo", "workwith").contains(k))
-                throw new IllegalArgumentException("clave desconocida '" + k + "' (vista, trn, titulo, workwith)");
+            if (!List.of("vista", "trn", "titulo", "workwith", "sesion").contains(k))
+                throw new IllegalArgumentException("clave desconocida '" + k + "' (vista, trn, titulo, workwith, sesion)");
         Object t = v.get("trn");
         if (t == null) throw new IllegalArgumentException("falta 'trn:' (la transacción de la lista)");
         Map<String, Object> base = crudas.get(String.valueOf(t).trim().toLowerCase(Locale.ROOT));
@@ -137,8 +137,17 @@ public final class OptimistTrnCatalogo {
         if (v.get("workwith") instanceof Map<?, ?> mv) ww.putAll((Map<String, Object>) mv);
         else if (v.get("workwith") != null) throw new IllegalArgumentException("workwith: debe ser un bloque de claves");
         y.put("workwith", ww);
+        // E6u: sesion: {CLAVE: valor}: lo que el menú de GeneXus dejaba en la WebSession antes de abrir la lista (ej. TIPOENTIDAD)
+        Map<String, String> ses = new LinkedHashMap<>();
+        if (v.get("sesion") instanceof Map<?, ?> sm) sm.forEach((a, b) -> ses.put(String.valueOf(a), b == null ? "" : String.valueOf(b)));
+        else if (v.get("sesion") != null) throw new IllegalArgumentException("sesion: debe ser {CLAVE: valor, ...}");
+        SESION_VISTA.put(nombre.toLowerCase(Locale.ROOT), Map.copyOf(ses));
         return OptimistTrnDefinicion.desde(y, dominios);
     }
+
+    private static final Map<String, Map<String, String>> SESION_VISTA = new java.util.concurrent.ConcurrentHashMap<>();
+    /** E6u: los valores de WebSession que pone la vista con esa ruta al abrirse (vacío si no tiene). */
+    public static Map<String, String> sesionDeVista(String ruta) { return ruta == null ? Map.of() : SESION_VISTA.getOrDefault(ruta.toLowerCase(Locale.ROOT), Map.of()); }
 
     public static List<Trn> todas() { return new ArrayList<>(cargar().trns().values()); }
 

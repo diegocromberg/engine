@@ -2,6 +2,12 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6u — Valores de la sesión desde la vista (05/11/2026)
+
+- `sesion: {CLAVE: valor}` en una vista (`vistas/*.yaml`): al abrirla, deja esos valores en la sesión del usuario y la TRN los lee con
+  `&WebSession.Get('CLAVE')`, como el programa del menú de GeneXus que los seteaba antes de abrir la lista (ej. Clientes / Proveedores
+  con `TIPOENTIDAD`). Opcional: sin `sesion:`, como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6t — Vínculo con condición en un renglón (05/11/2026)
 
 - `enlace: [{si: "condición", trn: X, clave: Y}, ...]` en un campo de un detalle: abre la TRN de la primera opción cuya condición se

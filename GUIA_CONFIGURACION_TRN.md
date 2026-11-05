@@ -1684,6 +1684,19 @@ workwith:                         # cada clave reemplaza a la de workwith: de la
     - {titulo: Autorizar seleccionados, icono: CHECK, porRenglon: true, si: "CPBCStatus = 'N'", proc: CPBCAutorizar, parametros: [CPBCId], confirmar: "¿Autoriza los comprobantes tildados?"}
 ```
 
+**Valores de la sesión** (`sesion:`, E6u): lo que en GeneXus el programa del menú dejaba en la WebSession antes de abrir la lista
+(ej. `SeteoTipoEntidadComEx`: `TIPOENTIDAD` = CLIENTE / PROVEEDOR) y la TRN leía con `&WebSession.Get('...')`. Al abrir la vista se
+guardan en la sesión del usuario, así el formulario que se abre desde esa lista los encuentra:
+
+```yaml
+vista: EntidadesClientes
+trn: Entidades
+sesion: {TIPOENTIDAD: CLIENTE, COMERCIOEXTERIOR: "FALSE"}
+```
+
+Es opcional. Como en GeneXus, el valor queda en la sesión hasta que otra vista lo cambie: si la TRN se puede abrir también por otro
+camino, conviene que sus reglas tengan un valor por defecto cuando `&WebSession.Get` viene vacío.
+
 ## 23. Extensiones de la aplicación (`OptimistExtension`, E3)
 
 El motor no conoce ninguna aplicación: no nombra tablas, procedimientos, clientes ni comprobantes de nadie. Lo que una aplicación

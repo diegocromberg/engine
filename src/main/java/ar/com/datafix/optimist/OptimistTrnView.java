@@ -95,6 +95,9 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         OptimistTrnCatalogo.Resultado cat = OptimistTrnCatalogo.cargar();
         Trn anterior = trn;
         trn = cat.trns().get(ruta);
+        // E6u: la vista deja en la WebSession lo que dejaba el menú de GeneXus (ej. TIPOENTIDAD = CLIENTE), para el inicio de la TRN
+        OptimistContexto ctxSes = OptimistContexto.actual();
+        if (ctxSes != null) OptimistTrnCatalogo.sesionDeVista(ruta).forEach((k, x) -> ctxSes.poner("websession." + k, x));
         // V84f: la misma pantalla sirve para todas las TRN (Vaadin la reusa al ir de una lista a otra): lo calculado con el inicio
         // de las acciones de la anterior no vale para esta. Antes, de Comprobantes a Pedidos quedaban las &variables de
         // Comprobantes y las acciones de Pedidos salían en gris ("&FacturarEligiendoCPBC = (vacío)") hasta apretar F5.
