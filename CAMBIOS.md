@@ -2,6 +2,16 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6s — Vínculo en un renglón, renglones de la grilla, Agregar Filas y título del formulario desde las reglas (05/11/2026)
+
+- `enlace:` en un campo de un **detalle** (de solo lectura): se ve como vínculo y abre esa TRN en Visualizar con la clave del renglón
+  (la lupa "ver cheque" / "ver comprobante" de GeneXus). Antes, solo en la cabecera y en las columnas del WorkWith.
+- `Detalle.Rows = n` (el `GridLevel_X.Rows` de GeneXus): los renglones vacíos del detalle al abrir y los que agrega "Agregar Filas";
+  `Rows = 0`: sin renglones vacíos (el botón igual agrega 5).
+- `AgregarFilas<Detalle>.Visible = false`: oculta el botón "Agregar Filas" de ese detalle (el BotonFilas de GeneXus).
+- `Form.Caption = "..."` (o `<Trn>Title.Caption`): el título del formulario (ej. "Hoja de Ruta", "Clientes" / "Proveedores").
+- Todo opcional: sin esas reglas, como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6r — Títulos, anchos, solapas y paneles desde las reglas (05/11/2026)
 
 - Para que las TRN queden como GeneXus, que en el Start cambia títulos, anchos y solapas según la instalación o VERCampo:

@@ -35,7 +35,7 @@ public final class OptimistReglas {
 
     /** PANTALLA (V48): una línea nueva vacía: solo Enabled / Visible / NoAccept (sin procedimientos ni asignaciones). */
     public enum Momento { CARGA, CAMBIO, GRABAR, PANTALLA }
-    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO }
+    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO, FILAS }
 
     static final Set<String> EVENTOS = Set.of("beforevalidate", "aftervalidate", "beforeinsert", "beforeupdate", "beforedelete",
             "afterinsert", "afterupdate", "afterdelete", "beforecomplete", "aftercomplete", "afterlevel", "beforetrn", "aftertrn");
@@ -224,7 +224,7 @@ public final class OptimistReglas {
     private static final Pattern ERROR = Pattern.compile("(?is)^error\\s*\\((.*)\\)$");
     private static final Pattern MSG = Pattern.compile("(?is)^msg\\s*\\((.*)\\)$");
     private static final Pattern NOACCEPT = Pattern.compile("(?is)^noaccept\\s*\\((.*)\\)$");
-    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class|caption|title|width)\\s*=\\s*(.+)$");
+    private static final Pattern PROPIEDAD = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\.\\s*(enabled|visible|class|caption|title|width|rows)\\s*=\\s*(.+)$");
     private static final Pattern VACIAR = Pattern.compile("(?is)^(&?[A-Za-z_]\\w*)\\s*\\.\\s*(setempty|setnull)\\s*\\(\\s*\\)$");
     private static final Pattern LLAMADA = Pattern.compile("(?is)^(?:[A-Za-z_]\\w*\\s*\\.\\s*)*?([A-Za-z_]\\w*)\\s*\\.\\s*call\\s*\\((.*)\\)$");
     private static final Pattern CALL = Pattern.compile("(?is)^call\\s*\\(\\s*([A-Za-z_]\\w*)\\s*(?:,(.*))?\\)$");
@@ -268,7 +268,8 @@ public final class OptimistReglas {
             // E6r: X.Caption / X.Title = "texto" (el título del campo o de la columna) y X.Width = n (el ancho de la columna, en px)
             String prop = m.group(2).toLowerCase(Locale.ROOT);
             r = new Regla(indice, renglon, t, prop.equals("enabled") ? Tipo.ENABLED : prop.equals("class") ? Tipo.CLASE
-                    : prop.equals("caption") || prop.equals("title") ? Tipo.TITULO : prop.equals("width") ? Tipo.ANCHO : Tipo.VISIBLE);
+                    : prop.equals("caption") || prop.equals("title") ? Tipo.TITULO : prop.equals("width") ? Tipo.ANCHO
+                    : prop.equals("rows") ? Tipo.FILAS : Tipo.VISIBLE);   // E6s: Detalle.Rows = n
             r.destino = m.group(1);
             r.expr = formula(renglon, m.group(3));
         } else if ((m = VACIAR.matcher(cuerpo)).matches()) {
@@ -694,14 +695,14 @@ public final class OptimistReglas {
             case CARGA:
                 if (!r.eventos.isEmpty()) return false;
                 return switch (r.tipo) {
-                    case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO -> true;
+                    case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO, FILAS -> true;
                     case ASIGNAR -> r.destino.startsWith("&") || r.dePantalla;
                     case LLAMAR -> r.escribe.stream().allMatch(x -> x.startsWith("&"));
                     default -> false;
                 };
             case PANTALLA:
                 return r.eventos.isEmpty() && (r.tipo == Tipo.ENABLED || r.tipo == Tipo.VISIBLE || r.tipo == Tipo.NOACCEPT || r.tipo == Tipo.CLASE
-                        || r.tipo == Tipo.TITULO || r.tipo == Tipo.ANCHO || r.dePantalla);
+                        || r.tipo == Tipo.TITULO || r.tipo == Tipo.ANCHO || r.tipo == Tipo.FILAS || r.dePantalla);
             case CAMBIO:
                 return r.eventos.isEmpty() && !r.soloAlGrabar;
             default:
@@ -729,6 +730,11 @@ public final class OptimistReglas {
             case ANCHO -> {
                 Object v = r.expr.evaluar(ctx);
                 try { int px = OptimistFormula.num(v).intValue(); if (px > 0) ef.anchos().put(r.destino, px); }   // 0 o vacío: el ancho de siempre
+                catch (RuntimeException ignorado) { }
+            }
+            case FILAS -> {   // E6s: los renglones vacíos del detalle (el Grid.Rows de GeneXus); van en anchos con la marca "filas:"
+                Object v = r.expr.evaluar(ctx);
+                try { int n = OptimistFormula.num(v).intValue(); if (n >= 0) ef.anchos().put("filas:" + r.destino, n); }   // 0: sin renglones vacíos
                 catch (RuntimeException ignorado) { }
             }
             case LLAMAR -> {

@@ -1139,6 +1139,14 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         final Map<String, Component> nombrados = new HashMap<>();
         /** E6r: ancho de columna puesto por una regla (X.Width), por "detalle.campo"; vale también para las filas nuevas. */
         final Map<String, Integer> anchoColumna = new HashMap<>();
+        /** E6s: renglones vacíos de cada detalle (regla Detalle.Rows = n; sin regla, 5), por nombre del detalle en minúscula. */
+        final Map<String, Integer> filasNuevas = new HashMap<>();
+        /** E6s: el título del formulario puesto por una regla (Form.Caption = "Hoja de Ruta"), o null. */
+        String tituloRegla;
+        /** E6s: lo necesario para agregar renglones a un detalle desde una regla (Rows). */
+        final Map<String, Runnable> agregarUna = new HashMap<>();
+        /** E6s: saca un renglón vacío de un detalle (regla Detalle.Rows = 0). */
+        final Map<String, java.util.function.Consumer<FilaDetalle>> quitarVacia = new HashMap<>();
         final Map<OptimistTrnCampos.Editor, Set<String>> estiloDeRegla = new IdentityHashMap<>();
         Form(Registro actual, boolean soloVer) { this.actual = actual; this.nuevo = actual == null; this.soloVer = soloVer; }
         String modo() { return nuevo ? "INS" : soloVer ? "DSP" : "UPD"; }
@@ -1226,7 +1234,8 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
 
     /** Título del formulario: el 'encabezado' del YAML con los valores actuales, o singular + clave. */
     private String titulo(Form f) {
-        String base = f.soloVer ? "Visualizar " + trn.singular() : capital(trn.singular());
+        String base = f.tituloRegla != null ? (f.soloVer ? "Visualizar " : "") + f.tituloRegla   // E6s: Form.Caption
+                : f.soloVer ? "Visualizar " + trn.singular() : capital(trn.singular());
         Map<String, Object> v = f.valoresCabecera();
         if (trn.encabezado() != null) {
             boolean alguno = false;
@@ -2203,6 +2212,11 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         e.titulos().forEach((n, t) -> {
             if (det == null) {
                 OptimistTrnCampos.Editor ed = editorDe(eds, n);
+                if (ed == null && (n.equalsIgnoreCase("Form") || n.equalsIgnoreCase(trn.nombre() + "Title"))) {   // E6s: el título del formulario
+                    f.tituloRegla = t;
+                    if (f.dialogo != null) f.dialogo.setHeaderTitle(titulo(f));
+                    return;
+                }
                 Component et = ed == null ? null : f.etiquetas.get(ed);
                 if (et instanceof Span sp) {
                     Campo c = ed.campo();
@@ -2213,6 +2227,20 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             }
             Component tc = f.titulosColumna.get(det.nombre() + "." + n.toLowerCase(Locale.ROOT));
             if (tc instanceof Span sp) sp.setText(t);
+        });
+        // E6s: Detalle.Rows = n: los renglones vacíos (al abrir, si hay menos, se agregan) y los que agrega "Agregar Filas"
+        if (det == null) e.anchos().forEach((k, n) -> {
+            if (!k.startsWith("filas:")) return;
+            String dn = k.substring(6).toLowerCase(Locale.ROOT);
+            Nivel d2 = trn.detalle(k.substring(6));
+            if (d2 == null || Objects.equals(f.filasNuevas.put(dn, n), n) || f.soloVer) return;
+            List<FilaDetalle> vacias = f.filas.getOrDefault(d2.nombre(), List.of()).stream().filter(fd -> fd.original() == null && sinTocar(fd)).toList();
+            Runnable una = f.agregarUna.get(dn);
+            if (una != null) for (long i = vacias.size(); i < n; i++) una.run();
+            var quitar = f.quitarVacia.get(dn);
+            if (quitar != null && n == 0 && f.filas.getOrDefault(d2.nombre(), List.of()).stream().anyMatch(fd -> fd.original() != null))
+                for (FilaDetalle fd : vacias) quitar.accept(fd);   // Rows = 0 con renglones grabados: solo los grabados (en un alta queda alguno para cargar)
+            else if (quitar != null) for (int i = n; i < vacias.size(); i++) quitar.accept(vacias.get(i));
         });
         // E6r: X.Width: el ancho de la columna de un detalle (título y todas las filas)
         if (det != null) e.anchos().forEach((n, px) -> {
@@ -2552,6 +2580,29 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                 try { f.dialogo.close(); } finally { cerrandoPorNavegacion = false; }
             }
             abrirTrn(destino.trn(), "Display", v);   // V50e: siempre en Visualizar
+        });
+    }
+
+    /** E6s: un campo de un renglón con 'enlace:': como enlazar(), con la clave tomada del mismo renglón. */
+    private void enlazarFila(Form f, FilaDetalle fila, OptimistTrnCampos.Editor ed, OptimistTrnDefinicion.Enlace destino) {
+        var el = ed.componente().getElement();
+        el.getStyle().set("cursor", "pointer").set("--vaadin-input-field-value-color", "var(--lumo-primary-text-color)")
+                .set("--lumo-secondary-text-color", "var(--lumo-primary-text-color)").set("text-decoration", "underline");
+        el.setAttribute("title", "Ver " + destino.trn());
+        el.addEventListener("click", e -> {
+            Object v;
+            if (destino.clave() == null) v = ed.leer().get();
+            else {
+                OptimistTrnCampos.Editor k = editorDe(fila.editores(), destino.clave());
+                v = k != null ? k.leer().get() : fila.valores().get(destino.clave());
+                if (v == null && fila.original() != null) v = fila.original().valores().get(destino.clave());
+            }
+            if (OptimistTrnDatos.vacio(v) || (v instanceof Number nn && new java.math.BigDecimal(nn.toString()).signum() == 0)) return;
+            if (f.dialogo != null) {
+                cerrandoPorNavegacion = true;
+                try { f.dialogo.close(); } finally { cerrandoPorNavegacion = false; }
+            }
+            abrirTrn(destino.trn(), "Display", v);
         });
     }
 
@@ -2899,6 +2950,12 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         renglones.setWidth(null);
         if (!f.nuevo) f.actual.lineas(det.nombre()).forEach(l -> agregarFila(f, det, filas, renglones, l));
         if (!f.soloVer) for (int i = 0; i < 5; i++) agregarFila(f, det, filas, renglones, null);
+        f.agregarUna.put(det.nombre().toLowerCase(Locale.ROOT), () -> agregarFila(f, det, filas, renglones, null));   // E6s
+        f.quitarVacia.put(det.nombre().toLowerCase(Locale.ROOT), fd -> {
+            Component r = f.renglonDe.remove(fd);
+            filas.remove(fd);
+            if (r != null) renglones.remove(r);
+        });
         HorizontalLayout encabezado = encabezadoDetalle(f, det);
         f.encabezados.put(det.nombre(), encabezado);
         VerticalLayout grilla = new VerticalLayout(encabezado, renglones);
@@ -2917,7 +2974,12 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         bloque.setPadding(false);
         bloque.setWidthFull();
         if (!f.soloVer) {
-            Button agregar = new Button("Agregar Filas", e -> { for (int i = 0; i < 5; i++) agregarFila(f, det, filas, renglones, null); });
+            Button agregar = new Button("Agregar Filas", e -> {
+                int n = f.filasNuevas.getOrDefault(det.nombre().toLowerCase(Locale.ROOT), 5);   // E6s: Detalle.Rows
+                if (n <= 0) n = 5;   // Rows = 0 es "sin renglones vacíos al abrir"; el botón igual agrega
+                for (int i = 0; i < n; i++) agregarFila(f, det, filas, renglones, null);
+            });
+            f.nombrados.put(nombreDeRegla("AgregarFilas", det.nombre()), agregar);   // E6s: AgregarFilas<Detalle>.Visible = false
             Span aviso = new Span("Las filas vacías se ignoran" + (det.numerador() != null ? "; la numeración se asigna al guardar." : "."));
             aviso.getStyle().set("color", "#9fb8c5");
             bloque.add(agregar, aviso);
@@ -3091,6 +3153,9 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             f.soloLecturaBase.put(ed, ro);
             if (!ro) ed.alCambiar().accept(() -> cambioFila(f, det, fila, c.nombre()));   // V35: referencias, reglas y fórmulas
             eds.put(c.nombre(), ed);
+            // E6s: 'enlace:' en un campo del renglón: vínculo que abre esa TRN en Visualizar (el &VerCheque de GeneXus)
+            OptimistTrnDefinicion.Enlace enl = OptimistTrnDefinicion.enlace(det.tabla(), c.nombre());
+            if (enl != null && ro) enlazarFila(f, fila, ed, enl);
             OptimistTrnDefinicion.LupaProc lp = OptimistTrnDefinicion.lupaProc(det.tabla(), c.nombre());   // V49u
             Component pieza = lp != null ? (ro ? ed.componente() : conLupaProc(f, det, fila, ed, lp))
                     : conBuscador(ed, det, trn.cabecera(), !ro, () -> cambioFila(f, det, fila, c.nombre()), () -> {
