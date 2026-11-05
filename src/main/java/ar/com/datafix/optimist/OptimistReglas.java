@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
  *   Proc.Call(a, B, &c) ...              (los parámetros out/inout vuelven a los atributos y &variables)
  *   Error("texto") ...    Msg("texto") ...
  *   NoAccept(A, B) if condición          A.Enabled = expresión ...     A.Visible = expresión ...
+ *   Default(A, expresión) (E6v): el valor inicial de A en el alta (de la cabecera o del renglón nuevo)
  * En las condiciones: after(X), X.GetOldValue(), Insert, Update, Delete, Level(X), &Mode = "INS"/"UPD"/"DLT".
  *
  * Cómo se aplican (como GeneXus web):
@@ -35,7 +36,7 @@ public final class OptimistReglas {
 
     /** PANTALLA (V48): una línea nueva vacía: solo Enabled / Visible / NoAccept (sin procedimientos ni asignaciones). */
     public enum Momento { CARGA, CAMBIO, GRABAR, PANTALLA }
-    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO, FILAS }
+    enum Tipo { ASIGNAR, VACIAR, LLAMAR, ERROR, MSG, NOACCEPT, ENABLED, VISIBLE, CLASE, TITULO, ANCHO, FILAS, DEFECTO }
 
     static final Set<String> EVENTOS = Set.of("beforevalidate", "aftervalidate", "beforeinsert", "beforeupdate", "beforedelete",
             "afterinsert", "afterupdate", "afterdelete", "beforecomplete", "aftercomplete", "afterlevel", "beforetrn", "aftertrn");
@@ -100,6 +101,13 @@ public final class OptimistReglas {
             r = new OptimistReglas(trn);
             CACHE.put(clave, r);
         }
+        return r;
+    }
+
+    /** E6v: los atributos de la cabecera con Default(A, expr). */
+    public Set<String> defectosCabecera() {
+        Set<String> r = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (Regla x : reglas) if (x.tipo == Tipo.DEFECTO && x.nivel == null) r.add(x.destino);
         return r;
     }
 
@@ -229,6 +237,7 @@ public final class OptimistReglas {
     private static final Pattern LLAMADA = Pattern.compile("(?is)^(?:[A-Za-z_]\\w*\\s*\\.\\s*)*?([A-Za-z_]\\w*)\\s*\\.\\s*call\\s*\\((.*)\\)$");
     private static final Pattern CALL = Pattern.compile("(?is)^call\\s*\\(\\s*([A-Za-z_]\\w*)\\s*(?:,(.*))?\\)$");
     private static final Pattern SUELTA = Pattern.compile("(?is)^([A-Za-z_]\\w*)\\s*\\((.*)\\)$");   // Proc(args), sin .Call
+    private static final Pattern DEFAULT = Pattern.compile("(?is)^default\\s*\\(\\s*([A-Za-z_]\\w*)\\s*,\\s*(.+)\\)$");
     private static final Pattern ASIGNAR = Pattern.compile("(?is)^(&?[A-Za-z_]\\w*)\\s*=\\s*(.+)$");
     private static final Pattern REF = Pattern.compile("&?[A-Za-z_]\\w*");
 
@@ -272,6 +281,12 @@ public final class OptimistReglas {
                     : prop.equals("rows") ? Tipo.FILAS : Tipo.VISIBLE);   // E6s: Detalle.Rows = n
             r.destino = m.group(1);
             r.expr = formula(renglon, m.group(3));
+        } else if ((m = DEFAULT.matcher(cuerpo)).matches()) {
+            // E6v: Default(A, expr) de GeneXus: en el alta (cabecera nueva o renglón nuevo) A toma ese valor al abrir y cada vez que
+            // cambia lo que usa la expresión (ej. &EntidadesIdNuevo del Start, el almacén según el artículo); nunca al grabar
+            r = new Regla(indice, renglon, t, Tipo.DEFECTO);
+            r.destino = m.group(1);
+            r.expr = formula(renglon, m.group(2));
         } else if ((m = VACIAR.matcher(cuerpo)).matches()) {
             r = new Regla(indice, renglon, t, Tipo.VACIAR);
             r.destino = m.group(1);
@@ -308,7 +323,7 @@ public final class OptimistReglas {
                 if (a.regionMatches(true, 0, "&__after_", 0, 9)) r.afters.add(a.substring(9));
                 else if (!a.startsWith("&__") && !a.contains(".")) r.lee.add(a);
             }
-        if (r.tipo == Tipo.ASIGNAR || r.tipo == Tipo.VACIAR) r.escribe.add(r.destino);
+        if (r.tipo == Tipo.ASIGNAR || r.tipo == Tipo.VACIAR || r.tipo == Tipo.DEFECTO) r.escribe.add(r.destino);
         // V50b: un campo inferido de la cabecera que muestra variables (el resultado del presupuesto de IEP: TRPRSSubtotal = &TRPRSSubtotal)
         if (r.tipo == Tipo.ASIGNAR && !r.destino.startsWith("&") && r.lee.stream().allMatch(x -> x.startsWith("&"))) {
             OptimistTrnDefinicion.Campo c = trn.cabecera().campo(r.destino);
@@ -697,6 +712,7 @@ public final class OptimistReglas {
                 return switch (r.tipo) {
                     case ENABLED, VISIBLE, NOACCEPT, CLASE, TITULO, ANCHO, FILAS -> true;
                     case ASIGNAR -> r.destino.startsWith("&") || r.dePantalla;
+                    case DEFECTO -> true;
                     case LLAMAR -> r.escribe.stream().allMatch(x -> x.startsWith("&"));
                     default -> false;
                 };
@@ -706,6 +722,7 @@ public final class OptimistReglas {
             case CAMBIO:
                 return r.eventos.isEmpty() && !r.soloAlGrabar;
             default:
+                if (r.tipo == Tipo.DEFECTO) return false;   // E6v: el Default no corre al grabar (pisaría lo que cargó el usuario)
                 if (eventos == null) return r.eventos.isEmpty();
                 for (String e : r.eventos) if (eventos.contains(e)) return true;
                 return false;
@@ -715,6 +732,17 @@ public final class OptimistReglas {
     private void ejecutar(Regla r, Momento momento, Ctx ctx, Efecto ef, Conexion c) throws SQLException {
         switch (r.tipo) {
             case ASIGNAR -> ctx.asignar(r.destino, r.expr.evaluar(ctx), ef);
+            case DEFECTO -> {
+                // E6v: solo en el alta (cabecera nueva o renglón nuevo). Con un cambio: si cambió lo que usa la expresión (no pisa lo
+                // que cargó el usuario) o, en un renglón, si el campo todavía está vacío (el renglón nuevo que se empieza a cargar)
+                boolean nuevo = ctx.viejos == null || ctx.viejos.isEmpty();
+                boolean vacioRenglon = r.nivel != null && OptimistProcedimiento.Funciones.vacioGx(ctx.vals.get(r.destino));
+                // un valor vacío (0, "") no se asigna: no pisa el default: del YAML ni la fecha de hoy que pone el motor
+                if (nuevo && (momento != Momento.CAMBIO || afectada(r, ctx.cambio) || vacioRenglon)) {
+                    Object v = r.expr.evaluar(ctx);
+                    if (!OptimistProcedimiento.Funciones.vacioGx(v)) ctx.asignar(r.destino, v, ef);
+                }
+            }
             case VACIAR -> ctx.asignar(r.destino, r.nulo ? null : vacioDe(ctx, r.destino), ef);
             case ERROR -> {
                 Object m = r.expr.evaluar(ctx);

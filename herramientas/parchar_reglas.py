@@ -6,7 +6,8 @@ V35 - Pasa las reglas y el evento Start de GeneXus a los YAML existentes, SIN re
   inicio: |      el evento Start (Variables + código), que carga &Decimales, &Instalacion, etc.
 
 - Lo que es del patrón WorkWithPlus (Insert_..., botones, clases, celdas) y lo que el motor ya resuelve
-  de otra forma (Default, Serial, Prompt, NoAccept fijo) no se pasa.
+  de otra forma (Default constante o del contexto, Serial, Prompt, NoAccept fijo) no se pasa (E6v: el Default con una
+  expresión, sí: Default(A, &Variable) lo resuelve el motor).
 - [win]{...} se descarta; [web]{...} se desenvuelve.
 - Los dominios enumerados se reemplazan por su valor (Parametro.IvaTipo1 -> 16, TrnMode.Insert -> "INS").
 - Agrega, ocultos, los atributos que usan las reglas y faltaban (como hace parchar_formulas.py).
@@ -166,6 +167,8 @@ def limpiar_comentarios(previos):
     return r
 
 
+# E6v: los Default que gx2yaml ya pasa al campo (default:) o que el motor resuelve solo (fecha de hoy, &...InitialValue de WWP)
+DEFAULT_YAML = re.compile(r'(?is)-?\d+(\.\d+)?|"[^"]*"|\'[^\']*\'|true|false|&WWPContext\.\w+|&today|today\(\s*\)|servertoday\(\s*\)|servernow\(\s*\)|servertoday|&\w+InitialValue')
 DESCARTAR = re.compile(r'(?i)^(default|serial|prompt|noprompt|error_handler|parm|refcall|refmsg|accept|order|subtype|equal|add|subtract|submit|call\s*\(\s*\'?Prompt)\s*\(')
 CONTROL = re.compile(r'(?i)^([A-Za-z_]\w*)\s*\.\s*(class|caption|link|tooltiptext|rows|columns|backcolor|forecolor|jsevent|titleformat|visible|enabled|width|height|format|linktarget)\b')
 
@@ -174,6 +177,9 @@ def clasificar(regla, campos):
     """None = se descarta (lo resuelve el motor de otra forma o es del patrón); si no, la regla (texto)."""
     if not regla:
         return None
+    m = re.fullmatch(r'(?is)default\(\s*(\w+)\s*,\s*(.+)\)', regla.strip())
+    if m and m.group(1).lower() in campos and not DEFAULT_YAML.fullmatch(m.group(2).strip()):
+        return regla   # E6v: Default(A, expresión) que no es una constante ni del contexto: lo resuelve el motor como regla
     if DESCARTAR.match(regla):
         return None
     m = CONTROL.match(regla)

@@ -1140,6 +1140,7 @@ reglas: |
 | `Form.Caption = "texto"` | (E6s) El título del formulario (también `<Trn>Title.Caption`). |
 | `SolapaTítulo.Visible = …` · `PanelTítulo.Visible = …` | (E6r) La solapa o el panel con ese título, escrito sin espacios, signos ni acentos (`SolapaMercadoLibre`, `PanelDatosDelMovimiento`). Es el `HideTab` / `ShowTab` y el `Tabla.Visible` de GeneXus. |
 | `Detalle.Visible = …` | (V65d) Con el nombre de un detalle (ej. `COBRFPago.Visible = &VerFormasDePago;`): muestra u oculta el detalle entero, y su panel si el panel no tiene otra cosa. Es el `Detalle_de_Pago.Visible` de GeneXus. |
+| `Default(A, expresión)` | (E6v) El valor inicial de A en el alta (de la cabecera nueva o del renglón nuevo), como el `Default` de GeneXus cuando el valor sale de una variable del inicio o de otro campo: `Default(EntidadesId, &EntidadesIdNuevo);`, `Default(CPBPAnioIva, Year(CPBPFecha));`, `Default(CMPDetAlmacen, ArticulosAlmDefCompras);`. Se aplica al abrir, de nuevo si cambia lo que usa la expresión y, en un renglón, cuando se empieza a cargar; nunca al grabar ni al modificar un registro. Un valor vacío no se asigna. Para una constante o un dato del usuario sigue `default:` en el campo. |
 | `A.Class = "Clase" if …` | (V49t) El campo de la cabecera toma el estilo de esa clase (`clases:` de la TRN o de dominios.yaml). Si ninguna regla `Class` del campo se cumple, vuelve a su estilo de siempre. Ej.: `PRSRentabilidad.Class = "AttributeTitleGreen" if PRSRentabilidad >= &EmpresaPorcentajeRentabilidad;` |
 
 **Condiciones**: todo lo de las fórmulas (5.1) más `after(X)` (X cambió: lo cargó el usuario o lo asignó otra regla), `X.GetOldValue()` (el valor al abrir), `Insert`, `Update`, `Delete`, `&Mode = "INS"/"UPD"/"DLT"/"DSP"`, `Level(X)`.
@@ -1838,6 +1839,8 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6v**: regla `Default(A, expresión)`.
+- **E6u**: `sesion:` en las vistas (valores de la WebSession al abrir la lista).
 - **E6t**: `enlace:` con condición (lista de `{si, trn, clave}`) en los campos de los renglones.
 - **E6s**: `enlace:` en los campos de los renglones, `Detalle.Rows`, `AgregarFilas<Detalle>.Visible` y `Form.Caption`.
 - **E6r**: reglas `X.Caption` / `X.Title`, `X.Width` (columnas de los detalles) y `SolapaTítulo.Visible` / `PanelTítulo.Visible`.

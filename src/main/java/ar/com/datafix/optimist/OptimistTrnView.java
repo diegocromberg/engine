@@ -1824,9 +1824,13 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         f.reglas.iniciar(f.estado, f.valoresCabecera(), datos.abridor(), msgs);
         msgs.forEach(m -> System.out.println("[" + trn.nombre() + "] inicio: " + m));
         f.aplicandoReglas = true;
+        Set<String> defectos = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
         try {
-            aplicarEfecto(f, null, null, f.reglas.aplicar(OptimistReglas.Momento.CARGA, null, null, f.valoresCabecera(), null, f.viejos,
-                    new HashSet<>(), f.estado, datos.abridor(), null));
+            OptimistReglas.Efecto efCarga = f.reglas.aplicar(OptimistReglas.Momento.CARGA, null, null, f.valoresCabecera(), null, f.viejos,
+                    new HashSet<>(), f.estado, datos.abridor(), null);
+            // E6v: lo que asignó un Default(A, expr) de la cabecera sigue como si lo hubiera cargado el usuario (referencias y reglas)
+            for (String n : f.reglas.defectosCabecera()) if (efCarga.asignados().containsKey(n)) defectos.add(n);
+            aplicarEfecto(f, null, null, efCarga);
             for (Nivel det : trn.detallesVisibles())
                 for (FilaDetalle fd : f.filas.getOrDefault(det.nombre(), List.of()))
                     // V48: en las líneas nuevas vacías no corren procedimientos (GetEntiPorBonPorRec...): solo lo que habilita / oculta
@@ -1834,6 +1838,7 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
                             null, det, fd.valores(), f.valoresCabecera(),
                             fd.original() == null ? null : fd.original().valores(), new HashSet<>(), f.estado, datos.abridor(), null));
         } finally { f.aplicandoReglas = false; }
+        for (String n : defectos) if (trn.cabecera().campo(n) != null) cambioCabecera(f, trn.cabecera().campo(n).nombre());
     }
 
     /** Cambió un campo de la cabecera: referencias, fórmulas, reglas de la cabecera, fórmulas. */

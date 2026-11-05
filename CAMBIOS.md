@@ -2,6 +2,16 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6v — Regla Default() de GeneXus (05/11/2026)
+
+- `Default(A, expresión)` en las reglas: el valor inicial de A en el alta (cabecera nueva o renglón nuevo), cuando sale de una
+  variable del inicio o de otro campo (el código nuevo del cliente, el almacén de compras del artículo, el año de IVA según la fecha).
+  Se aplica al abrir, de nuevo si cambia lo que usa la expresión y, en un renglón, al empezar a cargarlo; nunca al grabar ni al
+  modificar. Un valor vacío no se asigna. Antes, el convertidor los dejaba de lado.
+- `parchar_reglas.py` (y por lo tanto el importador del Designer) ya pasa esos Default a las reglas; los constantes y los del contexto
+  siguen yendo a `default:` del campo.
+- Opcional: una TRN sin `Default(` en sus reglas, como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6u — Valores de la sesión desde la vista (05/11/2026)
 
 - `sesion: {CLAVE: valor}` en una vista (`vistas/*.yaml`): al abrirla, deja esos valores en la sesión del usuario y la TRN los lee con
