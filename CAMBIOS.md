@@ -2,6 +2,14 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6y — Web panels desde las lupas de la TRN (05/11/2026)
+
+- `ver:` (lupas de la cabecera y de los renglones) con `panel: WebPanel`: abre ese web panel en una ventana encima del formulario
+  con los parámetros de su `parm` (campos o constantes). Antes, solo consultas.
+- Grillas de los web panels: `enlaces: {Col: {trn: "=Columna", clave: X}}` (la TRN que abre sale del renglón) y `resaltar:` también
+  en las listas (`lista: true`).
+- Opcional: sin esto, como antes. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
+
 ## E6x — Procedimiento por renglón en las consultas (05/11/2026)
 
 - `porRenglon:` en una consulta: un procedimiento que corre por cada renglón de la página que se ve (el `Grid.Load` de GeneXus que

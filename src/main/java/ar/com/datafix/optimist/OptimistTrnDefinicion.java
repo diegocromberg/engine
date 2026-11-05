@@ -1707,7 +1707,9 @@ public final class OptimistTrnDefinicion {
             String titulo = texto(m, "titulo", null);
             if (titulo == null) throw error(donde + ": falta 'titulo'");
             String cns = m.get("cns") == null ? null : ident(String.valueOf(m.get("cns")).trim(), donde + ".cns");
-            if (cns == null) throw error(donde + " '" + titulo + "': falta 'cns' (la consulta que abre)");
+            // E6y: panel: un web panel (wbp/) en una ventana, con los parámetros en el orden de su Parm
+            if (cns == null && m.get("panel") != null) cns = "wbp:" + ident(String.valueOf(m.get("panel")).trim(), donde + ".panel");
+            if (cns == null) throw error(donde + " '" + titulo + "': falta 'cns' (la consulta que abre) o 'panel' (el web panel)");
             List<String> ps = new ArrayList<>();
             for (String p : lista(m.get("parametros"))) {
                 String pt = p.trim();

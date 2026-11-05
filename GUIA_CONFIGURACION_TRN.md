@@ -442,6 +442,7 @@ detalles:
       - {titulo: Ver imputaciones del renglón, cns: ExtraWWDetAsientosDetalle, parametros: [AsientosId, AsientosDetId], si: "AsientosNumeroCbte = 0"}
 ```
 
+- E6y: `panel: WebPanel` en lugar de `cns:` abre ese web panel (`wbp/`) en una ventana encima del formulario, con los `parametros` en el orden de su `parm` (ej. la OTR: `{titulo: Ver stock potencial, panel: StockPotencial, parametros: [OTRFormulaArticulosPK, 2]}`). Los parámetros pueden ser campos o constantes (E6w).
 - `cns`: la consulta (`consultas/`, sección 21). `parametros`: los campos que recibe, en el orden de su `recibe:` (en un renglón, de la cabecera o del renglón). `si`: condición opcional.
 - Abre la consulta en la pantalla; su botón **Volver** (o el Atrás del navegador) vuelve al formulario. En Modificar pregunta antes, porque lo no guardado se pierde. **Necesita el motor V66k.**
 
@@ -1382,6 +1383,8 @@ eventos: |
   - `enlaces: {Col: {cns: Consulta, parametros: {Recibe: Columna | "&Variable" | constante}, si: "condición"}}`: el valor es un vínculo que abre esa consulta con lo que recibe (sin `si`, cuando el valor no es cero ni vacío). Ej.: `TotalDeuda: {cns: WWMovCtaCte, parametros: {EntidadesPK: EntidadesPK, Tramo: TO}}`.
   - **Al volver** de la consulta (Volver o Atrás del navegador) el web panel sigue como estaba: lo cargado y lo procesado. Vale para todos los web panels abiertos como página. **Necesita el motor V74.**
   - **V84 — enlace a una TRN**: `enlaces: {Col: {trn: CPBC, clave: CPBCId}}`: el valor es un vínculo que abre ese registro de la TRN en modo ver (la columna `clave` del renglón trae su clave); al cerrarlo se vuelve al web panel. Ej. el comprobante en las Estadísticas de Ventas y de Compras.
+  - **E6y — la TRN del renglón**: `enlaces: {CbteNumero: {trn: "=TrnObjeto", clave: ObjetoId}}`: con `=` la TRN sale de esa columna del renglón (ej. CMP, PED u OTR en `wbp/StockPotencial.yaml`); vacía, no hay vínculo.
+  - **E6y — `resaltar` en una lista**: los colores por condición (`resaltar:`) también en las grillas `lista: true` (el `&Columna.Class` del `Grid.Load`).
   - **V84e — también en las grillas fijas** (`fija: true`): una columna de solo lectura con `enlaces: {Col: {trn: CPBC, clave: CPBCId}}` muestra el valor como vínculo (ej. el remito y el pedido en `CPBCWPAltaMultiremito`).
   - **E6 — como un WorkWith de verdad**: además del orden por título y las columnas que se agrandan, **filtros por columna**
     (texto: contiene; número: con operadores; fecha: desde-hasta; combo: varias opciones), en memoria sobre lo que dejó el evento,
@@ -1842,6 +1845,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6y**: `ver:` con `panel:`, vínculo a la TRN del renglón (`trn: "=Columna"`) y `resaltar` en las listas de los web panels.
 - **E6x**: `porRenglon:` en las consultas y `orden:` por una columna de `columnasSql`.
 - **E6w**: `X.InviteMessage`, `Visible` de un archivo de un detalle, la lista de la TRN vacía la sesión de sus vistas.
 - **E6v**: regla `Default(A, expresión)`.

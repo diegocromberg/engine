@@ -905,6 +905,14 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
                 boolean tilde = c.dominio().tipo() == OptimistTrnDefinicion.Tipo.BOOLEAN && !c.soloLectura();
                 if (tilde) col = grid.addComponentColumn(f -> tildeLista(g, c, f));   // E6: columna de tildes (editable)
                 else if (en != null || !lps.isEmpty()) col = grid.addComponentColumn(f -> celdaLista(g, c, en, lps, f, num));
+                else if (g.resaltar().stream().anyMatch(r -> r.columnas().isEmpty() || r.columnas().contains(c.nombre())))
+                    col = grid.addComponentColumn(f -> {   // E6y: 'resaltar' también en una lista (el &Columna.Class del Grid.Load)
+                        com.vaadin.flow.component.html.Span sp = new com.vaadin.flow.component.html.Span(textoLista(c, f.get(c.nombre())));
+                        for (OptimistPanel.Resaltado r : g.resaltar())
+                            if ((r.columnas().isEmpty() || r.columnas().contains(c.nombre())) && OptimistPanel.cumple(r.si(), f))
+                                OptimistTrnView.aplicarEstilo(r.estilo(), sp, null);
+                        return sp;
+                    });
                 else col = grid.addColumn(f -> textoLista(c, f.get(c.nombre())));
                 col.setKey(c.nombre()).setSortable(true).setResizable(true).setAutoWidth(true)
                         .setComparator((x, y) -> comparar(x.get(c.nombre()), y.get(c.nombre())));
@@ -1204,7 +1212,10 @@ public class OptimistPanelView extends VerticalLayout implements BeforeEnterObse
         /** V74: abre la consulta del vínculo con lo que recibe: una columna del renglón, una &Variable del panel o una constante. */
         private void abrirEnlace(OptimistPanel.Enlace en, Map<String, Object> fila) {
             if (en.trn() != null) {   // V84: el registro de la TRN en modo ver (como las lupas de stock)
-                OptimistVentanas.abrirRegistro(en.trn(), valorDe(fila, en.clave()));
+                String t = en.trn();
+                if (t.startsWith("=")) { Object x = valorDe(fila, t.substring(1).trim()); t = x == null ? "" : String.valueOf(x).trim(); }   // E6y
+                if (t.isEmpty()) return;
+                OptimistVentanas.abrirRegistro(t, valorDe(fila, en.clave()));
                 return;
             }
             Map<String, String> qp = new LinkedHashMap<>();

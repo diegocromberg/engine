@@ -570,6 +570,10 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
             else if (p.length() >= 2 && (p.startsWith("'") && p.endsWith("'") || p.startsWith("\"") && p.endsWith("\""))) args.add(p.substring(1, p.length() - 1));
             else args.add(ci.get(p));
         }
+        if (v.consulta().startsWith("wbp:")) {   // E6y: un web panel en una ventana, encima del formulario (no se cierra)
+            OptimistPanelView.abrirDialogo(v.consulta().substring(4), db, args, ab -> { }, null);
+            return;
+        }
         Runnable ir = () -> {
             Dialog d = dialogo != null ? dialogo : f.dialogo;
             if (d != null) {

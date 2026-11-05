@@ -345,6 +345,9 @@ public final class OptimistPanel {
                         if (e.getValue() instanceof Map<?, ?> dt && dt.get("trn") != null) {
                             String cl = String.valueOf(dt.get("clave") == null ? "" : dt.get("clave")).trim();
                             if (!nombresCols.contains(cl)) throw error("grilla " + gn + ": enlaces: " + cn + ": {trn: TRN, clave: Columna}: no existe la columna '" + cl + "'");
+                            // E6y: trn: "=Columna": la TRN es el valor de esa columna en el renglón (ej. CMP, PED u OTR)
+                            String tv = String.valueOf(dt.get("trn")).trim();
+                            if (tv.startsWith("=") && !nombresCols.contains(tv.substring(1).trim())) throw error("grilla " + gn + ": enlaces: " + cn + ": trn " + tv + ": no existe la columna");
                             OptimistFormula si = dt.get("si") == null ? null : formulaGrilla(gn, "enlaces", dt.get("si"), nombresCols);
                             enl.put(cn, new Enlace(null, Map.of(), si, String.valueOf(dt.get("trn")).trim(), cl));
                             continue;
