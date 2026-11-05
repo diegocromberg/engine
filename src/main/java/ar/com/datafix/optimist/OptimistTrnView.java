@@ -593,8 +593,33 @@ public class OptimistTrnView extends VerticalLayout implements BeforeEnterObserv
         // V48c: después del "Sí", se controla con el registro como está ahora en la base (ver siSigue)
         Runnable correr = () -> siSigue(a.si(), filaLista, a.titulo(), fila -> ejecutarAccion(a, fila));
         if (a.confirmar() == null || a.confirmar().isBlank()) { correr.run(); return; }
-        ConfirmDialog d = new ConfirmDialog(a.titulo(), a.confirmar(), "Sí", e -> correr.run(), "No", e -> { });
+        ConfirmDialog d = new ConfirmDialog(a.titulo(), textoConDatos(a.confirmar(), filaLista), "Sí", e -> correr.run(), "No", e -> { });
         d.open();
+    }
+
+    /**
+     * E6z: la pregunta de 'confirmar' con datos del registro: {Campo} se reemplaza por su valor (ej. "¿Genera el pedido para el
+     * cliente {PRSRazonSocial0}?"). Lo que no está en la fila de la lista se lee del registro.
+     */
+    private String textoConDatos(String texto, Map<String, Object> fila) {
+        if (texto == null || !texto.contains("{")) return texto;
+        Map<String, Object> ci = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        if (fila != null) fila.forEach((k, x) -> { if (k != null) ci.put(k, x); });
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\{([A-Za-z_]\\w*)\\}").matcher(texto);
+        StringBuilder sb = new StringBuilder();
+        boolean leido = false;
+        while (m.find()) {
+            String n = m.group(1);
+            if (!ci.containsKey(n) && !leido && fila != null) {
+                leido = true;
+                try { datos.cargarCabecera(trn, claveDe(fila)).cabecera().forEach((k, x) -> { if (k != null) ci.putIfAbsent(k, x); }); }
+                catch (SQLException | RuntimeException ex) { /* queda el texto sin ese dato */ }
+            }
+            Object v = ci.get(n);
+            m.appendReplacement(sb, java.util.regex.Matcher.quoteReplacement(v == null ? "" : String.valueOf(v).trim()));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     private void ejecutarAccion(OptimistTrnDefinicion.AccionRenglon a, Map<String, Object> fila) {

@@ -2,6 +2,12 @@
 
 Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está en `optimist-erp/CAMBIOS.md`.
 
+## E6z — Datos del registro en la pregunta de una acción (05/11/2026)
+
+- `confirmar:` de una acción del renglón (WorkWith): `{Campo}` se reemplaza por el valor del registro (de la fila de la lista; si no
+  está, se lee del registro). Ej. `"Está seguro de Generar la Nota de Pedido para el Cliente {PRSRazonSocial0}?"`.
+- Opcional: un texto sin `{…}`, como antes. **Hay que hacer `mvn install` en `engine`**.
+
 ## E6y — Web panels desde las lupas de la TRN (05/11/2026)
 
 - `ver:` (lupas de la cabecera y de los renglones) con `panel: WebPanel`: abre ese web panel en una ventana encima del formulario

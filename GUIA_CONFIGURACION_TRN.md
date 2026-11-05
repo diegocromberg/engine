@@ -784,7 +784,7 @@ workwith:
 - `parametros`: campos del renglón (`PRSId`), constantes (`1`, `'PRS'`, `true`) o `"&Variable"` (de salida: si el procedimiento devuelve un texto ahí, se muestra). Van en el orden del `Parm` del procedimiento o del panel.
 - (V66k) `cns: Consulta` abre una consulta (`consultas/`, sección 21) con lo que recibe: `parametros` en el orden de su `recibe:`. Ej. Asientos: `{titulo: Ver Imputaciones, icono: LIST_UL, cns: ExtraWWDetAsientosDetalle, parametros: [AsientosId]}`.
 - `color` (E5c): el color del ícono de esa acción (`"#1e7fd8"`, `"30,100,180"` o `red`); sin él, el color por defecto del ícono (abajo). También en `botones` y en las acciones de las consultas.
-- `confirmar`: pregunta antes de hacerlo. `icono`: un ícono de Vaadin (CLOCK, BAN, COPY, ENVELOPE, PRINT, EXCHANGE, THUMBS_DOWN, FILE_ADD, CHECK, SEARCH, PENCIL...). El color lo pone el motor según el ícono (V56d), igual en el menú y en el renglón: PENCIL amarillo, SEARCH azul, CLOSE (Eliminar) rojo, CLOSE_BIG (Cancelar) y BAN (Desautorizar) bordó, CHECK verde, PRINT gris azulado, COPY violeta, ENVELOPE naranja, FILE_ADD verde agua, EXCHANGE índigo, CLOCK marrón, CALENDAR fucsia, THUMBS_DOWN naranja oscuro; otro ícono toma un color fijo de una paleta.
+- `confirmar`: pregunta antes de hacerlo (E6z: `{Campo}` se reemplaza por el valor del registro, ej. `"¿Genera el pedido para el cliente {PRSRazonSocial0}?"`). `icono`: un ícono de Vaadin (CLOCK, BAN, COPY, ENVELOPE, PRINT, EXCHANGE, THUMBS_DOWN, FILE_ADD, CHECK, SEARCH, PENCIL...). El color lo pone el motor según el ícono (V56d), igual en el menú y en el renglón: PENCIL amarillo, SEARCH azul, CLOSE (Eliminar) rojo, CLOSE_BIG (Cancelar) y BAN (Desautorizar) bordó, CHECK verde, PRINT gris azulado, COPY violeta, ENVELOPE naranja, FILE_ADD verde agua, EXCHANGE índigo, CLOCK marrón, CALENDAR fucsia, THUMBS_DOWN naranja oscuro; otro ícono toma un color fijo de una paleta.
 - Después de un procedimiento se muestran sus `Msg()`, lo que deja en `&WWPContext.MensajeError` (como el WorkWithPlus: "El Presupuesto 69 fue Cancelado") y los textos que devuelve; la lista se actualiza.
 - Si una condición está mal escrita, la TRN no abre y lo dice; si falla con los datos de un renglón, esa acción no se muestra en ese renglón.
 - **V65o**: la acción cuya condición no se cumple en un renglón se muestra **en gris**, con el motivo (la primera parte unida por `and` que da falso y sus valores de hoy). Solo se saca del todo la de otra instalación (`&Instalacion` o una variable del `inicio:` que sale de ella). Conviene escribir las condiciones partidas por `and` (una parte por cosa a controlar): así el motivo dice exactamente cuál falla.
@@ -1845,6 +1845,7 @@ carpeta elegida la aplicación completa a partir de `engine/plantilla-aplicacion
 armar el WAR, `.gitignore`, `README.md` y `CAMBIOS.md`. Al terminar ofrece importar las TRN de GeneXus directamente ahí.
 
 ### Historial
+- **E6z**: `{Campo}` en el texto de `confirmar` de las acciones del renglón.
 - **E6y**: `ver:` con `panel:`, vínculo a la TRN del renglón (`trn: "=Columna"`) y `resaltar` en las listas de los web panels.
 - **E6x**: `porRenglon:` en las consultas y `orden:` por una columna de `columnasSql`.
 - **E6w**: `X.InviteMessage`, `Visible` de un archivo de un detalle, la lista de la TRN vacía la sesión de sus vistas.
