@@ -1227,8 +1227,8 @@ public final class OptimistWorkWith {
 
         // ------------------------------------------------------------------ E7b: los filtros quedan puestos
 
-        /** E7b: los filtros de la lista quedan guardados por usuario y lista (al ir y volver, con F5 y al volver a entrar),
-         *  hasta que el usuario los cambia o toca "Limpiar filtros". */
+        /** E7b: los filtros de la lista quedan puestos durante la sesión (al ir y volver y con F5), por usuario y lista, hasta
+         *  que el usuario los cambia o toca "Limpiar filtros". Al ingresar al sistema (sesión nueva), limpios. */
         private String filtrosGuardados;
         private boolean restaurandoFiltros;
 
@@ -1244,12 +1244,23 @@ public final class OptimistWorkWith {
             String ahora = codificarFiltros(textosFiltros());
             if (ahora.equals(filtrosGuardados)) return;
             filtrosGuardados = ahora;
-            guardarPref("filtros", ahora);
+            Map<String, String> m = filtrosDeLaSesion();
+            if (m != null) m.put(usuarioPref + "|" + clavePref("filtros"), ahora);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Map<String, String> filtrosDeLaSesion() {
+            com.vaadin.flow.server.VaadinSession vs = com.vaadin.flow.server.VaadinSession.getCurrent();
+            if (vs == null) return null;
+            Object m = vs.getAttribute("optimist.filtros");
+            if (m == null) { m = new java.util.concurrent.ConcurrentHashMap<String, String>(); vs.setAttribute("optimist.filtros", m); }
+            return (Map<String, String>) m;
         }
 
         /** Pone los filtros guardados en los que están vacíos (un filtro que puso el programa al abrir, queda). */
-        private void restaurarFiltros(java.util.Properties p) {
-            String g = p.getProperty(clavePref("filtros"));
+        private void restaurarFiltros() {
+            Map<String, String> m = filtrosDeLaSesion();
+            String g = m == null ? null : m.get(usuarioPref + "|" + clavePref("filtros"));
             if (g == null || g.isBlank()) { filtrosGuardados = ""; return; }
             restaurandoFiltros = true;
             try {
@@ -1286,7 +1297,7 @@ public final class OptimistWorkWith {
                                                 : com.vaadin.flow.data.provider.SortDirection.ASCENDING)));
                 }
             }
-            restaurarFiltros(p);   // E7b
+            restaurarFiltros();   // E7b
         }
 
         /** lista: claves en orden, '-' adelante = oculta. Las columnas que no figuran (nuevas en el YAML) van al final, visibles. */

@@ -4,8 +4,8 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 
 ## E7b — Los filtros de las listas quedan puestos (05/11/2026)
 
-- WorkWith y consultas: los filtros por columna quedan guardados por usuario y lista (junto con las columnas, anchos y orden):
-  al ir a otra pantalla y volver, con F5 y al volver a entrar al sistema, la lista aparece con los mismos filtros. Se sacan
+- WorkWith y consultas: los filtros por columna quedan puestos durante la sesión, por usuario y lista: al ir a otra pantalla
+  y volver y con F5, la lista aparece con los mismos filtros. Al ingresar al sistema, limpios (Diego). Se sacan
   cambiándolos o con "↺ Limpiar filtros". Si la pantalla que abre la lista ya le pone un filtro, ese queda y los guardados se
   agregan en los demás. El filtro de una columna que el usuario ocultó no se restaura. Las lupas, como antes (vacías al abrir).
 - Sin claves nuevas en el YAML. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).

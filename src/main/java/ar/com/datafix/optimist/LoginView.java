@@ -73,6 +73,7 @@ public class LoginView extends VerticalLayout implements com.vaadin.flow.router.
                 }
                 ctx.guardarEnSesion();
                 VaadinSession.getCurrent().setAttribute("optimist.usuario",u);
+                VaadinSession.getCurrent().setAttribute("optimist.filtros",null);   // E7b: al ingresar, los filtros de las listas limpios
                 UI.getCurrent().getPage().executeJs("localStorage.setItem('optimist.usuario',$0)",u);
                 if(db.modoCentral()){
                     precalentar.cliente(cliente[0]);   // V53: la primera vez que entra alguien de ese cliente
