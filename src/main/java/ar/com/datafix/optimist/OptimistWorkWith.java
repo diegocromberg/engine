@@ -1024,7 +1024,7 @@ public final class OptimistWorkWith {
             titulos.put(clave, etiqueta);
             java.util.Comparator<T> cmp = OptimistWorkWith.comparador(valorExcel);
             comparadores.put(clave, cmp);
-            Grid.Column<T> col = OptimistWorkWith.columna(grilla,clave,etiqueta,extractor,filtros,()->{pagina=0;refrescar();}, color, estilo,
+            Grid.Column<T> col = OptimistWorkWith.columna(grilla,clave,etiqueta,extractor,filtros,()->{if(restaurandoFiltros)return;pagina=0;refrescar();}, color, estilo,
                     tiposFiltro.get(clave), enlaces.get(clave), valoresFiltro.get(clave));
             col.setComparator(cmp);   // la página visible se ordena igual que el total
             // V52: el estilo de cada celda según su valor (ej. el stock: verde si es positivo, rojo si es negativo)
@@ -1225,6 +1225,49 @@ public final class OptimistWorkWith {
             });
         }
 
+        // ------------------------------------------------------------------ E7b: los filtros quedan puestos
+
+        /** E7b: los filtros de la lista quedan guardados por usuario y lista (al ir y volver, con F5 y al volver a entrar),
+         *  hasta que el usuario los cambia o toca "Limpiar filtros". */
+        private String filtrosGuardados;
+        private boolean restaurandoFiltros;
+
+        private static String codificarFiltros(Map<String, String> m) {
+            StringBuilder b = new StringBuilder();
+            m.forEach((k, v) -> b.append(b.length() == 0 ? "" : "&").append(java.net.URLEncoder.encode(k, java.nio.charset.StandardCharsets.UTF_8))
+                    .append('=').append(java.net.URLEncoder.encode(v, java.nio.charset.StandardCharsets.UTF_8)));
+            return b.toString();
+        }
+
+        private void guardarFiltros() {
+            if (!preferenciasAplicadas || restaurandoFiltros || idPreferencias == null) return;
+            String ahora = codificarFiltros(textosFiltros());
+            if (ahora.equals(filtrosGuardados)) return;
+            filtrosGuardados = ahora;
+            guardarPref("filtros", ahora);
+        }
+
+        /** Pone los filtros guardados en los que están vacíos (un filtro que puso el programa al abrir, queda). */
+        private void restaurarFiltros(java.util.Properties p) {
+            String g = p.getProperty(clavePref("filtros"));
+            if (g == null || g.isBlank()) { filtrosGuardados = ""; return; }
+            restaurandoFiltros = true;
+            try {
+                for (String par : g.split("&")) {
+                    int i = par.indexOf('=');
+                    if (i <= 0) continue;
+                    String k = java.net.URLDecoder.decode(par.substring(0, i), java.nio.charset.StandardCharsets.UTF_8);
+                    String v = java.net.URLDecoder.decode(par.substring(i + 1), java.nio.charset.StandardCharsets.UTF_8);
+                    TextField t = filtros.get(k);
+                    Grid.Column<T> c = columnas.get(k);
+                    if (t == null || (c != null && !c.isVisible())) continue;   // una columna que ya no está o que el usuario ocultó
+                    if (t.getValue() == null || t.getValue().isBlank()) t.setValue(v);
+                }
+            } finally { restaurandoFiltros = false; }
+            filtrosGuardados = codificarFiltros(textosFiltros());
+            pagina = 0;
+        }
+
         /** Aplica lo guardado (una sola vez, cuando ya están todas las columnas). */
         private void aplicarPreferencias() {
             if (preferenciasAplicadas || idPreferencias == null) return;
@@ -1243,6 +1286,7 @@ public final class OptimistWorkWith {
                                                 : com.vaadin.flow.data.provider.SortDirection.ASCENDING)));
                 }
             }
+            restaurarFiltros(p);   // E7b
         }
 
         /** lista: claves en orden, '-' adelante = oculta. Las columnas que no figuran (nuevas en el YAML) van al final, visibles. */
@@ -1548,6 +1592,7 @@ public final class OptimistWorkWith {
         }
 
         public void refrescar() {
+            guardarFiltros();   // E7b
             if (fuente != null) { refrescarDesdeFuente(); return; }
             List<T> encontrados = ordenar(OptimistWorkWith.filtrar(registros,filtros,extractores,reales));
             int n=filas.getValue()==null?10:filas.getValue();
