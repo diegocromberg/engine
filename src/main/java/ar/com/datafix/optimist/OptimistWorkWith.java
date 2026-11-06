@@ -227,10 +227,19 @@ public final class OptimistWorkWith {
         v1.addValueChangeListener(e -> armar.run());
         v2.addValueChangeListener(e -> armar.run());
         // "Limpiar filtros" vacía el texto del filtro: también los controles
+        // E7b: un filtro puesto desde el programa (los que quedan de la sesión): los controles muestran lo que dice
         canon.addValueChangeListener(e -> {
-            if (armando[0] || !e.getValue().isEmpty()) return;
+            if (armando[0]) return;
             armando[0] = true;
-            try { v1.clear(); v2.clear(); op.setValue("="); v2.setVisible(false); } finally { armando[0] = false; }
+            try {
+                String t = e.getValue();
+                if (t == null || !t.startsWith(NUM)) { v1.clear(); v2.clear(); op.setValue("="); v2.setVisible(false); return; }
+                String[] p = t.substring(NUM.length()).split(SEP, -1);
+                op.setValue(p.length > 0 && List.of("=", "!=", "<", "<=", ">", ">=", "entre").contains(p[0]) ? p[0] : "=");
+                v1.setValue(p.length > 1 ? p[1] : "");
+                v2.setValue(p.length > 2 ? p[2] : "");
+                v2.setVisible("entre".equals(op.getValue()));
+            } finally { armando[0] = false; }
         });
         // V50b: uno debajo del otro (operador, valor, hasta): en una columna angosta se ve dónde escribir el número
         VerticalLayout h = new VerticalLayout(op, v1, v2);
@@ -266,9 +275,17 @@ public final class OptimistWorkWith {
         d.addValueChangeListener(e -> armar.run());
         h.addValueChangeListener(e -> armar.run());
         canon.addValueChangeListener(e -> {
-            if (armando[0] || !e.getValue().isEmpty()) return;
+            if (armando[0]) return;
             armando[0] = true;
-            try { d.clear(); h.clear(); } finally { armando[0] = false; }
+            try {
+                String t = e.getValue();
+                d.clear(); h.clear();
+                if (t != null && t.startsWith(FEC)) {   // E7b: un filtro puesto desde el programa: las fechas lo muestran
+                    String[] p = t.substring(FEC.length()).split(SEP, -1);
+                    try { if (p.length > 0 && !p[0].isBlank()) d.setValue(java.time.LocalDate.parse(p[0].trim())); } catch (RuntimeException ignorado) { }
+                    try { if (p.length > 1 && !p[1].isBlank()) h.setValue(java.time.LocalDate.parse(p[1].trim())); } catch (RuntimeException ignorado) { }
+                }
+            } finally { armando[0] = false; }
         });
         VerticalLayout fila = new VerticalLayout(d, h);   // V50b: desde arriba, hasta abajo
         fila.setPadding(false);
@@ -1248,9 +1265,12 @@ public final class OptimistWorkWith {
             if (m != null) m.put(usuarioPref + "|" + clavePref("filtros"), ahora);
         }
 
+        // la sesión de quien armó la lista (refrescar puede correr fuera del hilo de la pantalla, sin VaadinSession.getCurrent())
+        private final com.vaadin.flow.server.VaadinSession sesionLista = com.vaadin.flow.server.VaadinSession.getCurrent();
+
         @SuppressWarnings("unchecked")
-        private static Map<String, String> filtrosDeLaSesion() {
-            com.vaadin.flow.server.VaadinSession vs = com.vaadin.flow.server.VaadinSession.getCurrent();
+        private Map<String, String> filtrosDeLaSesion() {
+            com.vaadin.flow.server.VaadinSession vs = sesionLista != null ? sesionLista : com.vaadin.flow.server.VaadinSession.getCurrent();
             if (vs == null) return null;
             Object m = vs.getAttribute("optimist.filtros");
             if (m == null) { m = new java.util.concurrent.ConcurrentHashMap<String, String>(); vs.setAttribute("optimist.filtros", m); }
@@ -1276,6 +1296,7 @@ public final class OptimistWorkWith {
                 }
             } finally { restaurandoFiltros = false; }
             filtrosGuardados = codificarFiltros(textosFiltros());
+            System.out.println("[" + idPreferencias + "] filtros de la sesión puestos de nuevo: " + textosFiltros().keySet());
             pagina = 0;
         }
 

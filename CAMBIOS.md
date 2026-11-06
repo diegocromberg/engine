@@ -7,7 +7,8 @@ Changelog consolidado del motor. Lo anterior a la separación (V1 a V84) está e
 - WorkWith y consultas: los filtros por columna quedan puestos durante la sesión, por usuario y lista: al ir a otra pantalla
   y volver y con F5, la lista aparece con los mismos filtros. Al ingresar al sistema, limpios (Diego). Se sacan
   cambiándolos o con "↺ Limpiar filtros". Si la pantalla que abre la lista ya le pone un filtro, ese queda y los guardados se
-  agregan en los demás. El filtro de una columna que el usuario ocultó no se restaura. Las lupas, como antes (vacías al abrir).
+  agregan en los demás. El filtro de una columna que el usuario ocultó no se restaura. Los filtros de número (operador y valores)
+  y de fecha (desde / hasta) muestran lo restaurado (antes, un filtro puesto desde el programa filtraba pero los controles quedaban vacíos). Las lupas, como antes (vacías al abrir).
 - Sin claves nuevas en el YAML. **Hay que hacer `mvn install` en `engine`** (sigue la versión 0.6.0).
 
 ## E7a — Un procedimiento que abre un web panel (05/11/2026)
